@@ -25,18 +25,18 @@
 //Init clock
 static void CLOCK_init(void)
 {	
-//	RCC->APB2ENR |= (1<<0);	//¿ªÆôAFIOÊ±ÖÓ
-	RCC->APB2ENR |= (1<<2);	//¿ªÆôGPIOAÊ±ÖÓ
-	RCC->APB2ENR |= (1<<3);	//¿ªÆôGPIOBÊ±ÖÓ
-	RCC->APB2ENR |= (1<<4);	//¿ªÆôGPIOCÊ±ÖÓ
-	RCC->APB2ENR |= (1<<12);//¿ªÆôSPI1Ê±ÖÓ
+//	RCC->APB2ENR |= (1<<0);	//ï¿½ï¿½ï¿½ï¿½AFIOÊ±ï¿½ï¿½
+	RCC->APB2ENR |= (1<<2);	//ï¿½ï¿½ï¿½ï¿½GPIOAÊ±ï¿½ï¿½
+	RCC->APB2ENR |= (1<<3);	//ï¿½ï¿½ï¿½ï¿½GPIOBÊ±ï¿½ï¿½
+	RCC->APB2ENR |= (1<<4);	//ï¿½ï¿½ï¿½ï¿½GPIOCÊ±ï¿½ï¿½
+	RCC->APB2ENR |= (1<<12);//ï¿½ï¿½ï¿½ï¿½SPI1Ê±ï¿½ï¿½
 
-	RCC->APB2ENR |= (1<<11);	//¿ªÆôTIM1Ê±ÖÓ
+	RCC->APB2ENR |= (1<<11);	//ï¿½ï¿½ï¿½ï¿½TIM1Ê±ï¿½ï¿½
 
-	RCC->APB1ENR |= (1<<0);	//¿ªÆôTIM2Ê±ÖÓ
-	RCC->APB1ENR |= (1<<1);	//¿ªÆôTIM3Ê±ÖÓ
-//	RCC->APB1ENR |= (1<<2);	//¿ªÆôTIM4Ê±ÖÓ
-	RCC->APB1ENR |= (1<<14);//¿ªÆôSPI2Ê±ÖÓ
+	RCC->APB1ENR |= (1<<0);	//ï¿½ï¿½ï¿½ï¿½TIM2Ê±ï¿½ï¿½
+	RCC->APB1ENR |= (1<<1);	//ï¿½ï¿½ï¿½ï¿½TIM3Ê±ï¿½ï¿½
+//	RCC->APB1ENR |= (1<<2);	//ï¿½ï¿½ï¿½ï¿½TIM4Ê±ï¿½ï¿½
+	RCC->APB1ENR |= (1<<14);//ï¿½ï¿½ï¿½ï¿½SPI2Ê±ï¿½ï¿½
 }
 
 //Init NVIC
@@ -44,17 +44,17 @@ static void NVIC_init(void)
 {
 	NVIC_InitTypeDef NVIC_InitStructure;
 	
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); //µÚ4×é:4Î»ÇÀÕ¼ÓÅÏÈ¼¶
-	NVIC_SetPriority(SysTick_IRQn,15); //ÉèÖÃSysTick_IRQnÇÀÕ¼ÓÅÏÈ¼¶×îµÍ
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); //ï¿½ï¿½4ï¿½ï¿½:4Î»ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½È¼ï¿½
+	NVIC_SetPriority(SysTick_IRQn,15); //ï¿½ï¿½ï¿½ï¿½SysTick_IRQnï¿½ï¿½Õ¼ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½
 	
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0; //ÏìÓ¦ÓÅÏÈ¼¶
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0; //ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½È¼ï¿½
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn; //ÇÀÕ¼ÓÅÏÈ¼¶0(dirÒý½Å)
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn; //ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½È¼ï¿½0(dirï¿½ï¿½ï¿½ï¿½)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_Init(&NVIC_InitStructure);
 	
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn; //ÇÀÕ¼ÓÅÏÈ¼¶Îª1(¿ØÖÆÑ­»·)
+	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn; //ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½È¼ï¿½Îª1(ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_Init(&NVIC_InitStructure);
 }
@@ -133,7 +133,7 @@ static void A4950_init(void)
 static void A1333_init (void)
 {	
 	GPIOB->CRH &= 0x0000ffff;	//clean CS SCK MOSI MISO control bit
-	GPIOB->CRH |= 0xb8b30000;	//config CS Universal push-pull output£¬SCK MOSI Multiplexed push-pull output£¬MISO pulldown input
+	GPIOB->CRH |= 0xb8b30000;	//config CS Universal push-pull outputï¿½ï¿½SCK MOSI Multiplexed push-pull outputï¿½ï¿½MISO pulldown input
 	GPIOB->ODR |= 0x0000f000;	//default CS SCK MOSI MISO output high
 
 	SPI_InitTypeDef SPI_InitStructure;
@@ -162,6 +162,63 @@ static void LED_init(void)
 	GPIOC->CRH |= 0x00300000; //Universal push-pull output
 	GPIOC->ODR |= 0x00002000;
 }
+static void CAN_begin(){
+	
+
+	// RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
+
+	/* Configure CAN pin: RX */
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	/* Configure CAN pin: TX */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	CAN_InitTypeDef        CAN_InitStructure;
+	/* CAN register init */
+	CAN_DeInit(CAN1);
+	CAN_StructInit(&CAN_InitStructure);
+
+	/* CAN cell init */
+	CAN_InitStructure.CAN_TTCM=DISABLE;
+	CAN_InitStructure.CAN_ABOM=DISABLE;
+	CAN_InitStructure.CAN_AWUM=DISABLE;
+	CAN_InitStructure.CAN_NART=DISABLE;
+	CAN_InitStructure.CAN_RFLM=ENABLE;
+	CAN_InitStructure.CAN_TXFP=ENABLE;
+	CAN_InitStructure.CAN_Mode=CAN_Mode_Normal;
+
+	/* Baudrate = 125kbps*/
+	CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;
+	CAN_InitStructure.CAN_BS1=CAN_BS1_2tq;
+	CAN_InitStructure.CAN_BS2=CAN_BS2_3tq;
+	CAN_InitStructure.CAN_Prescaler=48;
+	CAN_Init(CAN1, &CAN_InitStructure);
+	
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	//setup filters
+	CAN_MsgsFiltersSetup();
+	//enable receive interrupt
+	CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
+	CAN_ITConfig(CAN1, CAN_IT_FF0, ENABLE); 
+	CAN_ITConfig(CAN1, CAN_IT_FOV0, ENABLE); 
+
+}
+
 
 void board_init(void)
 {
@@ -174,6 +231,7 @@ void board_init(void)
 	SWITCH_init();
 	LED_init();
 //	USART_Config ();
+	CAN_begin();
 }
 
 //red led

@@ -28,7 +28,7 @@
 #include "stdbool.h"
 //#include "stm32f10x_adc.h"
 //#include "stm32f10x_bkp.h"
-//#include "stm32f10x_can.h"
+#include "../LIB/inc/stm32f10x_can.h"
 //#include "stm32f10x_cec.h"
 //#include "stm32f10x_crc.h"
 //#include "stm32f10x_dac.h"
