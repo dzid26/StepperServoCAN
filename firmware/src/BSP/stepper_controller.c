@@ -510,6 +510,10 @@ void StepperCtrl_enable(bool enable)
 	StepperCtrl_Enabled = enable;
 }
 
+void StepperUpdateSteps(int64_t steps){
+	numSteps = steps;
+}
+
 bool StepperCtrl_processFeedback(void)
 {
 	bool ret = false;

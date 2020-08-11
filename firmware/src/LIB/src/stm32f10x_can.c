@@ -574,7 +574,7 @@ uint8_t CAN_Transmit(CAN_TypeDef* CANx, CanTxMsg* TxMessage)
     /* Request transmission */
     CANx->sTxMailBox[transmit_mailbox].TIR |= TMIDxR_TXRQ;
   }
-  return transmit_mailbox;
+  return  ;
 }
 
 /**

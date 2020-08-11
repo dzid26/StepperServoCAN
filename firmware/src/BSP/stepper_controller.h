@@ -71,5 +71,6 @@ bool StepperCtrl_processFeedback(void);
 bool StepperCtrl_simpleFeedback(int64_t desiredLoc, int64_t currentLoc);
 void StepperCtrl_moveToAngle(int32_t a, uint32_t ma);
 uint16_t StepperCtrl_maxCalibrationError(void);
+void StepperUpdateSteps(int64_t steps);
 
 #endif
