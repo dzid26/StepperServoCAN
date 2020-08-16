@@ -34,8 +34,7 @@ extern CAN_TypeDef hcan;
 
 void CAN_TransmitMyMsg(void);
 void CAN_MsgsFiltersSetup(void);
-uint64_t CAN_ReadPosition();
-extern CanRxMsg rx_message;
+void CAN_InterpretMesssages(CanRxMsg message);
 
 
 #ifdef __cplusplus

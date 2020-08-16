@@ -437,7 +437,6 @@ void MKS_loop(void)
 	}
 
 	display_process();
-	StepperUpdateSteps((int64_t) CAN_ReadPosition());
 	CAN_TransmitMyMsg(); //test
 
 }
