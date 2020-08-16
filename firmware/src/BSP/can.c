@@ -19,26 +19,26 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "can.h"
+#include "stepper_controller.h"
 
-CanRxMsg rx_message;
-/* USER CODE BEGIN 0 */
+volatile uint32_t can_rx_cnt = 0;
+volatile uint32_t can_tx_cnt = 0;
+volatile uint32_t can_err_cnt = 0;
+volatile uint32_t can_overflow_cnt = 0;
 
-/* USER CODE END 0 */
-
-CAN_TypeDef hcan;
 void CAN_MsgsFiltersSetup()
 {
 	CAN_FilterInitTypeDef  CAN_FilterInitStructure;
 
 	/* CAN filter init */
 	CAN_FilterInitStructure.CAN_FilterNumber=0;
-	CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdMask;
+	CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdMask; //CAN_FilterMode_IdList
 	CAN_FilterInitStructure.CAN_FilterScale=CAN_FilterScale_32bit;
 	CAN_FilterInitStructure.CAN_FilterIdHigh=0x0000;
 	CAN_FilterInitStructure.CAN_FilterIdLow=0x0000;
 	CAN_FilterInitStructure.CAN_FilterMaskIdHigh=0x0000;
 	CAN_FilterInitStructure.CAN_FilterMaskIdLow=0x0000;  
-	CAN_FilterInitStructure.CAN_FilterFIFOAssignment=0;
+	CAN_FilterInitStructure.CAN_FilterFIFOAssignment=CAN_Filter_FIFO0;
 	CAN_FilterInitStructure.CAN_FilterActivation=ENABLE;
 	
 	CAN_FilterInit(&CAN_FilterInitStructure);
@@ -49,7 +49,7 @@ void CAN_TransmitMyMsg(void)
   CanTxMsg TxMessage;
 	uint32_t i = 0;
 	uint8_t TransmitMailbox = 0;
-	uint8_t status = 0;
+	uint8_t status = CAN_TxStatus_Failed;
   /* transmit */
   TxMessage.StdId=0x11;
   TxMessage.RTR=CAN_RTR_DATA;
@@ -59,32 +59,69 @@ void CAN_TransmitMyMsg(void)
   TxMessage.Data[1]=0xFE;
 
   TransmitMailbox=CAN_Transmit(CAN1, &TxMessage);
-
   // wait until CAN transmission is OK
   i = 0;
-  while((status != CANTXOK) && (i != 0xFFFF))               
+  while((status != CANTXOK))               
   {
     status = CAN_TransmitStatus(CAN1, TransmitMailbox);
     i++;
+    delay_us(1);
+    if (status == CAN_TxStatus_Failed || (i == 0xFF)){
+      can_err_cnt++;
+      CAN_GetLastErrorCode(CAN1);
+      return;
+    }
   }
-
+  can_tx_cnt++;
 }
 
-uint64_t CAN_ReadPosition()
-{ 
-	uint8_t i;
-  uint64_t pos=0;
-	for(i=0; i < 7; i++)
-    pos+=( ((uint64_t) rx_message.Data[i])<<((7-i)*8));
-  return pos;
+void CAN_InterpretMesssages(CanRxMsg message) { 
+  switch (message.StdId){
+  	case 18: {
+      uint8_t i;
+      uint64_t pos=0;
+      for(i=0; i < 8; i++)
+        pos+=(((uint64_t) message.Data[i])<<((7-i)*8));
+      set_StepperSteps(pos);
+    }
+  }
 }
 
-void USB_LP_CAN1_RX0_IRQHandler()
+// void USB_LP_CAN1_RX0_IRQHandler()
+// {
+//   if(CAN_GetITStatus(CAN1, CAN_IT_FMP0)){
+//     CAN_Receive(CAN1, CAN_FIFO0,&rx_message);
+//     if(rx_message.StdId == 18){
+//         CAN_ReadPosition();
+//         // timestamp = (uint8_t)0xFFFF & (CAN1->sFIFOMailBox->RDTR >> 16); 
+//     }
+//     CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
+//   }
+// }
+
+
+
+
+void USB_LP_CAN1_RX0_IRQHandler(void)
 {
-  CAN_Receive(CAN1, CAN_FIFO0,&rx_message);
-  if(rx_message.IDE == 18){
-      CAN_ReadPosition();
-  }
-  // xQueueSendFromISR(xCAN_receive_queue0, &RxMessage, &resch);
-  // portEND_SWITCHING_ISR(resch);
+    if(CAN_GetITStatus(CAN1, CAN_IT_FMP0)){
+      CanRxMsg rxMessage;
+      while(CAN_MessagePending(CAN1, CAN_FIFO0) > 0)
+      {
+          CAN_Receive(CAN1, CAN_FIFO0, &rxMessage);
+          can_rx_cnt++;
+          CAN_InterpretMesssages(rxMessage);
+      }
+      CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
+    }
+    if(CAN_GetITStatus(CAN1, CAN_IT_FOV0)){
+        // There has been a buffer overflow
+        can_overflow_cnt++;
+        CAN_ClearITPendingBit(CAN1, CAN_IT_FOV0);
+    }
+    if(CAN_GetITStatus(CAN1, CAN_IT_FF0)){
+        // Buffers are all full
+        CAN_ClearITPendingBit(CAN1, CAN_IT_FF0);
+    } 
+
 }

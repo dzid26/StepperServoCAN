@@ -510,8 +510,10 @@ void StepperCtrl_enable(bool enable)
 	StepperCtrl_Enabled = enable;
 }
 
-void StepperUpdateSteps(int64_t steps){
+void set_StepperSteps(int64_t steps){
+	disableTCInterrupts(); //reading from a global may result in partial data if called from outside
 	numSteps = steps;
+	enableTCInterrupts();
 }
 
 bool StepperCtrl_processFeedback(void)
