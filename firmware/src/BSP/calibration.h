@@ -27,7 +27,7 @@
 #include "string.h"
 #include "flash.h"
 
-#define	CALIBRATION_TABLE_SIZE	(256)
+#define	CALIBRATION_TABLE_SIZE	(400)  // 400 will work good for calibrating 1.8deg stepper every half step and 0.9deg stepper every full step 
 #define CALIBRATION_WRAP 				((int32_t)16384)
 #define CALIBRATION_STEPS 			((uint32_t)32768)	
 

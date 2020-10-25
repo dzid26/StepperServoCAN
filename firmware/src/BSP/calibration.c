@@ -39,7 +39,7 @@ uint16_t CalibrationTable_getTableIndex(uint16_t value)
 bool CalibrationTable_updateTableValue(uint16_t index, uint16_t value)
 {
 	CalData[index].value =	value;
-	CalData[index].error = CALIBRATION_STEPS / CALIBRATION_TABLE_SIZE;	//Îó²î
+	CalData[index].error = ANGLE_STEPS / CALIBRATION_TABLE_SIZE;
 	return true;
 }
 
@@ -73,10 +73,10 @@ uint16_t CalibrationTable_fastReverseLookup(uint16_t fastEncoderAngle)
 	}
 }
 
-//·´Ïò²éÕÒ
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle)
 {
-	int32_t i = 0;	
+	uint16_t i = 0;	
 	int32_t a1,a2;
 	int32_t b1,b2;	
 	int32_t x;
@@ -167,12 +167,11 @@ static uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t 
 
 void CalibrationTable_saveToFlash(void)
 {
-	uint16_t i = 0;	
-	uint16_t min = 0, max = 0;
+	uint16_t i;	
+	uint16_t min, max;
 	FlashCalData_t data;
 	
 	max = min = CalData[0].value;
-
 	for (i=0; i < CALIBRATION_TABLE_SIZE; i++ )
 	{
 		if(CalData[i].value < min)	{min = CalData[i].value;}
@@ -197,16 +196,16 @@ void CalibrationTable_createFastCal(void)
 {
 	uint32_t i,j;
 	uint16_t checkSum = 0;
-	uint16_t data[512]; //1K
-	for (i=0,j=0; i < 16384; i++)
+	uint16_t data[FLASH_ROW_SIZE]; //1K
+	for (i=0,j=0; i < ANGLE_WRAP; i+=2)
 	{
 		uint16_t x = 0;
-		x = CalibrationTable_reverseLookup(i << 1); //setting fast calibration
+		x = CalibrationTable_reverseLookup(i); //setting fast calibration
 		data[j] = x;
 		j++;
 		if (j >= FLASH_ROW_SIZE) //1k bytes = 512 uint16_t
 		{
-			Flash_ProgramPage( (FLASH_PAGE32_ADDR + (uint32_t)(((i + 1) * 2) - FLASH_PAGE_SIZE)), data, FLASH_ROW_SIZE );
+			Flash_ProgramPage( (FLASH_PAGE32_ADDR + (uint32_t)((i+2) - FLASH_PAGE_SIZE)), data, FLASH_ROW_SIZE );
 			j=0;
 		}
 		checkSum += x;
