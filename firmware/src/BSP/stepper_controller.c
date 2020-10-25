@@ -213,7 +213,6 @@ bool StepperCtrl_calibrateEncoder(void)
 	uint16_t mean = 0;
 	int32_t steps = 0;
 
-	bool done = false;
 	bool feedback = enableFeedback;
 	bool state = TC1_ISR_Enabled;
 	disableTCInterrupts();
@@ -223,52 +222,47 @@ bool StepperCtrl_calibrateEncoder(void)
 	enableFeedback = false;
 	systemParams.microsteps = 1;
 
-	A4950_move(0, motorParams.currentMa);
+	
+	// Enable hardware averaging and disable hysteresis filter:
+	// 	orate | hysteresis | zero_offset | ro | rd
+	A1333_setRegister_ANG(12, 0, 0, 0, 0); 
+	//max averaging of 12 is 4096 samples which is equates to 4ms lag. Assuming motor stay in the full step for at least 4ms the signal will be settled and fully filtered 
+
+	A4950_move(steps, motorParams.currentMa);
 	delay_ms(1200);
 
-	while(!done) //Starting calibration
+	for (j = 0; j < CALIBRATION_TABLE_SIZE; j++) //Starting calibration
 	{
-		delay_ms(180);
-		mean = StepperCtrl_sampleMeanEncoder(202);
-
+		delay_ms(320);
+		mean = StepperCtrl_sampleMeanEncoder(202); //collect angle every half step for 1.8 stepper
 		CalibrationTable_updateTableValue(j,mean);	//CalibrationTable[j] = mean
 
 		//move one half step at a time, a full step move could cause a move backwards
-		steps += A4950_NUM_MICROSTEPS;
+		steps += A4950_STEP_MICROSTEPS/2;
 		A4950_move(steps,motorParams.currentMa);
-		delay_ms(60);
-		steps += A4950_NUM_MICROSTEPS;
-		A4950_move(steps,motorParams.currentMa);
-		delay_ms(60);
 
-		if(400 == motorParams.fullStepsPerRotation)
+		if(400 == motorParams.fullStepsPerRotation)  //for 0.9deg stepper collect data only every full step
 		{
-			steps += A4950_NUM_MICROSTEPS;
+			delay_ms(20);
+			steps += A4950_STEP_MICROSTEPS/2;
 			A4950_move(steps,motorParams.currentMa);
-			delay_ms(60);
-			steps += A4950_NUM_MICROSTEPS;
-			A4950_move(steps,motorParams.currentMa);
-			delay_ms(60);
 		}
 
-		j++;
-		if(j >= CALIBRATION_TABLE_SIZE)
-		{
-			done = true;
-		}
 	}
 	CalibrationTable_saveToFlash(); //saves the calibration to flash
 
 	StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
 
 	StepperCtrl_motorReset();
+	
+	A1333_begin(); //Reset filters and perform sensor tests
 
 	enableFeedback = feedback;
 
 	enableINPUTInterrupts();
 	if (state) enableTCInterrupts();
 
-	return done;
+	return true;
 }
 
 // when sampling the mean of encoder if we are on roll over

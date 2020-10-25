@@ -27,7 +27,6 @@
 #include "board.h"
 #include "sine.h"
 
-#define A4950_NUM_MICROSTEPS ((int32_t)100)
 #define A4950_STEP_MICROSTEPS ((int32_t)256)
 
 inline static void bridge1(int state);
