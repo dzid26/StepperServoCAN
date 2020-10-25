@@ -189,9 +189,9 @@ bool A1333_begin(void)
 	delay_ms(40); //cooldown after test - this seems to be needed before writing to extended registers
 
 
-	// Disable hardware averaging and enable hysteresis filter:
+	// Set small hardware averaging (way below main task freq) and enable hysteresis filter:
 	// 	orate | hysteresis | zero_offset | ro | rd
-	A1333_setRegister_ANG(0, 4, 0, 0, 0); //averaging cause delay and doesn't deal well with low freq noise according to datasheet
+	A1333_setRegister_ANG(3, 4, 0, 0, 0); //averaging cause delay and doesn't deal well with low freq noise according to datasheet
 	
 	return true;
 }
