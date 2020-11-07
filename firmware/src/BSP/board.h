@@ -27,7 +27,7 @@
 #include "oled.h"
 #include "delay.h"
 #include "can.h"
-#include "sine.h"
+#include "A4950.h"
 
 #define	VERSON	"Ver:1.0.3"
 
@@ -61,7 +61,7 @@
 #define PIN_A4950_IN3  			GPIO_Pin_8
 #define PIN_A4950_IN4  		  GPIO_Pin_9
 #define	VREF_TIM			TIM3
-#define VREF_MAX			(uint16_t) SINE_MAX  //timer threshold - higher frequency timer works better with voltage low pass filter - less noise
+#define VREF_MAX			(uint16_t) SINE_MAX>>VREF_SCALER  //timer threshold - higher frequency timer works better with voltage low pass filter - less noise
 
 //A1333
 #define PIN_A1333     			GPIOB
