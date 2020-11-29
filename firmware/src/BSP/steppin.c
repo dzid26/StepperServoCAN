@@ -22,8 +22,8 @@
  #include "steppin.h"
 
 extern volatile uint32_t NVM_address;
-extern volatile int64_t numSteps;
-volatile int64_t steps = 0;
+extern volatile int32_t numSteps;
+volatile int16_t steps = 0;
 
 void dirPinSetup(void)
 {
@@ -95,7 +95,7 @@ void EXTI1_IRQHandler(void)
 	}
 }
 
-int64_t getSteps(void)
+int16_t getSteps(void)
 {
 	uint16_t y;
 	static uint16_t lasty = 0;
@@ -109,7 +109,7 @@ int64_t getSteps(void)
 	
 	lasty = y;
 	
-	return (int64_t)dy;
+	return dy;
 }
 
 void enableINPUTInterrupts(void)

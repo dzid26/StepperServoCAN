@@ -23,9 +23,10 @@
 #include "display.h"
 
 extern volatile SystemParams_t systemParams;
-extern volatile int64_t zeroAngleOffset;
+extern volatile int32_t zeroAngleOffset;
 extern volatile int32_t loopError;
-extern volatile int64_t steps;
+extern volatile int32_t velocity;
+extern volatile int16_t steps;
 
 menuItem_t*		ptrMenu;				//Menu Bar
 uint8_t 			menuIndex;			//Menu bar index

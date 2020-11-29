@@ -57,8 +57,8 @@ void enableTCInterrupts(void);
 void disableTCInterrupts(void);
 void  StepperCtrl_motorReset(void);
 void StepperCtrl_setLocationFromEncoder(void);
-int64_t StepperCtrl_getCurrentLocation(void);
-int64_t StepperCtrl_getDesiredLocation(void);
+int32_t StepperCtrl_getCurrentLocation(void);
+int32_t StepperCtrl_getDesiredLocation(void);
 bool StepperCtrl_calibrateEncoder(void);
 uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
 uint16_t StepperCtrl_getEncoderAngle(void);
@@ -71,6 +71,6 @@ bool StepperCtrl_processFeedback(void);
 bool StepperCtrl_simpleFeedback(int64_t desiredLoc, int64_t currentLoc);
 void StepperCtrl_moveToAngle(int32_t a, uint32_t ma);
 uint16_t StepperCtrl_maxCalibrationError(void);
-void set_StepperSteps(int64_t steps);
+void set_StepperSteps(int32_t steps);
 
 #endif

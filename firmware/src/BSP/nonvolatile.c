@@ -26,7 +26,7 @@
 extern volatile MotorParams_t motorParams;
 extern volatile SystemParams_t systemParams;
 extern volatile bool TC1_ISR_Enabled;
-extern volatile uint32_t fullMicrosteps;
+extern volatile uint32_t angleDivMicrostep;
 
 volatile uint32_t NVM_address = FLASH_PAGE30_ADDR;
 
@@ -96,7 +96,7 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	
 	motorParams = NVM->motorParams; //update motorParams
 	systemParams = NVM->SystemParams; //update systemParams
-	fullMicrosteps = (uint32_t)(ANGLE_STEPS / systemParams.microsteps);
+	angleDivMicrostep = (uint32_t)(ANGLE_STEPS / systemParams.microsteps);
 	StepperCtrl_setLocationFromEncoder(); //measure new starting point
 	
 	enableINPUTInterrupts();

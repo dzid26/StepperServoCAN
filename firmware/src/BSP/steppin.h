@@ -31,7 +31,7 @@ void dirPinSetup(void);
 void stepPinSetup(void);
 void inputPinSetup(void);
 void dirChanged_ISR(void);
-int64_t getSteps(void);
+int16_t getSteps(void);
 void disableINPUTInterrupts(void);
 void enableINPUTInterrupts(void);
 
