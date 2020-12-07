@@ -24,7 +24,7 @@
 volatile bool forwardRotation = true;
 volatile bool A4950_Enabled = true;
 
-//stepper 1
+//phase 1
 inline static void bridge1(int state)
 {
 	if (state == 0)
@@ -44,7 +44,7 @@ inline static void bridge1(int state)
 	}
 }
 
-//stepper 2
+//phase 2
 inline static void bridge2(int state)
 {
 	if (state == 0)
@@ -67,8 +67,10 @@ inline static void bridge2(int state)
 //Vref
 inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
 {
-	VREF_TIM->CCR3 = VREF12;						//TIM_SetCompare3(VREF_TIM, VREF12);
-	VREF_TIM->CCR4 = VREF34;						//TIM_SetCompare4(VREF_TIM, VREF34);
+	//VREF_SCALER reduces PWM resolution by 2^VREF_SCALER,
+	//but also increasesPWM freq - needed for low pass filter to effectively filter V reference)
+	VREF_TIM->CCR3 = VREF12>>VREF_SCALER;						//TIM_SetCompare3(VREF_TIM, VREF12);
+	VREF_TIM->CCR4 = VREF34>>VREF_SCALER;						//TIM_SetCompare4(VREF_TIM, VREF34);
 }
 
 
@@ -119,9 +121,9 @@ int32_t A4950_move(int32_t stepAngle, uint32_t mA)
 	}
 
 	//convert value into DAC scaled to 3300mA max
-	vrefSin = (uint16_t)((mA * fastAbs(sin) + 1500) / 3300);
+	vrefSin = (uint16_t)(mA * fastAbs(sin) / 3300);
 	//convert value into DAC scaled to 3300mA max
-	vrefCos = (uint16_t)((mA * fastAbs(cos) + 1500) / 3300);
+	vrefCos = (uint16_t)(mA * fastAbs(cos) / 3300);
 
 	setVREF(vrefSin,vrefCos); //VREF12	VREF34
 
