@@ -50,12 +50,15 @@ volatile int32_t currentLocation = 0;
 
 void setupTCInterrupts(void)
 {
+	RCC_ClocksTypeDef clocksData;
+	RCC_GetClocksFreq(&clocksData);
+
 	TIM_DeInit(TIM1);
 	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Period = 124;				//8k = 125us
-	TIM_TimeBaseStructure.TIM_Prescaler = (72-1);	//72��1MHz
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_Prescaler = (clocksData.PCLK2_Frequency / MHz_to_Hz -1);	//Prescale to 1MHz
+	TIM_TimeBaseStructure.TIM_Period = SAMPLING_PERIOD_uS-1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 
 	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
@@ -614,7 +617,7 @@ bool StepperCtrl_simpleFeedback(int64_t desiredLoc, int64_t currentLoc)
 	if (abs(lastError) > systemParams.errorLimit)
 	{
 		++errorCount;
-		if (errorCount > (MKS_CONTROL_LOOP_HZ >> 7))
+		if (errorCount > (SAMPLING_HZ >> 7))
 		{
 			return true;
 		}

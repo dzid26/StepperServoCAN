@@ -50,7 +50,10 @@ typedef struct {
 //this scales the PID parameters from Flash to floating point
 // to fixed point int32_t values
 #define CTRL_PID_SCALING 			(uint16_t)(1024)
-#define MKS_CONTROL_LOOP_HZ		(uint16_t)(6000) //update rate of control loop
+#define MHz_to_Hz	(uint32_t)(1000000)
+#define S_to_uS   	MHz_to_Hz
+#define SAMPLING_PERIOD_uS	(uint16_t)(62) //sampling time in uS of control loop
+#define SAMPLING_HZ		(uint16_t)(1u * S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
 
 void setupTCInterrupts(void);
 void enableTCInterrupts(void);
