@@ -44,9 +44,7 @@ volatile int32_t angleFullStep = 327;
 volatile int32_t numSteps = 0; //this is the number of steps we have taken from our start angle
 volatile int32_t zeroAngleOffset = 0;
 volatile int32_t currentLocation = 0;
-//estimate of the current location from encoder feedback
-//the current location lower 16 bits is angle (0-360 degrees in 65536 steps) while upper
-//bits is the number of full rotations.
+volatile int32_t speed_slow = 0;
 
 void setupTCInterrupts(void)
 {
@@ -521,6 +519,8 @@ bool StepperCtrl_processFeedback(void)
 	int32_t currentLoc;
 	static int32_t lastLoc;
 	static __IO int32_t mean = 0;
+	const int16_t filter_ts = 128; //filter time constant
+	int32_t speed_raw;
 
 	numSteps +=  (int32_t)getSteps(); //numSteps
 	desiredLoc = StepperCtrl_getDesiredLocation(); //DesiredLocation
@@ -530,6 +530,9 @@ bool StepperCtrl_processFeedback(void)
 	{
 		currentLoc = mean;
 	}
+
+	speed_raw = (currentLoc - lastLoc) * SAMPLING_HZ; // 360deg/65536/s
+	speed_slow = (speed_raw + (filter_ts-1) * speed_slow) / filter_ts; 
 
 	ret = StepperCtrl_simpleFeedback(desiredLoc, currentLoc);
 
@@ -552,6 +555,7 @@ bool StepperCtrl_processFeedback(void)
 //			break;
 //		}
 //	}
+	lastLoc = currentLoc;
 	return ret;
 }
 
