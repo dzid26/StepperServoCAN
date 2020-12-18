@@ -25,7 +25,7 @@
 extern volatile SystemParams_t systemParams;
 extern volatile int32_t zeroAngleOffset;
 extern volatile int32_t loopError;
-extern volatile int32_t velocity;
+extern volatile int32_t speed_slow;
 extern volatile int16_t steps;
 
 menuItem_t*		ptrMenu;				//Menu Bar
@@ -238,7 +238,7 @@ void display_updateLCD(void)
 {
 	char str[4][25] = {0};
 
-	sprintf(str[0], "Increment PID");
+// sprintf(str[0], "Increment PID");
 //	switch(systemParams.controllerMode)
 //	{
 //		case CTRL_SIMPLE:
@@ -257,13 +257,15 @@ void display_updateLCD(void)
 //			sprintf(str[0], "Error %u",systemParams.controllerMode);
 //			break;
 //	}
-
+	int16_t speed_slow_rpm = speed_slow * (60u>>2) / (int16_t) (ANGLE_STEPS>>2);
+	sprintf(str[0],"%3d rpm", (speed_slow_rpm <= 1 && speed_slow_rpm >= -1) ? 0 : speed_slow_rpm); 
+	
 	int32_t err = loopError;
 	int32_t x, y, z;
 	err = (err * 360 * 100) >> 16;
 	z = err / 100;
 	y = abs(err - (z * 100));
-	sprintf(str[1],"%01d.%02d err", z,y);
+	sprintf(str[1],"%01ld.%02ld err", z,y);
 
 	int64_t deg;
 	deg = StepperCtrl_getDesiredLocation() - zeroAngleOffset;
