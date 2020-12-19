@@ -518,18 +518,12 @@ bool StepperCtrl_processFeedback(void)
 	int32_t desiredLoc;
 	int32_t currentLoc;
 	static int32_t lastLoc;
-	static __IO int32_t mean = 0;
 	const int16_t filter_ts = 128; //filter time constant
 	int32_t speed_raw;
 
 	numSteps +=  (int32_t)getSteps(); //numSteps
 	desiredLoc = StepperCtrl_getDesiredLocation(); //DesiredLocation
 	currentLoc = StepperCtrl_getCurrentLocation(); //CurrentLocation
-	mean = (31 * mean + currentLoc + 16) / 32;
-	if(abs((currentLoc - mean)) < 27)	//ANGLE_FROM_DEGREES(0.15) = 27
-	{
-		currentLoc = mean;
-	}
 
 	speed_raw = (currentLoc - lastLoc) * SAMPLING_HZ; // 360deg/65536/s
 	speed_slow = (speed_raw + (filter_ts-1) * speed_slow) / filter_ts; 
