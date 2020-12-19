@@ -47,9 +47,9 @@ typedef struct {
 #define ANGLE_FROM_DEGREES(x) ((int32_t) ( ((float)ANGLE_STEPS * (float)(x)+ 180.0) / 360.0 ) )
 #define ANGLE_T0_DEGREES(x) ( (float) ((float(x) * 360.0) / ((float)ANGLE_STEPS) ))
 
-//this scales the PID parameters from Flash to floating point
-// to fixed point int32_t values
+//scales PID parameters from Flash (floating point) to int32_t used in control 
 #define CTRL_PID_SCALING 			(uint16_t)(1024)
+
 #define MHz_to_Hz	(uint32_t)(1000000)
 #define S_to_uS   	MHz_to_Hz
 #define SAMPLING_PERIOD_uS	(uint16_t)(62) //sampling time in uS of control loop

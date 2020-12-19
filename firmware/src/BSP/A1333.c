@@ -207,7 +207,7 @@ uint16_t A1333_readAddress(uint16_t addr)
 }
 
 //read the encoders
-uint16_t A1333_readEncoderAngle(void)
+uint16_t A1333_readEncoderAngle(void) //15bits -  32767 is 360
 {
 	uint16_t read_angle = 0;
 	if (a1333)

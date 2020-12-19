@@ -2,7 +2,8 @@
 ## Features
 - Based on the open project of nano_stepper by [Misfittech](https://github.com/Misfittech/nano_stepper)
 - To improve performance, Makerbase Team has made the following changes:
-- Ported the project to STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit Cortex™-M3 CPU Core,72 MHz maximum frequency,20k RAM. 64k Flash
+- Ported the project to STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit
+  Cortex™-M3 CPU Core, 72MHz maximum frequency, 20k RAM, 64k Flash.
 - Changed the magnetic encoder to Allegro's A1333LLETR-T 15bit Contactless 0° to 360° angle sensor IC, with on chip filtering.
 - Ported the compilation platform from arduino to PlatformIO —— Convenient  for STM32 MCU compilation
 - Change the socket with motherboard, now it can work with much 3D printer motherboards using MKS SV_EXT V1.1 by Makerbase

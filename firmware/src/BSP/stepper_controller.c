@@ -56,7 +56,7 @@ void setupTCInterrupts(void)
 	TIM_TimeBaseStructure.TIM_Prescaler = (clocksData.PCLK2_Frequency / MHz_to_Hz -1);	//Prescale to 1MHz
 	TIM_TimeBaseStructure.TIM_Period = SAMPLING_PERIOD_uS-1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 
 	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
@@ -172,6 +172,9 @@ void StepperCtrl_setLocationFromEncoder(void)
 	zeroAngleOffset = StepperCtrl_getCurrentLocation(); //zero the angle shown on LCD
 }
 
+//estimate of the current location from encoder feedback
+//the current location lower 16 bits is angle (0-360 degrees in 65536 steps) while upper
+//bits is the number of full rotations.
 int32_t StepperCtrl_getCurrentLocation(void)
 {
 	int32_t a,x;
