@@ -164,7 +164,7 @@ void StepperCtrl_setLocationFromEncoder(void)
 		a = CalibrationTable_fastReverseLookup(x); //start angle
 
 		//we need to set our numSteps( numSteps = ((a/65536)*200)*16 ) (0-65535) is (200step * micro)
-		numSteps = (int32_t)DIVIDE_WITH_ROUND(((uint32_t)a * (motorParams.fullStepsPerRotation >> 3)), (anglePer200steps >> 3));
+		numSteps = (int32_t)DIVIDE_WITH_ROUND((uint32_t)a * (motorParams.fullStepsPerRotation >> 3), anglePer200steps >> 3);
 
 		currentLocation = (int32_t)a; //save position
 	}
@@ -201,7 +201,7 @@ int32_t StepperCtrl_getDesiredLocation(void) //angle
 {
 	int32_t ret;
 
-	ret = DIVIDE_WITH_ROUND((numSteps * (int32_t)(anglePer200steps >> 2)), ((int32_t) (motorParams.fullStepsPerRotation >> 2)));
+	ret = DIVIDE_WITH_ROUND(numSteps * (int32_t)(anglePer200steps >> 2), (int32_t) (motorParams.fullStepsPerRotation >> 2));
 
 	return ret;
 }

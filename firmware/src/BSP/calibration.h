@@ -39,7 +39,7 @@
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
 
 //Here are some useful macros
-#define DIVIDE_WITH_ROUND(x,y)  ( ( x + (y >> 1) ) / y)	//DIVIDE_WITH_ROUND(x,y) = (x/y)+0.5
+#define DIVIDE_WITH_ROUND(x,y)  ( ( (x) + ((y) >> 1) ) / (y) )	//DIVIDE_WITH_ROUND(x,y) = (x/y)+0.5
 
 typedef struct {
 	uint16_t FlashCalData[CALIBRATION_TABLE_SIZE];

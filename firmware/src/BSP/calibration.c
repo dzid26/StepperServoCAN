@@ -118,8 +118,8 @@ uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle)
 		if ( (x >= a1 && x <= a2) || (x >= a2 && x <= a1) )
 		{
 			//x1=a1  y1=b1=i*(65536/200)+0.5   x2=a2  y2=b2=(i+1)*(65536/200)+0.5   x=encoderAngle
-			b1 = (int32_t)DIVIDE_WITH_ROUND(((int64_t)i     * ANGLE_STEPS),CALIBRATION_TABLE_SIZE);
-			b2 = (int32_t)DIVIDE_WITH_ROUND(((int64_t)(i+1) * ANGLE_STEPS),CALIBRATION_TABLE_SIZE);
+			b1 = (int32_t)DIVIDE_WITH_ROUND((int64_t)i     * ANGLE_STEPS, CALIBRATION_TABLE_SIZE);
+			b2 = (int32_t)DIVIDE_WITH_ROUND((int64_t)(i+1) * ANGLE_STEPS, CALIBRATION_TABLE_SIZE);
 			y = interp(a1,b1,a2,b2,x); //y=y1+k(x-x1), k=(y2-y1)/(x2-x1)
 			return y;
 		}
@@ -134,7 +134,7 @@ static uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
-	y = y1 + (int32_t)DIVIDE_WITH_ROUND((dx2 * dy),dx); //(y-y1)=k(x-x1), k=(y2-y1)/(x2-x1)
+	y = y1 + (int32_t)DIVIDE_WITH_ROUND(dx2 * dy, dx); //(y-y1)=k(x-x1), k=(y2-y1)/(x2-x1)
 	if (y < 0)
 	{
 		y = y + ANGLE_STEPS;
@@ -152,7 +152,7 @@ static uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t 
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
-	y = y1 + (int32_t)DIVIDE_WITH_ROUND((dx2 * dy),dx); //(y-y1)=k(x-x1), k=(y2-y1)/(x2-x1)
+	y = y1 + (int32_t)DIVIDE_WITH_ROUND(dx2 * dy, dx); //(y-y1)=k(x-x1), k=(y2-y1)/(x2-x1)
 
 	if (y < 0)
 	{
