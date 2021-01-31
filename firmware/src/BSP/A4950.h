@@ -30,9 +30,6 @@
 #define A4950_STEP_MICROSTEPS ((int32_t)256)
 #define VREF_SCALER	5
 
-inline static void bridge1(int state);
-inline static void bridge2(int state);
-inline static void setVREF(uint16_t VREF12, uint16_t VREF34);
 void A4950_enable(bool enable);
 int32_t A4950_move(int32_t stepAngle, uint32_t mA);
 void A4954_begin(void);

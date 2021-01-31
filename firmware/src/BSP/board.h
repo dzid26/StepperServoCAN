@@ -76,14 +76,6 @@
 #define PIN_BLUE						GPIOC
 #define PIN_LED_BLUE				GPIO_Pin_13
 
-static void NVIC_init(void);
-static void CLOCK_init(void);
-static void A4950_init(void);
-static void A1333_init (void);
-static void OLED_init(void);
-static void SWITCH_init(void);
-static void INPUT_init(void);
-static void LED_init(void);
 void board_init(void);
 void RED_LED(bool state);
 void BLUE_LED(bool state);
