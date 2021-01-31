@@ -220,6 +220,41 @@ static void CAN_begin(){
 }
 
 
+static void ChipTemp_init(){
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
+
+	ADC_InitTypeDef ADC_InitStructure;
+	/* ADC1 configuration ------------------------------------------------------*/
+	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;	 
+	ADC_InitStructure.ADC_ScanConvMode = DISABLE;			  
+	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;	 
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
+	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
+	ADC_InitStructure.ADC_NbrOfChannel = 1;
+	ADC_Init(ADC1, &ADC_InitStructure);
+
+	/* ADC1 regular channe16 configuration */ 
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);  
+	/* Enable the temperature sensor and vref internal channel */ 
+	ADC_TempSensorVrefintCmd(ENABLE);    
+	/* Enable ADC1 */
+	ADC_Cmd(ADC1, ENABLE);
+	/* Enable ADC1 reset calibaration register */ 
+	ADC_ResetCalibration(ADC1);
+	/* Check the end of ADC1 reset calibration register */
+	while(ADC_GetResetCalibrationStatus(ADC1));
+	/* Start ADC1 calibaration */
+	ADC_StartCalibration(ADC1);
+	/* Check the end of ADC1 calibration */
+	while(ADC_GetCalibrationStatus(ADC1));  
+	/* Start ADC1 Software Conversion */ 
+
+	ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
+		while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET);
+
+}
+
+
 void board_init(void)
 {
 	CLOCK_init();
@@ -232,6 +267,7 @@ void board_init(void)
 	LED_init();
 //	USART_Config ();
 	CAN_begin();
+	ChipTemp_init();
 }
 
 //red led

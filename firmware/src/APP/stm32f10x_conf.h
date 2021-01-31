@@ -26,7 +26,7 @@
 /* Includes ------------------------------------------------------------------*/
 /* Uncomment/Comment the line below to enable/disable peripheral header file inclusion */
 #include "stdbool.h"
-//#include "stm32f10x_adc.h"
+#include "../LIB/inc/stm32f10x_adc.h"
 //#include "stm32f10x_bkp.h"
 #include "../LIB/inc/stm32f10x_can.h"
 //#include "stm32f10x_cec.h"

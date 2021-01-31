@@ -26,6 +26,19 @@ volatile uint32_t can_tx_cnt = 0;
 volatile uint32_t can_err_cnt = 0;
 volatile uint32_t can_overflow_cnt = 0;
 
+static int GetTemperature()
+{
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_55Cycles5);  
+  ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
+  while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET);
+  int ADCConvertedValue = ADC_GetConversionValue(ADC1);
+  float fTemp = (1.6f - ADCConvertedValue*3.3f/4096)*1000/4.1f + 25;
+
+return (int)(fTemp);
+
+}
+
+
 void CAN_MsgsFiltersSetup()
 {
 	CAN_FilterInitTypeDef  CAN_FilterInitStructure;
