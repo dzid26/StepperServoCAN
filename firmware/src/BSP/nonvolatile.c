@@ -21,7 +21,6 @@
  */
 
 #include "nonvolatile.h"
-#include "usart.h"
 
 extern volatile MotorParams_t motorParams;
 extern volatile SystemParams_t systemParams;
@@ -73,7 +72,7 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	{
 		NVM_address += NONVOLATILE_STEPS;
 		
-		while( Flash_checknvmFlash(NVM_address) == false )
+		while( Flash_checknvmFlash(NVM_address, sizeof(nvm_t)/2) == false )
 		{																													 
 			if( (NVM_address + NONVOLATILE_STEPS) < FLASH_PAGE31_ADDR )
 			{

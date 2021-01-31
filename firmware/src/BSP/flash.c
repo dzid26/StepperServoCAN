@@ -21,7 +21,7 @@
  */
 
 #include "flash.h"
-//clean£¬write uint16_t data
+//cleanï¿½ï¿½write uint16_t data
 /*
  *	flashAddr:
  *	ptrData:
@@ -49,7 +49,7 @@ void Flash_ProgramPage(uint32_t flashAddr, uint16_t* ptrData, uint16_t size)
 	FLASH_Lock();
 }
 
-//not clean£¬write uint16_t data
+//not cleanï¿½ï¿½write uint16_t data
 /*
  *	flashAddr:
  *	ptrData:
@@ -88,10 +88,10 @@ uint32_t Flash_readWord(uint32_t address)
 }
 
 //CRC
-bool Flash_checknvmFlash(uint32_t address)
+bool Flash_checknvmFlash(uint32_t address, size_t n)
 {
 	uint32_t i;
-	for(i=0; i < (sizeof(nvm_t)/2); i++)
+	for(i=0; i < n; i++)
 	{
 		if( Flash_readHalfWord( address + (i * 2) ) != invalid )
 			return false;

@@ -25,7 +25,7 @@
 
 //#include "stm32f10x.h"
 #include "../CMSIS/stm32f10x.h"
-#include "nonvolatile.h"
+#include <stddef.h>
 
 #define FLASH_WAIT_TIMEOUT			100000
 #define FLASH_PAGE_SIZE   			(1024)
@@ -38,10 +38,13 @@
 #define FLASH_checkSum_ADDR			    0x08007FFC
 #define FLASH_chipID_ADDR				0x080054F0
 
+#define	valid									(uint16_t)0x0001
+#define invalid								(uint16_t)0xffff
+
 void Flash_ProgramPage(uint32_t flashAddr, uint16_t* ptrData, uint16_t size);
 void Flash_ProgramSize(uint32_t flashAddr, uint16_t* ptrData, uint16_t size);
 uint16_t Flash_readHalfWord(uint32_t address);
 uint32_t Flash_readWord(uint32_t address);
-bool Flash_checknvmFlash(uint32_t address);
+bool Flash_checknvmFlash(uint32_t address, size_t n);
 
 #endif

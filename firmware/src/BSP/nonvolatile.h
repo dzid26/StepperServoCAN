@@ -24,8 +24,6 @@
 #define __NONVOLATILE_H
 
 #include "calibration.h"
-#include "flash.h"
-#include "stepper_controller.h"
 
 typedef enum {
 	CW_ROTATION = 0,
@@ -85,8 +83,6 @@ typedef struct {
 #define nvmFlashCalData				((FlashCalData_t*)FLASH_PAGE31_ADDR)
 #define nvmFastCal 						((FastCal_t *)FLASH_PAGE32_ADDR)
 
-#define	valid									(uint16_t)0x0001
-#define invalid								(uint16_t)0xffff
 #define NONVOLATILE_STEPS				((uint32_t)62)		//sizeof(nvm_t) = 60
 
 void nonvolatile_begin(void);
