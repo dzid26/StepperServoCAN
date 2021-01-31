@@ -28,31 +28,15 @@ extern volatile uint32_t NVM_address;
 volatile bool enableState = true;
 nvm_t nvmParams = {0};
 
-int menuCalibrate(int argc, char *argv[])
-{
-	display_show("", "Calibrating...", "", "");
-
-	StepperCtrl_calibrateEncoder();
-
-	return 1;
-}
-
-int menuTestCal(int argc, char *argv[])
-{
-	uint16_t error;
+static void displayError(uint16_t error){
 	int32_t x,y;
 	char str[25];
-
-	display_show("", "Testing Cal...", "", "");
-
-	error = StepperCtrl_maxCalibrationError();
-
 	x = (36000 * (int32_t)error) / ANGLE_STEPS;
 	y = x / 100;
 	x = x - (y * 100);
 	x = fastAbs(x);
 	sprintf(str, "%d.%02d deg",y,x);
-	display_show("Cal Error", str, "", "");
+	display_show("Max cal error", str, "", "");
 
 	while(GPIO_ReadInputDataBit(PIN_SW, PIN_SW3_ENTER) == 1)
 	{
@@ -62,6 +46,23 @@ int menuTestCal(int argc, char *argv[])
 	{
 		//wait for button release
 	}
+}
+
+int menuCalibrate(int argc, char *argv[])
+{
+	uint16_t error;
+	display_show("", "Calibrating...", "", "");
+	error = StepperCtrl_calibrateEncoder(true);
+	displayError(error);
+	return 1;
+}
+
+int menuTestCal(int argc, char *argv[])
+{
+	uint16_t error;
+	display_show("", "Testing Cal...", "", "");
+	error = StepperCtrl_calibrateEncoder(false);
+	displayError(error);
 	return 1;
 }
 
