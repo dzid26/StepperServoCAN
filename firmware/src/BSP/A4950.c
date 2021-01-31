@@ -37,10 +37,15 @@ inline static void bridge1(int state)
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0	
 		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1	
 	}
-	if (state == 3)
+	if (state == 3) //Coast (off)
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
+	}
+	if (state == 4) //brake
+	{
+		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0
+		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
 	}
 }
 
@@ -57,10 +62,15 @@ inline static void bridge2(int state)
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);	//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
 	}
-	if (state == 3)
+	if (state == 3) //Coast (off)
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);	//IN3=0
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);	//IN4=0
+	}
+	if (state == 4) //brake
+	{
+		PIN_A4950->BSRR = PIN_A4950_IN3;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0
+		PIN_A4950->BSRR = PIN_A4950_IN4;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
 	}
 }
 
