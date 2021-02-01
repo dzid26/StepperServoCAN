@@ -31,14 +31,6 @@
 
 #define	VERSON	"Ver:1.0.3"
 
-//INPUT
-#define PIN_INPUT     			GPIOA
-#define PIN_INPUT_STEP  		GPIO_Pin_0
-#define PIN_INPUT_DIR  			GPIO_Pin_1
-#define PIN_INPUT_ENABLE   	GPIO_Pin_2
-#define	INPUT_TIM						TIM2
-#define INPUT_MAX						(uint16_t)65535 //65535
-
 //OLED
 #define PIN_OLED						GPIOA
 #define PIN_OLED_CS					GPIO_Pin_4

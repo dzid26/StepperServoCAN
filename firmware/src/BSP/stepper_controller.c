@@ -41,8 +41,8 @@ volatile bool enableFeedback = false; //true if we are using PID control algorit
 volatile uint32_t anglePer200steps = 4096;
 volatile int32_t angleFullStep = 327;
 
-volatile int32_t numSteps = 0; //this is the number of steps we have taken from our start angle
 volatile int32_t zeroAngleOffset = 0;
+volatile int32_t desiredLocation;
 volatile int32_t currentLocation = 0;
 volatile int32_t speed_slow = 0;
 
@@ -152,7 +152,6 @@ void StepperCtrl_motorReset(void)
 
 void StepperCtrl_setLocationFromEncoder(void)
 {
-	numSteps = 0;
 	currentLocation = 0;
 
 	if (CalibrationTable_calValid())
@@ -163,25 +162,22 @@ void StepperCtrl_setLocationFromEncoder(void)
 		x = StepperCtrl_sampleMeanEncoder(102);
 		a = CalibrationTable_fastReverseLookup(x); //start angle
 
-		//we need to set our numSteps( numSteps = ((a/65536)*200)*16 ) (0-65535) is (200step * micro)
-		numSteps = (int32_t)DIVIDE_WITH_ROUND((uint32_t)a * (motorParams.fullStepsPerRotation >> 3), anglePer200steps >> 3);
-
 		currentLocation = (int32_t)a; //save position
 	}
-
-	zeroAngleOffset = StepperCtrl_getCurrentLocation(); //zero the angle shown on LCD
+	zeroAngleOffset = StepperCtrl_updateCurrentLocation(); //zero the angle shown on LCD
+	desiredLocation = zeroAngleOffset;
 }
 
 //estimate of the current location from encoder feedback
 //the current location lower 16 bits is angle (0-360 degrees in 65536 steps) while upper
 //bits is the number of full rotations.
-int32_t StepperCtrl_getCurrentLocation(void)
+int32_t StepperCtrl_updateCurrentLocation(void)
 {
 	int32_t a,x;
 
 	a = (int32_t)StepperCtrl_getEncoderAngle();
 
-	x = a - (currentLocation & (int32_t) ANGLE_MAX); //TODO: undefined compiler behavior
+	x = a - (currentLocation & (int32_t) ANGLE_MAX);
 
 	if ( x > ANGLE_WRAP )
 	{
@@ -197,12 +193,20 @@ int32_t StepperCtrl_getCurrentLocation(void)
 	return currentLocation;
 }
 
-int32_t StepperCtrl_getDesiredLocation(void) //angle
+int32_t StepperCtrl_getDesiredLocation(void) //get angle
 {
 	int32_t ret;
+	disableTCInterrupts(); 
+	ret = desiredLocation;
+	enableTCInterrupts();
+	return ret;
+}
 
-	ret = DIVIDE_WITH_ROUND(numSteps * (int32_t)(anglePer200steps >> 2), (int32_t) (motorParams.fullStepsPerRotation >> 2));
-
+int32_t StepperCtrl_getCurrentLocation(){
+	int32_t ret;
+	disableTCInterrupts(); 
+	ret = currentLocation;
+	enableTCInterrupts();
 	return ret;
 }
 
@@ -225,7 +229,6 @@ uint16_t  StepperCtrl_calibrateEncoder(bool updateFlash)
 	bool feedback = enableFeedback;
 	bool state = TC1_ISR_Enabled;
 	disableTCInterrupts();
-	disableINPUTInterrupts();
 
 	A4950_Enabled = true;
 	enableFeedback = false;
@@ -339,7 +342,7 @@ uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples)
 		mean = (mean + (int32_t)CALIBRATION_STEPS);
 	}
 
-	return ((uint16_t)mean);
+	return ((uint16_t)mean); //(0-32767)
 }
 
 uint16_t StepperCtrl_getEncoderAngle(void)
@@ -415,7 +418,6 @@ stepCtrlError_t StepperCtrl_begin(void)
 	float x;
 	enableFeedback = false;
 	currentLocation = 0;
-	numSteps = 0;
 
 	//we have to update from NVM before moving motor
 	StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
@@ -519,9 +521,9 @@ void StepperCtrl_enable(bool enable)
 	StepperCtrl_Enabled = enable;
 }
 
-void set_StepperSteps(int32_t steps){
+void StepperCtrl_updateDesiredLocation(int32_t deltaLocation){
 	disableTCInterrupts(); //reading from a global may result in partial data if called from outside
-	numSteps = steps;
+	desiredLocation = StepperCtrl_getCurrentLocation() + deltaLocation;
 	enableTCInterrupts();
 }
 
@@ -533,15 +535,16 @@ bool StepperCtrl_processFeedback(void)
 	static int32_t lastLoc;
 	const int16_t filter_ts = 128; //filter time constant
 	int32_t speed_raw;
-
-	numSteps +=  (int32_t)getSteps(); //numSteps
+	int32_t error;
 	desiredLoc = StepperCtrl_getDesiredLocation(); //DesiredLocation
-	currentLoc = StepperCtrl_getCurrentLocation(); //CurrentLocation
+	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
+
+	error = desiredLoc - currentLoc; //error is desired - PoscurrentPos
 
 	speed_raw = (currentLoc - lastLoc) * SAMPLING_HZ; // 360deg/65536/s
 	speed_slow = (speed_raw + (filter_ts-1) * speed_slow) / filter_ts; 
 
-	ret = StepperCtrl_simpleFeedback(desiredLoc, currentLoc);
+	ret = StepperCtrl_simpleFeedback(error);
 
 //	switch (systemParams.controllerMode)
 //	{
@@ -568,57 +571,50 @@ bool StepperCtrl_processFeedback(void)
 
 //this was written to do the PID loop not modeling a DC servo
 // but rather using features of stepper motor.
-bool StepperCtrl_simpleFeedback(int64_t desiredLoc, int64_t currentLoc)
+bool StepperCtrl_simpleFeedback(int32_t error)
 {
-	static int64_t lastError = 0;
-	static int64_t iTerm = 0;
+	static int32_t lastError = 0;
+	static int16_t iTerm = 0;
 	static int32_t errorCount = 0;
 
 	if(enableFeedback)
 	{
-		int64_t error;
-		int32_t u;
-		int32_t x;
-		int32_t ma = 0;
+		int32_t LoadAngleDesired;
+		uint16_t ma;
+
+		int16_t error_max = (int16_t) (ANGLE_MAX / 2); // should be greater than maxTorqueAngle
 
 		//error is in units of degrees when 360 degrees == 65536
-		error = desiredLoc - currentLoc; //error is desired - PoscurrentPos
-
-		iTerm += (sPID.Ki * error);
-		x = (int32_t)(iTerm >> 10);
-
-		if(fastAbs(x) > angleFullStep)
+		if( error > error_max) 
 		{
-			if(x > angleFullStep)
-			{
-				x = angleFullStep;
-				iTerm = angleFullStep;
-			}else
-			{
-				x = -angleFullStep;
-				iTerm = -angleFullStep;
-			}
+			error = error_max;
 		}
-
+		if (error < -error_max)
+			{
+			error = -error_max;
+		}else{
+			iTerm += (sPID.Ki * error) / CTRL_PID_SCALING;  //limited 
+			}
+				
 		//PID��Kp*e(k) + Ki*��e(k) + Kd[e��k��-e(k-1)]
 		//PD��Kp*e(k) + Kd[e��k��-e(k-1)]
-		u = ((sPID.Kp * error) >> 10) + x + ((sPID.Kd * (error - lastError)) >> 10);
+		LoadAngleDesired = (sPID.Kp * (error + iTerm  +  0 * sPID.Kd * (error - lastError)) / CTRL_PID_SCALING);
 
 		//limit error to full step
-		if(fastAbs(u) > angleFullStep)
+		int16_t maxTorqueAngle = angleFullStep*11/9;
+		if( LoadAngleDesired > maxTorqueAngle) 
 		{
-			if (u > angleFullStep)
-			{
-				u = angleFullStep;
-			}else
-			{
-				u = -angleFullStep;
-			}
+			LoadAngleDesired = maxTorqueAngle;
+			iTerm = 0;
 		}
-
-		ma = (int32_t)((fastAbs(u) * fastAbs((int32_t)(motorParams.currentMa - motorParams.currentHoldMa))) / angleFullStep) + motorParams.currentHoldMa;
-
-		StepperCtrl_moveToAngle((int32_t)(currentLoc + u), ma);
+		if (LoadAngleDesired < -maxTorqueAngle)
+			{
+			LoadAngleDesired = -maxTorqueAngle;
+			iTerm = 0;
+		}
+		ma = (uint16_t) ((((uint32_t) fastAbs(error)) * (motorParams.currentMa - motorParams.currentHoldMa)/error_max) ) + motorParams.currentHoldMa;
+		
+		StepperCtrl_moveToAngle(LoadAngleDesired, ma);
 
 		lastError = error;
 		loopError = error;
@@ -643,13 +639,11 @@ bool StepperCtrl_simpleFeedback(int64_t desiredLoc, int64_t currentLoc)
 	return false;
 }
 
-void StepperCtrl_moveToAngle(int32_t a, uint32_t ma)
+void StepperCtrl_moveToAngle(int32_t a, uint16_t ma)
 {
 	//we need to convert 'Angle' to A4950 steps
-	a = a & ANGLE_MAX;  //a = a & ANGLE_STEPS;	//we only interested in the current angle
+	a = StepperCtrl_getCurrentLocation() + a & ANGLE_MAX;	//we only interested in the rotor vs stator angle, which repeats after a half a rotation for 0.9stepper and full rotation for 1.8stepper 
 
-	//a = DIVIDE_WITH_ROUND((a * (motorParams.fullStepsPerRotation >> 3)), ((ANGLE_STEPS / A4950_STEP_MICROSTEPS) >> 3));
-	a = DIVIDE_WITH_ROUND((a * (motorParams.fullStepsPerRotation >> 3)), (A4950_STEP_MICROSTEPS >> 3));
-
+	a = DIVIDE_WITH_ROUND(a * (motorParams.fullStepsPerRotation >> 3), ANGLE_STEPS / A4950_STEP_MICROSTEPS >> 3); //2^2=8 which is a common denominator of 200 and 256
 	A4950_move(a, ma);
 }

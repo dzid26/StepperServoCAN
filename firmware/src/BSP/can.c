@@ -95,7 +95,7 @@ void CAN_InterpretMesssages(CanRxMsg message) {
       uint64_t pos=0;
       for(i=0; i < 8; i++)
         pos+=(((uint64_t) message.Data[i])<<((7-i)*8));
-      set_StepperSteps(pos);
+      StepperCtrl_updateDesiredLocation(pos);
     }
   }
 }

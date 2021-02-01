@@ -26,7 +26,6 @@
 #include "display.h"
 #include "stepper_controller.h"
 #include "stdlib.h"
-#include "steppin.h"
 
 int menuCalibrate(int argc, char *argv[]);
 int menuTestCal(int argc, char *argv[]);

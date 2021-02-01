@@ -50,11 +50,9 @@ bool nvmWriteCalTable(void *ptrData)
 {
 	bool state = TC1_ISR_Enabled;
 	disableTCInterrupts(); 
-	disableINPUTInterrupts();
 	
 	Flash_ProgramPage(FLASH_PAGE31_ADDR, ptrData, (sizeof(FlashCalData_t)/2));
 	
-	enableINPUTInterrupts();
 	if (state) enableTCInterrupts();
 	return true;
 }
@@ -63,7 +61,6 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 {		
 	bool state = TC1_ISR_Enabled;
 	disableTCInterrupts();
-	disableINPUTInterrupts();
 	
 	ptrNVM->motorParams.parametersValid  = valid;
 	ptrNVM->SystemParams.parametersValid = valid;
@@ -98,7 +95,6 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	anglePer200steps = (uint32_t)(ANGLE_STEPS / systemParams.microsteps);
 	StepperCtrl_setLocationFromEncoder(); //measure new starting point
 	
-	enableINPUTInterrupts();
 	if (state) enableTCInterrupts();	
 	return true;
 }

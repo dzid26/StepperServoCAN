@@ -29,7 +29,6 @@
 #include "calibration.h"
 #include "A1333.h"
 #include "math.h"
-#include "steppin.h"
 
 typedef enum {
 	STEPCTRL_NO_ERROR=0,
@@ -60,7 +59,8 @@ void enableTCInterrupts(void);
 void disableTCInterrupts(void);
 void  StepperCtrl_motorReset(void);
 void StepperCtrl_setLocationFromEncoder(void);
-int32_t StepperCtrl_getCurrentLocation(void);
+int32_t StepperCtrl_updateCurrentLocation(void);
+void StepperCtrl_updateDesiredLocation(int32_t change);
 int32_t StepperCtrl_getDesiredLocation(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
 uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
@@ -71,8 +71,8 @@ float StepperCtrl_measureStepSize(void);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
 bool StepperCtrl_processFeedback(void);
-bool StepperCtrl_simpleFeedback(int64_t desiredLoc, int64_t currentLoc);
-void StepperCtrl_moveToAngle(int32_t a, uint32_t ma);
+bool StepperCtrl_simpleFeedback(int32_t error);
+void StepperCtrl_moveToAngle(int32_t a, uint16_t ma);
 
 void set_StepperSteps(int32_t steps);
 

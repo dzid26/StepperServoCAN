@@ -26,7 +26,6 @@ extern volatile SystemParams_t systemParams;
 extern volatile int32_t zeroAngleOffset;
 extern volatile int32_t loopError;
 extern volatile int32_t speed_slow;
-extern volatile int16_t steps;
 
 menuItem_t*		ptrMenu;				//Menu Bar
 uint8_t 			menuIndex;			//Menu bar index
@@ -280,38 +279,6 @@ void display_updateLCD(void)
 
 	x = deg / 10;
 	y = abs(deg - (x * 10));
-
-	if (K == 1)
-	{
-		if((int32_t)steps <0 && (int32_t)steps > -10){
-			sprintf(str[2],"-%03d.%01uKdeg", x,y);
-		}
-		else{
-			sprintf(str[2],"%03d.%01uKdeg", x,y);
-		}
-	}else
-	{
-		if((int32_t)steps <0 && (int32_t)steps > -10){
-			sprintf(str[2],"-%03d.%01udeg", x,y);
-		}
-		else{
-			sprintf(str[2],"%03d.%01udeg", x,y);
-		}
-	}
-
-	if(steps < 200000000 && steps > -200000000)
-	{
-		sprintf(str[3],"%dsteps", (int32_t)steps);
-	}else
-	{
-		if(steps > 200000000)
-		{
-			sprintf(str[3],">200000000");
-		}else
-		{
-			sprintf(str[3],"<-200000000");
-		}
-	}
 
 	display_show(str[0], str[1], str[2], str[3]);
 }

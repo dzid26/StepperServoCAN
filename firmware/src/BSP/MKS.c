@@ -446,18 +446,11 @@ void MKS_begin(void)
 	}
 	display_setMenu(MenuMain);
 
-	inputPinSetup(); //setup the step pin and dir pin
-
 	RED_LED(false); //��ʼ������Ϩ������
 }
 
 void MKS_loop(void)
 {
-	//read the enable pin and update
-	// this is also done as an edge interrupt but does not always see
-	// to trigger the ISR.
-	enableInput();
-
 	if(enableState != StepperCtrl_Enabled)
 	{
 		StepperCtrl_enable(enableState);
@@ -466,18 +459,6 @@ void MKS_loop(void)
 	display_process();
 	CAN_TransmitMyMsg(); //test
 
-}
-
-static void enableInput(void)
-{
-	if(NVM->SystemParams.errorPinMode == ERROR_PIN_MODE_ENABLE) //�ߵ�ƽ��Ч
-	{
-		enableState = (bool)GPIO_ReadInputDataBit(PIN_INPUT, PIN_INPUT_ENABLE); //read our enable pin
-	}
-	if(NVM->SystemParams.errorPinMode == ERROR_PIN_MODE_ACTIVE_LOW_ENABLE) //Ĭ�ϵ͵�ƽ��Ч
-	{
-		enableState = !(bool)GPIO_ReadInputDataBit(PIN_INPUT, PIN_INPUT_ENABLE); //read our enable pin
-	}
 }
 
 void TIM1_UP_IRQHandler(void)

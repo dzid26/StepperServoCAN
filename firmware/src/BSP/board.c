@@ -33,7 +33,6 @@ static void CLOCK_init(void)
 
 	RCC->APB2ENR |= (1<<11);	//����TIM1ʱ��
 
-	RCC->APB1ENR |= (1<<0);	//����TIM2ʱ��
 	RCC->APB1ENR |= (1<<1);	//����TIM3ʱ��
 //	RCC->APB1ENR |= (1<<2);	//����TIM4ʱ��
 	RCC->APB1ENR |= (1<<14);//����SPI2ʱ��
