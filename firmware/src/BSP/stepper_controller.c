@@ -38,7 +38,6 @@ volatile int32_t loopError = 0;
 volatile bool StepperCtrl_Enabled = true;
 volatile bool TC1_ISR_Enabled = false;
 volatile bool enableFeedback = false; //true if we are using PID control algorithm
-volatile uint32_t anglePer200steps = 4096;
 volatile int32_t angleFullStep = 327;
 
 volatile int32_t zeroAngleOffset = 0;
@@ -485,7 +484,6 @@ stepCtrlError_t StepperCtrl_begin(void)
 		nvmWriteConfParms(&nvmParams);
 	}
 
-	anglePer200steps = (uint32_t)(ANGLE_STEPS / systemParams.microsteps);
 	angleFullStep = (int32_t)(ANGLE_STEPS / motorParams.fullStepsPerRotation);
 
 	StepperCtrl_setLocationFromEncoder(); //measure new starting point

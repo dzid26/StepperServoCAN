@@ -92,7 +92,6 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	
 	motorParams = NVM->motorParams; //update motorParams
 	systemParams = NVM->SystemParams; //update systemParams
-	anglePer200steps = (uint32_t)(ANGLE_STEPS / systemParams.microsteps);
 	StepperCtrl_setLocationFromEncoder(); //measure new starting point
 	
 	if (state) enableTCInterrupts();	
