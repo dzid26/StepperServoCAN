@@ -63,6 +63,7 @@ int32_t StepperCtrl_updateCurrentLocation(void);
 void StepperCtrl_updateDesiredLocation(int32_t change);
 int32_t StepperCtrl_getDesiredLocation(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
+static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calLocOffset);
 uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
 uint16_t StepperCtrl_getEncoderAngle(void);
 void StepperCtrl_updateParamsFromNVM(void);

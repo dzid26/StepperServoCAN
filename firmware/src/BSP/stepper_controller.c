@@ -215,16 +215,12 @@ int32_t StepperCtrl_getCurrentLocation(){
 // We also need to calibrate the phasing of the motor
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
-uint16_t  StepperCtrl_calibrateEncoder(bool updateFlash)
+uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 {
-	uint16_t j = 0;
-	uint16_t mean = 0;
-	uint32_t microSteps = 0;
-	uint32_t microStep = A4950_STEP_MICROSTEPS*motorParams.fullStepsPerRotation/CALIBRATION_TABLE_SIZE;
-
-	uint16_t maxError = 0;
-	uint16_t calLocOffset;
-	static volatile uint16_t desiredAngle;
+	
+	uint16_t maxError;
+	int32_t microSteps = 0;
+	uint8_t passes = 0;
 	bool feedback = enableFeedback;
 	bool state = TC1_ISR_Enabled;
 	disableTCInterrupts();
@@ -238,40 +234,15 @@ uint16_t  StepperCtrl_calibrateEncoder(bool updateFlash)
 	//max averaging of 12 is 4096 samples which is equates to 4ms lag. Assuming motor stay in the full step for at least 4ms the signal will be settled and fully filtered 
 
 	A4950_move(0, motorParams.currentMa);
-	delay_ms(1200);
-	calLocOffset = StepperCtrl_sampleMeanEncoder(202) - CalibrationTable_getCal(0);
+	delay_ms(50);
+	uint16_t calZeroOffset=(StepperCtrl_sampleMeanEncoder(202)<<1) - (CalibrationTable_getCal(0)<<1);//returns (0-32767) scaled to (0-65535)
+	maxError = CalibrationMove(updateFlash, 1, &microSteps, &passes, calZeroOffset); //run clockwise
+	if(updateFlash) {	//second pass anticlockwise when calibrating
+		calZeroOffset=0; //on the second run, the calTab values are alligned with the sensor, so no offset
+		maxError = CalibrationMove(updateFlash, -1, &microSteps, &passes, calZeroOffset); 
 
-	for (j = 0; j < CALIBRATION_TABLE_SIZE + CALIBRATION_TABLE_SIZE/4; j++) //Starting calibration 
-	{
-		delay_ms(100);
-		if (updateFlash) delay_ms(200);
-
-		mean = StepperCtrl_sampleMeanEncoder(202); //collect angle every half step for 1.8 stepper
-		desiredAngle = DIVIDE_WITH_ROUND(microSteps * (ANGLE_STEPS>>2) / A4950_STEP_MICROSTEPS, motorParams.fullStepsPerRotation>>2);
-		uint16_t cal = CalibrationTable_getCal(desiredAngle); //returns (0-32767)
-		uint16_t dist = (uint16_t) fastAbs( (int16_t)((mean<<1) - (cal<<1) - (calLocOffset<<1))>>1);
-		if(dist > maxError)
-		{
-			maxError = dist;
-		}
-		if (updateFlash) {
-			CalibrationTable_updateTableValue(j%CALIBRATION_TABLE_SIZE, mean);	//CalibrationTable[j] = mean
-		}
-		//move one half step at a time, a full step move could cause a move backwards
-
-		if(microStep > A4950_STEP_MICROSTEPS)  //for 0.9deg stepper collect data only every full step
-		{
-			A4950_move(microSteps + A4950_STEP_MICROSTEPS, motorParams.currentMa);
-			delay_ms(20);
-		}
-		microSteps += microStep;
-		A4950_move(microSteps,motorParams.currentMa);
-
-
-	}
-	if(updateFlash){
-	CalibrationTable_saveToFlash(); //saves the calibration to flash
-	StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
+		CalibrationTable_saveToFlash(); //saves the calibration to flash
+		StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
 	}
 	StepperCtrl_motorReset();
 	A1333_begin(); //Reset filters and perform sensor tests
@@ -279,6 +250,55 @@ uint16_t  StepperCtrl_calibrateEncoder(bool updateFlash)
 	enableFeedback = feedback;
 	if (state) enableTCInterrupts();
 
+	return maxError;
+}
+
+static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calZeroOffset){
+	
+	uint16_t maxError = 0;
+	
+	(*passes)++;
+	int16_t microStep = A4950_STEP_MICROSTEPS*motorParams.fullStepsPerRotation/CALIBRATION_TABLE_SIZE;
+	
+	const uint16_t preRunPart = CALIBRATION_TABLE_SIZE/2; //do half rotation preRun to start calibration with max hysteresis
+	for (uint16_t j = 0; j < preRunPart + CALIBRATION_TABLE_SIZE; j++) //Starting calibration 
+	{
+		static volatile uint16_t desiredAngle;
+		static volatile uint16_t sampled;
+
+		bool preRun = j < preRunPart;
+		delay_ms(1);
+		if (updateFlash && !preRun) 
+			delay_ms(50);
+
+		
+		desiredAngle = (uint16_t) DIVIDE_WITH_ROUND(*microSteps * (int32_t)(ANGLE_STEPS>>2) / A4950_STEP_MICROSTEPS, motorParams.fullStepsPerRotation>>2);
+		uint16_t cal = (CalibrationTable_getCal(desiredAngle)<<1) + calZeroOffset; //returns (0-32767) scaled to (0-65535)
+		
+		sampled = StepperCtrl_sampleMeanEncoder(202)<<1; //collect angle every half step for 1.8 stepper - returns (0-32767) scaled to (0-65535)
+		
+		int16_t dist = (int16_t)(sampled - cal);
+
+		
+		if (updateFlash && !preRun) {
+			uint16_t average = cal + (dist / (*passes)); //add half a distance to average
+			CalibrationTable_updateTableValue(( (dir<0) ? (preRunPart + CALIBRATION_TABLE_SIZE -j) : j)%CALIBRATION_TABLE_SIZE, average>>1);	// (0-65535) scaled to (0-32767)
+		}
+		//move one half step at a time, a full step move could cause a move backwards
+		
+		dist = fastAbs(dist>>1);
+		if(dist > maxError && !preRun)
+				{
+					maxError = dist;
+				}
+		if(microStep > A4950_STEP_MICROSTEPS)  //for 0.9deg stepper collect data only every full step
+		{
+			A4950_move(*microSteps + A4950_STEP_MICROSTEPS, motorParams.currentMa);
+			delay_ms(20);
+		}
+		*microSteps += microStep*dir;
+		A4950_move(*microSteps, motorParams.currentMa);
+	}
 	return maxError;
 }
 
