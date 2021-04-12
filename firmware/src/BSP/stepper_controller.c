@@ -551,16 +551,19 @@ bool StepperCtrl_processFeedback(void)
 	int32_t desiredLoc;
 	int32_t currentLoc;
 	static int32_t lastLoc;
-	const int16_t filter_ts = 128; //filter time constant
+	const int16_t speed_filter_tc = 128; //speed filter time constant
+	const int64_t error_filter_tc = 2; //error filter time constant - choose depending on CAN RX rate
 	int32_t speed_raw;
 	int32_t error;
+	static int32_t desiredLoc_slow = 0;
 	desiredLoc = StepperCtrl_getDesiredLocation(); //DesiredLocation
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
 
-	error = desiredLoc - currentLoc; //error is desired - PoscurrentPos
+	desiredLoc_slow = (desiredLoc + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc; 
+	error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 
-	speed_raw = (currentLoc - lastLoc) * SAMPLING_HZ; // 360deg/65536/s
-	speed_slow = (speed_raw + (filter_ts-1) * speed_slow) / filter_ts; 
+	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // 360deg/65536/s
+	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
 	ret = StepperCtrl_simpleFeedback(error);
 
@@ -592,51 +595,88 @@ bool StepperCtrl_processFeedback(void)
 bool StepperCtrl_simpleFeedback(int32_t error)
 {
 	static int32_t lastError = 0;
-	static int16_t iTerm = 0;
-	static int32_t errorCount = 0;
-
+	static uint32_t errorCount = 0;
+	const int16_t zerocrossMax = 20; //mA
+	const uint16_t smallLoad = 25; //abs mA
 	if(enableFeedback)
 	{
-		int32_t LoadAngleDesired;
-		uint16_t ma;
-
-		int16_t error_max = (int16_t) (ANGLE_MAX / 2); // should be greater than maxTorqueAngle
-
-		//error is in units of degrees when 360 degrees == 65536
-		if( error > error_max) 
-		{
-			error = error_max;
-		}
-		if (error < -error_max)
-			{
-			error = -error_max;
-		}else{
-			iTerm += (sPID.Ki * error) / CTRL_PID_SCALING;  //limited 
-			}
-				
-		//PID��Kp*e(k) + Ki*��e(k) + Kd[e��k��-e(k-1)]
-		//PD��Kp*e(k) + Kd[e��k��-e(k-1)]
-		LoadAngleDesired = (sPID.Kp * (error + iTerm  +  0 * sPID.Kd * (error - lastError)) / CTRL_PID_SCALING);
-
-		//limit error to full step
-		int16_t maxTorqueAngle = angleFullStep*11/9;
-		if( LoadAngleDesired > maxTorqueAngle) 
-		{
-			LoadAngleDesired = maxTorqueAngle;
-			iTerm = 0;
-		}
-		if (LoadAngleDesired < -maxTorqueAngle)
-			{
-			LoadAngleDesired = -maxTorqueAngle;
-			iTerm = 0;
-		}
-		ma = (uint16_t) ((((uint32_t) fastAbs(error)) * (motorParams.currentMa - motorParams.currentHoldMa)/error_max) ) + motorParams.currentHoldMa;
+		int32_t errorSat;
+		int_fast16_t pTerm;
+		int_fast16_t dTerm;
+		static float iTerm = 0; //iTerm memory
+		static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
+		int_fast16_t feedForward;
+		int_fast16_t closeLoop; 
+		int_fast16_t closeLoopMax;
+		int16_t loadAngleDesired;
+		static uint16_t magnitude; //static for dTerm condition check
 		
-		int16_t LoadAngleSpeedComp;//Compensate for angle sensor delay
+		closeLoopMax = (int32_t) motorParams.currentMa;
+		feedForward  = (int16_t) motorParams.currentHoldMa;
+
+		//protect pTern and iTerm against overflow
+		int32_t errorMax = INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki); 
+		if( error > errorMax){
+			errorSat = closeLoopMax;
+		}else if (error < -errorMax)
+		{
+			errorSat = -closeLoopMax;
+		}else{
+			errorSat = error;
+		}
+
+		// PID proportional term
+		pTerm  =  errorSat * sPID.Kp / CTRL_PID_SCALING;
+
+		// PID derivative term
+		if(magnitude > smallLoad){ //dTerm causes noise when motor is not loaded enough
+			dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING; // (error - lastError) is small
+		}else{
+			dTerm=0;
+		}
+		// PID integral term
+		if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values
+			iTerm += (float) errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS;
+		}
+		
+		closeLoop = pTerm + (int16_t) iTerm + dTerm;
+
+		// If closeLoop is in the same direction as feedforward, closelooop is limited by closeLoopMax. 
+		// If closeLoop is in opposite direction to feedforward, then it is limite to -feedforwad so that closeloop
+		// has always power to cancel out the feedfrward  to avoid uncontrolled rotation
+		if( closeLoop > max(closeLoopMax, -feedForward)) 
+		{	
+			closeLoop = max(closeLoopMax, -feedForward);
+			saturationId = 1;
+		} else if (closeLoop < -(max(closeLoopMax, feedForward)))
+		{
+			closeLoop = -(max(closeLoopMax, feedForward));
+			saturationId = 0;
+		} else {
+			saturationId = 2;
+		}
+		
+		closeLoop += feedForward;
+		magnitude = (uint16_t) (fastAbs(closeLoop));
+		
+		//handle torque zero-crossing, otherwise request 90 elctrical degress torque vector
+		if( closeLoop > zerocrossMax) 
+		{	
+			loadAngleDesired = angleFullStep;
+		}
+		else if (closeLoop < -zerocrossMax)
+		{
+			loadAngleDesired = -angleFullStep;
+		}else{
+			loadAngleDesired = 0; //closeLoop * angleFullStep / zerocrossMax; //scale or just set to 0 if it keeps rocking
+		}
+
+		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
 		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + 80u);
-		LoadAngleSpeedComp = LoadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
-		StepperCtrl_moveToAngle(LoadAngleSpeedComp, ma);
-		lastError = error;
+		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
+		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
+	
+		lastError = errorSat;
 		loopError = error;
 	} //end if enableFeedback
 
@@ -659,11 +699,11 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 	return false;
 }
 
-void StepperCtrl_moveToAngle(int32_t a, uint16_t ma)
+void StepperCtrl_moveToAngle(int32_t loadAngle, uint16_t magnitude) 
 {
 	//we need to convert 'Angle' to A4950 steps
-	a = StepperCtrl_getCurrentLocation() + a & ANGLE_MAX;	//we only interested in the rotor vs stator angle, which repeats after a half a rotation for 0.9stepper and full rotation for 1.8stepper 
+	loadAngle = StepperCtrl_getCurrentLocation() + loadAngle & ANGLE_MAX;	//we only interested in the rotor vs stator angle, which repeats after a half a rotation for 0.9stepper and full rotation for 1.8stepper 
 
-	a = DIVIDE_WITH_ROUND(a * (motorParams.fullStepsPerRotation >> 3), ANGLE_STEPS / A4950_STEP_MICROSTEPS >> 3); //2^2=8 which is a common denominator of 200 and 256
-	A4950_move(a, ma);
+	loadAngle = DIVIDE_WITH_ROUND(loadAngle * (motorParams.fullStepsPerRotation >> 3), ANGLE_STEPS / A4950_STEP_MICROSTEPS >> 3); //2^2=8 which is a common denominator of 200 and 256
+	A4950_move(loadAngle, magnitude);
 }
