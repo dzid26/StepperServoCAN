@@ -368,7 +368,7 @@ uint16_t StepperCtrl_getEncoderAngle(void)
 {
 	uint16_t EncoderAngle;
 
-	EncoderAngle = CalibrationTable_fastReverseLookup(StepperCtrl_sampleMeanEncoder(3));
+	EncoderAngle = CalibrationTable_fastReverseLookup(A1333_readEncoderAngle()); //0-65535
 
 	return EncoderAngle;
 }
@@ -632,8 +632,10 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		}
 		ma = (uint16_t) ((((uint32_t) fastAbs(error)) * (motorParams.currentMa - motorParams.currentHoldMa)/error_max) ) + motorParams.currentHoldMa;
 		
-		StepperCtrl_moveToAngle(LoadAngleDesired, ma);
-
+		int16_t LoadAngleSpeedComp;//Compensate for angle sensor delay
+		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + 80u);
+		LoadAngleSpeedComp = LoadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
+		StepperCtrl_moveToAngle(LoadAngleSpeedComp, ma);
 		lastError = error;
 		loopError = error;
 	} //end if enableFeedback
