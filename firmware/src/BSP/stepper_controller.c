@@ -34,16 +34,24 @@ volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
-volatile int32_t loopError = 0;
 volatile bool StepperCtrl_Enabled = true;
 volatile bool TC1_ISR_Enabled = false;
 volatile bool enableFeedback = false; //true if we are using PID control algorithm
 volatile int32_t angleFullStep = 327;
 
 volatile int32_t zeroAngleOffset = 0;
+
+//api - commanded
 volatile int32_t desiredLocation;
+volatile int_fast16_t feedForward;
+volatile int_fast16_t closeLoopMax;
+
+//api - measured
 volatile int32_t currentLocation = 0;
+volatile int_fast16_t closeLoop;
+volatile int16_t Iq_ma;
 volatile int32_t speed_slow = 0;
+volatile int32_t loopError = 0;
 
 void setupTCInterrupts(void)
 {
@@ -192,22 +200,6 @@ int32_t StepperCtrl_updateCurrentLocation(void)
 	return currentLocation;
 }
 
-int32_t StepperCtrl_getDesiredLocation(void) //get angle
-{
-	int32_t ret;
-	disableTCInterrupts(); 
-	ret = desiredLocation;
-	enableTCInterrupts();
-	return ret;
-}
-
-int32_t StepperCtrl_getCurrentLocation(){
-	int32_t ret;
-	disableTCInterrupts(); 
-	ret = currentLocation;
-	enableTCInterrupts();
-	return ret;
-}
 
 //The encoder needs to be calibrated to the motor.
 // we will assume full step detents are correct,
@@ -539,11 +531,6 @@ void StepperCtrl_enable(bool enable)
 	StepperCtrl_Enabled = enable;
 }
 
-void StepperCtrl_updateDesiredLocation(int32_t deltaLocation){
-	disableTCInterrupts(); //reading from a global may result in partial data if called from outside
-	desiredLocation = StepperCtrl_getCurrentLocation() + deltaLocation;
-	enableTCInterrupts();
-}
 
 bool StepperCtrl_processFeedback(void)
 {
@@ -556,9 +543,10 @@ bool StepperCtrl_processFeedback(void)
 	int32_t speed_raw;
 	int32_t error;
 	static int32_t desiredLoc_slow = 0;
-	desiredLoc = StepperCtrl_getDesiredLocation(); //DesiredLocation
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
+	desiredLoc = desiredLocation;
 
+	loopError = desiredLoc - currentLoc;
 	desiredLoc_slow = (desiredLoc + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc; 
 	error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 
@@ -605,14 +593,8 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		int_fast16_t dTerm;
 		static float iTerm = 0; //iTerm memory
 		static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
-		int_fast16_t feedForward;
-		int_fast16_t closeLoop; 
-		int_fast16_t closeLoopMax;
 		int16_t loadAngleDesired;
 		static uint16_t magnitude; //static for dTerm condition check
-		
-		closeLoopMax = (int32_t) motorParams.currentMa;
-		feedForward  = (int16_t) motorParams.currentHoldMa;
 
 		//protect pTern and iTerm against overflow
 		int32_t errorMax = INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki); 

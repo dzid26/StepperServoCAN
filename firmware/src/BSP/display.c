@@ -26,6 +26,7 @@ extern volatile SystemParams_t systemParams;
 extern volatile int32_t zeroAngleOffset;
 extern volatile int32_t loopError;
 extern volatile int32_t speed_slow;
+extern volatile int32_t desiredLocation;
 
 menuItem_t*		ptrMenu;				//Menu Bar
 uint8_t 			menuIndex;			//Menu bar index
@@ -267,7 +268,7 @@ void display_updateLCD(void)
 	sprintf(str[1],"%01ld.%02ld err", z,y);
 
 	int64_t deg;
-	deg = StepperCtrl_getDesiredLocation() - zeroAngleOffset;
+	deg = desiredLocation - zeroAngleOffset;
 	deg = (deg * 225) / (ANGLE_STEPS >> 4);	//deg = (deg * 360 * 10) / (int32_t)ANGLE_STEPS;
 
 	__IO uint8_t K = 0;

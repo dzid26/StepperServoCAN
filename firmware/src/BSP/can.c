@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "can.h"
 #include "stepper_controller.h"
+#include "control_api.h"
 
 volatile uint32_t can_rx_cnt = 0;
 volatile uint32_t can_tx_cnt = 0;
@@ -95,7 +96,7 @@ void CAN_InterpretMesssages(CanRxMsg message) {
       uint64_t pos=0;
       for(i=0; i < 8; i++)
         pos+=(((uint64_t) message.Data[i])<<((7-i)*8));
-      StepperCtrl_updateDesiredLocation(pos);
+      StepperCtrl_setDesiredLocation(pos);
     }
   }
 }
