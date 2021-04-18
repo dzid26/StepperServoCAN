@@ -28,7 +28,7 @@
 #include "delay.h"
 #include "spi.h"
 
-#define SENSOR_LATENCY 2
+#define SENSOR_LATENCY 7
 
 uint16_t PrimaryRead(uint16_t address);
 uint32_t ExtendedRead(uint16_t address);
