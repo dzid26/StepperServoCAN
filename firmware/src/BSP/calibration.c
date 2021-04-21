@@ -77,8 +77,10 @@ uint16_t CalibrationTable_fastReverseLookup(uint16_t fastEncoderAngle)
 uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle)
 {
 	uint16_t i = 0;	
-	int32_t a1,a2;
-	int32_t b1,b2;	
+	int32_t a1;
+	int32_t a2;
+	int32_t b1;
+	int32_t b2;	
 	int32_t x;
 	uint16_t y;
 
@@ -130,7 +132,11 @@ uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle)
 
 static uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
 {
-	int32_t dx,dy,dx2,y;
+	int32_t dx;
+	int32_t dy;
+	int32_t dx2;
+	int32_t y;
+	
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
@@ -148,7 +154,11 @@ static uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x
 
 static uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
 {
-	int32_t dx,dy,dx2,y;
+	int32_t dx;
+	int32_t dy;
+	int32_t dx2;
+	int32_t y;
+	
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
@@ -194,9 +204,11 @@ void CalibrationTable_saveToFlash(void)
 
 void CalibrationTable_createFastCal(void)
 {
-	uint32_t i,j;
+	uint32_t i;
+	uint32_t j;
 	uint16_t checkSum = 0;
 	uint16_t data[FLASH_ROW_SIZE]; //1K
+
 	for (i=0,j=0; i < ANGLE_WRAP; i+=2)
 	{
 		uint16_t x = 0;
@@ -272,8 +284,12 @@ void CalibrationTable_updateFastCal(void)
 //We want to linearly interpolate between calibration table angle
 uint16_t CalibrationTable_getCal(uint16_t actualAngle)
 {
-	uint16_t indexLow,indexHigh;
-	int32_t x1,x2,y1,y2;
+	uint16_t indexLow;
+	uint16_t indexHigh;
+	int32_t x1;
+	int32_t x2;
+	int32_t y1;
+	int32_t y2;
 	uint16_t value;
 
 	indexLow  = CalibrationTable_getTableIndex(actualAngle);
