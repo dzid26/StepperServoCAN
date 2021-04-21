@@ -21,7 +21,6 @@
  */
 
 #include "spi.h"
-#include "usart.h"
 
 //SPI Write and Read
 uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t Data)

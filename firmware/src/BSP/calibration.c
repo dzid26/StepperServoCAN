@@ -22,7 +22,7 @@
  
 #include "calibration.h"
 #include "nonvolatile.h"
-#include "usart.h"
+#include "sine.h"
 
 extern volatile int64_t currentLocation;
 

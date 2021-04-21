@@ -264,7 +264,6 @@ void board_init(void)
 	OLED_init();
 	SWITCH_init();
 	LED_init();
-//	USART_Config ();
 	CAN_begin();
 	ChipTemp_init();
 }
