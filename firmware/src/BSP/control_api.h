@@ -11,7 +11,7 @@ void StepperCtrl_setControlMode(uint8_t mode);
 
 int32_t StepperCtrl_getCurrentLocation(void);
 int16_t StepperCtrl_getCloseLoop(void);
-int16_t StepperCtrl_getMotorIq(void);
+int16_t StepperCtrl_getControlOutput(void);
 int32_t StepperCtrl_getSpeedRev(void);
 int32_t StepperCtrl_getPositionError(void);
 

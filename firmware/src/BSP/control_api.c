@@ -1,3 +1,6 @@
+/*
+	All functions to be called from lesser priority task than StepperCtrl !
+*/
 #include "control_api.h"
 
 #include "stepper_controller.h"
@@ -11,7 +14,7 @@ extern volatile int_fast16_t closeLoopMax;
 //api - measured
 extern volatile int32_t currentLocation;
 extern volatile int_fast16_t closeLoop;
-extern volatile int16_t Iq_ma;
+extern volatile int16_t control;
 extern volatile int32_t speed_slow;
 extern volatile int32_t loopError;
 
@@ -56,10 +59,10 @@ int16_t StepperCtrl_getCloseLoop(void) {
 	return ret;
 }
 
-int16_t StepperCtrl_getMotorIq(void) {
+int16_t StepperCtrl_getControlOutput(void) {
 	int16_t ret;
 	disableTCInterrupts(); 
-	ret = Iq_ma;
+	ret = control;
 	enableTCInterrupts();
 	return ret;
 }

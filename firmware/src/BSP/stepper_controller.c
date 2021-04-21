@@ -49,6 +49,7 @@ volatile int_fast16_t closeLoopMax;
 //api - measured
 volatile int32_t currentLocation = 0;
 volatile int_fast16_t closeLoop;
+volatile int_fast16_t control;
 volatile int16_t Iq_ma;
 volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
@@ -637,22 +638,22 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		} else {
 			saturationId = 2;
 		}
-		
-		closeLoop += feedForward;
-		magnitude = (uint16_t) (fastAbs(closeLoop));
+
+		control = closeLoop + feedForward;
 		
 		//handle torque zero-crossing, otherwise request 90 elctrical degress torque vector
-		if( closeLoop > zerocrossMax) 
+		if( control > zerocrossMax) 
 		{	
 			loadAngleDesired = angleFullStep;
 		}
-		else if (closeLoop < -zerocrossMax)
+		else if (control < -zerocrossMax)
 		{
 			loadAngleDesired = -angleFullStep;
 		}else{
 			loadAngleDesired = 0; //closeLoop * angleFullStep / zerocrossMax; //scale or just set to 0 if it keeps rocking
 		}
 
+		magnitude = (uint16_t) (fastAbs(closeLoop + feedForward));
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
 		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + 10u);
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
