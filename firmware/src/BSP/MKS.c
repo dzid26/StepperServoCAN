@@ -25,7 +25,6 @@
 extern volatile bool StepperCtrl_Enabled;
 extern volatile uint32_t NVM_address;
 
-volatile bool enableState = true;
 nvm_t nvmParams = {0};
 
 static void displayError(uint16_t error){
@@ -451,11 +450,6 @@ void MKS_begin(void)
 
 void MKS_loop(void)
 {
-	if(enableState != StepperCtrl_Enabled)
-	{
-		StepperCtrl_enable(enableState);
-	}
-
 	display_process();
 	CAN_TransmitMyMsg(); //test
 
