@@ -35,7 +35,7 @@ int motorHoldCurrent(int argc, char *argv[]);
 int microsteps(int argc, char *argv[]);
 int controlLoop(int argc, char *argv[]);
 int enablePin(int argc, char *argv[]);
-int dirPin(int argc, char *argv[]);
+int changeDir(int argc, char *argv[]);
 
 void validateAndInitNVMParams(void);
 static void enableInput(void);

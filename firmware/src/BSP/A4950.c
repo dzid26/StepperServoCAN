@@ -50,8 +50,7 @@ static const int16_t phaseLead[PHASE_LEAD_MAX_SPEED] = {
 	235, 235, 235};
 
 
-volatile bool forwardRotation = true;
-volatile bool A4950_Enabled = true;
+extern volatile MotorParams_t motorParams;
 
 //phase 1
 inline static void bridge1(int state)
@@ -159,11 +158,6 @@ int32_t A4950_move(int32_t stepAngle, uint32_t mA)
 	sin 	= 	 sine(angle);
 	cos 	= cosine(angle);
 
-	//if we are reverse swap the sign of one of the angels
-	if(false == forwardRotation)
-	{
-		cos = -cos;
-	}
 
 	//convert value into DAC scaled to 3300mA max
 	vrefSin = (uint16_t)(mA * fastAbs(sin) / 3300);
@@ -180,11 +174,11 @@ int32_t A4950_move(int32_t stepAngle, uint32_t mA)
 		bridge1(0);
 	}
 	if (cos > 0)
-	{
-		bridge2(1);
+	{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
+		bridge2(motorParams.motorWiring ? 1u : 0u); 
 	}else
 	{
-		bridge2(0);
+		bridge2(motorParams.motorWiring ? 0u : 1u); 
 	}
 	
 	return stepAngle;

@@ -316,13 +316,13 @@ int enablePin(int argc, char *argv[])
 	return NVM->SystemParams.errorPinMode;
 }
 
-options_t dirPinOptions[] = {
+options_t dirOptions[] = {
 		{"High CW"},
 		{"High CCW"},
 		{""}
 };
 
-int dirPin(int argc, char *argv[])
+int changeDir(int argc, char *argv[])
 {
 	if (argc == 1)
 	{
@@ -330,14 +330,14 @@ int dirPin(int argc, char *argv[])
 		nvm_t params;
 		i = atol(argv[0]);
 		memcpy((void *)&params, (void *)NVM, sizeof(params));
-		if (i != params.SystemParams.dirPinRotation)
+		if (i != params.SystemParams.dirRotation)
 		{
-			params.SystemParams.dirPinRotation = (RotationDir_t)i;
+			params.SystemParams.dirRotation = (RotationDir_t)i;
 			nvmWriteConfParms(&params);
 		}
 		return i;
 	}
-	return NVM->SystemParams.dirPinRotation;
+	return NVM->SystemParams.dirRotation;
 }
 
 menuItem_t MenuMain[] = {	//���˵�
@@ -348,7 +348,7 @@ menuItem_t MenuMain[] = {	//���˵�
 		// {"Current mA", motorCurrent, currentOptions},
 		{"Microstep", microsteps, microstepOptions},
 		{"EnablePin", enablePin, enablePinOptions},
-		{"Dir Pin", dirPin, dirPinOptions},
+		{"Rotation", changeDir, dirOptions},
 		{ "", NULL, NULL}
 };
 
@@ -368,7 +368,7 @@ void validateAndInitNVMParams(void)
 
 		nvmParams.SystemParams.microsteps = 16;
 		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;
-		nvmParams.SystemParams.dirPinRotation = CCW_ROTATION; //default to clockwise rotation when dir is high
+		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
 		nvmParams.SystemParams.errorLimit = (int32_t)ANGLE_FROM_DEGREES(1.8);
 		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
 

@@ -65,7 +65,6 @@ static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microStep
 uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
 uint16_t StepperCtrl_getEncoderAngle(void);
 void StepperCtrl_updateParamsFromNVM(void);
-void StepperCtrl_setRotationDirection(bool forward);
 float StepperCtrl_measureStepSize(void);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);

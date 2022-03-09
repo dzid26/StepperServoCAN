@@ -60,7 +60,7 @@ typedef struct {
 #pragma pack(2)
 typedef struct {
 	__attribute__((__aligned__(2))) uint16_t microsteps;    //number of microsteps on the dir/step pin interface from host
-	__attribute__((__aligned__(2))) RotationDir_t dirPinRotation;  //is the direction pin high for clockwise or counterClockWise
+	__attribute__((__aligned__(2))) RotationDir_t dirRotation;  //stores rotation direction
 	__attribute__((__aligned__(2))) uint16_t errorLimit;    //error limit before error pin asserts 65536==360degrees
 	__attribute__((__aligned__(2))) ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
 	__attribute__((__aligned__(2))) feedbackCtrl_t controllerMode; //feedback mode for the controller

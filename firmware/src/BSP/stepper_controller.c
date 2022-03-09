@@ -22,7 +22,6 @@
 
 #include "stepper_controller.h"
 
-extern volatile bool forwardRotation;
 extern volatile bool A4950_Enabled;
 extern volatile uint8_t DIR;
 extern volatile uint32_t NVM_address;
@@ -142,8 +141,6 @@ void StepperCtrl_updateParamsFromNVM(void)
 
 		motorParams.motorWiring = true;
 	}
-
-	StepperCtrl_setRotationDirection(motorParams.motorWiring);
 }
 
 void StepperCtrl_motorReset(void)
@@ -366,11 +363,6 @@ uint16_t StepperCtrl_getEncoderAngle(void)
 	return EncoderAngle;
 }
 
-void StepperCtrl_setRotationDirection(bool forward)
-{
-	forwardRotation = forward;
-}
-
 // TODO This function does two things, set rotation direction
 // and measures step size, it should be two functions.
 // return is anlge in degreesx100 ie 360.0 is returned as 36000
@@ -383,8 +375,7 @@ float StepperCtrl_measureStepSize(void)
 	A4950_Enabled = true;
 	systemParams.microsteps = 1;
 	enableFeedback = false;
-	motorParams.motorWiring = true; //assume we are forward wiring to start with
-	StepperCtrl_setRotationDirection(motorParams.motorWiring);
+	motorParams.motorWiring = true; //assume forward wiring to start with
 	/////////////////////////////////////////
 	//// Measure the full step size /////
 	/// Note we assume machine can take one step without issue///
