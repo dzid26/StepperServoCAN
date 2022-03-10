@@ -52,6 +52,8 @@ static const int16_t phaseLead[PHASE_LEAD_MAX_SPEED] = {
 
 extern volatile MotorParams_t motorParams;
 
+volatile bool A4950_Enabled = false;
+
 //phase 1
 inline static void bridge1(int state)
 {

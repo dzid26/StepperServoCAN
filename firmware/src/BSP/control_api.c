@@ -39,9 +39,18 @@ void StepperCtrl_setCloseLoopTorque(uint16_t Iq_closeloopLim){ //set error corre
 	enableTCInterrupts();
 }
 void StepperCtrl_setControlMode(uint8_t mode){ 
-	disableTCInterrupts(); //reading from a global may result in partial data if called from outside
-	
-	enableTCInterrupts();
+	switch (mode){
+		case 0:
+			StepperCtrl_enable(false);
+			break;
+		case 1:
+			StepperCtrl_enable(true);
+			break;
+		default:
+			StepperCtrl_enable(false);
+			
+			break;
+	}
 }
 
 

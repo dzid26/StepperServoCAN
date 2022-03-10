@@ -33,7 +33,7 @@ volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
-volatile bool StepperCtrl_Enabled = true;
+volatile bool StepperCtrl_Enabled = false;
 extern volatile bool TC1_ISR_Enabled;
 volatile bool enableFeedback = false; //true if we are using PID control algorithm
 volatile int32_t angleFullStep = 327;
@@ -352,7 +352,6 @@ uint16_t StepperCtrl_getEncoderAngle(void)
 }
 
 // TODO This function does two things, set rotation direction
-// and measures step size, it should be two functions.
 // return is anlge in degreesx100 ie 360.0 is returned as 36000
 float StepperCtrl_measureStepSize(void)
 {
@@ -360,7 +359,6 @@ float StepperCtrl_measureStepSize(void)
 	bool feedback = enableFeedback;
 	uint16_t microsteps = systemParams.microsteps;
 
-	A4950_Enabled = true;
 	systemParams.microsteps = 1;
 	enableFeedback = false;
 	motorParams.motorWiring = true; //assume forward wiring to start with
@@ -485,9 +483,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 		return STEPCTRL_NO_CAL;
 	}
 
-	enableFeedback = true;
 	setupTCInterrupts();
-	enableTCInterrupts();
 
 	return STEPCTRL_NO_ERROR;
 }
@@ -639,8 +635,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
 	
 		lastError = errorSat;
-		loopError = error;
-	} //end if enableFeedback
+	}
 
   // error needs to exist for some time period
 	if (abs(lastError) > systemParams.errorLimit)

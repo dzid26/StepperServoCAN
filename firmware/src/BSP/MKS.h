@@ -38,7 +38,6 @@ int enablePin(int argc, char *argv[]);
 int changeDir(int argc, char *argv[]);
 
 void validateAndInitNVMParams(void);
-static void enableInput(void);
 void MKS_begin(void);
 void MKS_loop(void);
 
