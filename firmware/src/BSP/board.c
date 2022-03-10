@@ -283,3 +283,19 @@ void BLUE_LED(bool state)
 {
 	GPIO_WriteBit(PIN_BLUE, PIN_LED_BLUE, (BitAction)(!state));
 }
+
+
+volatile bool TC1_ISR_Enabled = false;
+void enableTCInterrupts(void)
+{
+	TC1_ISR_Enabled = true;
+	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
+}
+
+void disableTCInterrupts(void)
+{
+	TC1_ISR_Enabled = false;
+	TIM_ITConfig(TIM1, TIM_IT_Update, DISABLE);
+	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+}

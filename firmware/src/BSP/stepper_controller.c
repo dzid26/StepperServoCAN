@@ -34,7 +34,7 @@ volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 volatile bool StepperCtrl_Enabled = true;
-volatile bool TC1_ISR_Enabled = false;
+extern volatile bool TC1_ISR_Enabled;
 volatile bool enableFeedback = false; //true if we are using PID control algorithm
 volatile int32_t angleFullStep = 327;
 
@@ -69,20 +69,6 @@ void setupTCInterrupts(void)
 	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 	TIM_SetCounter(TIM1, 0);
 	TIM_Cmd(TIM1, ENABLE);
-}
-
-void enableTCInterrupts(void)
-{
-	TC1_ISR_Enabled = true;
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
-	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
-}
-
-void disableTCInterrupts(void)
-{
-	TC1_ISR_Enabled = false;
-	TIM_ITConfig(TIM1, TIM_IT_Update, DISABLE);
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
 
 void StepperCtrl_updateParamsFromNVM(void)
@@ -238,7 +224,9 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	A1333_begin(); //Reset filters and perform sensor tests
 
 	enableFeedback = feedback;
-	if (state) enableTCInterrupts();
+	if (state) {
+		enableTCInterrupts();
+	}
 
 	return maxError;
 }

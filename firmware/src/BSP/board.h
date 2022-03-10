@@ -72,4 +72,9 @@ void board_init(void);
 void RED_LED(bool state);
 void BLUE_LED(bool state);
 
+
+void setupTCInterrupts(void);
+void enableTCInterrupts(void);
+void disableTCInterrupts(void);
+
 #endif

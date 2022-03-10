@@ -21,6 +21,7 @@
  */
 
 #include "nonvolatile.h"
+#include "board.h"
 
 extern volatile MotorParams_t motorParams;
 extern volatile SystemParams_t systemParams;
@@ -53,7 +54,9 @@ bool nvmWriteCalTable(void *ptrData)
 	
 	Flash_ProgramPage(FLASH_PAGE31_ADDR, ptrData, (sizeof(FlashCalData_t)/2));
 	
-	if (state) enableTCInterrupts();
+	if (state) {
+		enableTCInterrupts();
+	}
 	return true;
 }
 
@@ -94,6 +97,8 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	systemParams = NVM->SystemParams; //update systemParams
 	StepperCtrl_setLocationFromEncoder(); //measure new starting point
 	
-	if (state) enableTCInterrupts();	
+	if (state) {
+		enableTCInterrupts();	
+	}
 	return true;
 }

@@ -54,9 +54,6 @@ typedef struct {
 #define SAMPLING_PERIOD_uS	(uint16_t)(62) //sampling time in uS of control loop
 #define SAMPLING_HZ		(uint16_t)(1u * S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
 
-void setupTCInterrupts(void);
-void enableTCInterrupts(void);
-void disableTCInterrupts(void);
 void  StepperCtrl_motorReset(void);
 void StepperCtrl_setLocationFromEncoder(void);
 int32_t StepperCtrl_updateCurrentLocation(void);
