@@ -41,10 +41,10 @@ static void CLOCK_init(void)
 //Init NVIC
 static void NVIC_init(void)
 {
-	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); //��4��:4λ��ռ���ȼ�
 	NVIC_SetPriority(SysTick_IRQn,15); //����SysTick_IRQn��ռ���ȼ����
 	
+	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0; //��Ӧ���ȼ�
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 
@@ -54,6 +54,11 @@ static void NVIC_init(void)
 	
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn; //��ռ���ȼ�Ϊ1(����ѭ��)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_Init(&NVIC_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_Init(&NVIC_InitStructure);
 }
 
@@ -201,13 +206,6 @@ static void CAN_begin(){
 	CAN_InitStructure.CAN_BS2=CAN_BS2_3tq;
 	CAN_InitStructure.CAN_Prescaler=12;
 	CAN_Init(CAN1, &CAN_InitStructure);
-	
-	NVIC_InitTypeDef NVIC_InitStructure;
-	NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
 
 	//setup filters
 	CAN_MsgsFiltersSetup();
