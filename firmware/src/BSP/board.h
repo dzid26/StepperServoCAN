@@ -72,9 +72,10 @@ void board_init(void);
 void RED_LED(bool state);
 void BLUE_LED(bool state);
 
-
-void setupTCInterrupts(void);
+#define MHz_to_Hz	(uint32_t)(1000000)
+void setupTCInterrupts(uint16_t period);
 void enableTCInterrupts(void);
+void enableTCInterruptsCond(bool previously_enabled);
 void disableTCInterrupts(void);
 
 #endif

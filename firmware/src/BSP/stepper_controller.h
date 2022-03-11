@@ -49,10 +49,9 @@ typedef struct {
 //scales PID parameters from Flash (floating point) to int32_t used in control 
 #define CTRL_PID_SCALING 			(uint16_t)(1024)
 
-#define MHz_to_Hz	(uint32_t)(1000000)
-#define S_to_uS   	MHz_to_Hz
-#define SAMPLING_PERIOD_uS	(uint16_t)(62) //sampling time in uS of control loop
-#define SAMPLING_HZ		(uint16_t)(1u * S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
+#define S_to_uS   	(uint32_t)(1000000)
+#define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop
+#define SAMPLING_HZ		(uint32_t)(S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
 
 void  StepperCtrl_motorReset(void);
 void StepperCtrl_setLocationFromEncoder(void);

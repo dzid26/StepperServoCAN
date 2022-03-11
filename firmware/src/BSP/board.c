@@ -285,12 +285,39 @@ void BLUE_LED(bool state)
 }
 
 
+void setupTCInterrupts(uint16_t period)
+{
+	//setup timer
+	TIM_DeInit(TIM1);
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+	RCC_ClocksTypeDef clocksData;
+	RCC_GetClocksFreq(&clocksData);
+
+	TIM_TimeBaseStructure.TIM_Prescaler = (clocksData.PCLK2_Frequency / MHz_to_Hz - 1);	//Prescale to 1MHz - Timer 1 is clocked by PCLK2 (abp2)
+	TIM_TimeBaseStructure.TIM_Period = period-1;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+
+	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+	TIM_SetCounter(TIM1, 0);
+	TIM_Cmd(TIM1, ENABLE);
+}
+
 volatile bool TC1_ISR_Enabled = false;
 void enableTCInterrupts(void)
 {
 	TC1_ISR_Enabled = true;
 	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
+}
+
+void enableTCInterruptsCond(bool previously_enabled)
+{
+	if(previously_enabled){
+		enableTCInterrupts();
+	}
 }
 
 void disableTCInterrupts(void)

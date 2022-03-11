@@ -53,23 +53,6 @@ volatile int16_t Iq_ma;
 volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
 
-void setupTCInterrupts(void)
-{
-	RCC_ClocksTypeDef clocksData;
-	RCC_GetClocksFreq(&clocksData);
-
-	TIM_DeInit(TIM1);
-	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Prescaler = (clocksData.PCLK2_Frequency / MHz_to_Hz -1);	//Prescale to 1MHz
-	TIM_TimeBaseStructure.TIM_Period = SAMPLING_PERIOD_uS-1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
-
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
-	TIM_SetCounter(TIM1, 0);
-	TIM_Cmd(TIM1, ENABLE);
-}
 
 void StepperCtrl_updateParamsFromNVM(void)
 {
@@ -483,7 +466,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 		return STEPCTRL_NO_CAL;
 	}
 
-	setupTCInterrupts();
+	setupTCInterrupts(SAMPLING_PERIOD_uS);
 
 	return STEPCTRL_NO_ERROR;
 }
