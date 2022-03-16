@@ -25,17 +25,10 @@
 //Init clock
 static void CLOCK_init(void)
 {	
-//	RCC->APB2ENR |= (1<<0);	//����AFIOʱ��
-	RCC->APB2ENR |= (1<<2);	//����GPIOAʱ��
-	RCC->APB2ENR |= (1<<3);	//����GPIOBʱ��
-	RCC->APB2ENR |= (1<<4);	//����GPIOCʱ��
-	RCC->APB2ENR |= (1<<12);//����SPI1ʱ��
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 	//CAN, OLED SPI, INPUTS, SWITCH, RED LED
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	//ANGLE SPI2, VREF12, VREF34
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);	//BLUE LED
 
-	RCC->APB2ENR |= (1<<11);	//����TIM1ʱ��
-
-	RCC->APB1ENR |= (1<<1);	//����TIM3ʱ��
-//	RCC->APB1ENR |= (1<<2);	//����TIM4ʱ��
-	RCC->APB1ENR |= (1<<14);//����SPI2ʱ��
 }
 
 //Init NVIC
@@ -101,7 +94,9 @@ static void SWITCH_init(void)
 
 //Init A4950
 static void A4950_init(void)
-{
+{	
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
 	//Init A4950 IO
 	GPIOB->CRL &= 0x00ffff00;	//clean VREF12(PB0) VREF34(PB1) IN1(PB6) IN2(PB7) control bit
 	GPIOB->CRL |= 0x330000bb;	//config VREF12(PB0) VREF34(PB1)Multiplexed push-pull output IN1(PB6) IN2(PB7) Universal push-pull output
@@ -135,6 +130,8 @@ static void A4950_init(void)
 //Init A1333
 static void A1333_init (void)
 {	
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+
 	GPIOB->CRH &= 0x0000ffff;	//clean CS SCK MOSI MISO control bit
 	GPIOB->CRH |= 0xb8b30000;	//config CS Universal push-pull output��SCK MOSI Multiplexed push-pull output��MISO pulldown input
 	GPIOB->ODR |= 0x0000f000;	//default CS SCK MOSI MISO output high
@@ -166,11 +163,8 @@ static void LED_init(void)
 	GPIOC->ODR |= 0x00002000;
 }
 static void CAN_begin(){
-	
 
-	// RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);	//CAN
 
 	/* Configure CAN pin: RX */
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -287,6 +281,8 @@ void setupTCInterrupts(uint16_t period)
 {
 	//setup timer
 	TIM_DeInit(TIM1);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	RCC_ClocksTypeDef clocksData;
 	RCC_GetClocksFreq(&clocksData);
