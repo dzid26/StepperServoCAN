@@ -17,8 +17,8 @@
   ******************************************************************************
   */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __can_H
-#define __can_H
+#ifndef CAN_H
+#define CAN_H
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -32,12 +32,13 @@
 
 extern CAN_TypeDef hcan;
 
-void CAN_TransmitMyMsg(void);
+void CAN_TransmitMotorStatus(void);
 void CAN_MsgsFiltersSetup(void);
+void CheckTxStatus(uint8_t TransmitMailbox);
 void CAN_InterpretMesssages(CanRxMsg message);
 
 
 #ifdef __cplusplus
 }
 #endif
-#endif 
+#endif // CAN_H

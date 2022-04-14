@@ -450,8 +450,7 @@ void MKS_begin(void)
 
 void MKS_loop(void)
 {
-	display_process();
-	CAN_TransmitMyMsg(); //test
+	CAN_TransmitMotorStatus(); //todo replace with a 10ms task
 
 }
 
