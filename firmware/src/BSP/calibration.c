@@ -64,13 +64,15 @@ bool CalibrationTable_calValid(void)
 
 uint16_t CalibrationTable_fastReverseLookup(uint16_t fastEncoderAngle)
 {
+	uint16_t fastLook;
 	if (fastCalVaild == true)	//assume calibration is good
 	{  									//we only have 16384 values in table
-		return (uint16_t)(nvmFastCal->angle[fastEncoderAngle >> 1] + ((fastEncoderAngle & 0x0001) << 1)); //((fastEncoderAngle % 2) << 1)
+		fastLook = (uint16_t)(nvmFastCal->angle[fastEncoderAngle >> 1] + ((fastEncoderAngle & 0x0001) << 1)); //((fastEncoderAngle % 2) << 1)
 	}else
 	{
-		return CalibrationTable_reverseLookup(fastEncoderAngle);
+		fastLook =  CalibrationTable_reverseLookup(fastEncoderAngle);
 	}
+	return fastLook;
 }
 
 //�������
@@ -130,13 +132,13 @@ uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle)
 	return 0;	//we did some thing wrong
 }
 
-static uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
+uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
 {
 	int32_t dx;
 	int32_t dy;
 	int32_t dx2;
 	int32_t y;
-	
+
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
@@ -152,13 +154,13 @@ static uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x
 	return (uint16_t)y;
 }
 
-static uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
+uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
 {
 	int32_t dx;
 	int32_t dy;
 	int32_t dx2;
 	int32_t y;
-	
+
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
@@ -193,9 +195,6 @@ void CalibrationTable_saveToFlash(void)
 	data.MIN = min;
 	data.MAX = max;
 	
-//	CalibrationTable_printCalTable();	//print the calibration to screen
-//	printf("data.MIN %d\n\r",data.MIN);
-//	printf("data.MAX %d\n\r",data.MAX);
 	
 	nvmWriteCalTable(&data); //CalTable
 
@@ -322,13 +321,3 @@ uint16_t CalibrationTable_getCal(uint16_t actualAngle)
 	return value;
 }
 
-void CalibrationTable_printCalTable(void)
-{
-	uint16_t i;
-	printf("\n\r");
-	for (i=0; i < CALIBRATION_TABLE_SIZE; i++)
-	{
-		printf("%d\n\r",CalData[i].value);
-	}
-	printf("\n\r");
-}

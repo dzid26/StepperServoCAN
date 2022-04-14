@@ -59,8 +59,8 @@ void CalibrationTable_saveToFlash(void);
 bool CalibrationTable_calValid(void);
 uint16_t CalibrationTable_fastReverseLookup(uint16_t fastEncoderAngle);
 uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle);
-static uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
-static uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
+uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
+uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
 int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
 uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 void CalibrationTable_saveToFlash(void);
@@ -69,6 +69,5 @@ void CalibrationTable_loadFromFlash(void);
 void CalibrationTable_init(void);
 void CalibrationTable_updateFastCal(void);
 uint16_t CalibrationTable_getCal(uint16_t actualAngle);
-void CalibrationTable_printCalTable(void);
 
 #endif
