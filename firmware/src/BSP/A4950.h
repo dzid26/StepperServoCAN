@@ -28,7 +28,7 @@
 #include "sine.h"
 
 #define A4950_STEP_MICROSTEPS ((int32_t)256)
-#define VREF_SCALER	5
+#define VREF_SCALER	6
 
 void A4950_enable(bool enable);
 int32_t A4950_move(int32_t stepAngle, uint32_t mA);

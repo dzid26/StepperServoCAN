@@ -109,8 +109,8 @@ inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
 {
 	//VREF_SCALER reduces PWM resolution by 2^VREF_SCALER,
 	//but also increasesPWM freq - needed for low pass filter to effectively filter V reference)
-	VREF_TIM->CCR3 = VREF12>>VREF_SCALER;						//TIM_SetCompare3(VREF_TIM, VREF12);
-	VREF_TIM->CCR4 = VREF34>>VREF_SCALER;						//TIM_SetCompare4(VREF_TIM, VREF34);
+	TIM_SetCompare3(VREF_TIM, VREF12>>VREF_SCALER);
+	TIM_SetCompare4(VREF_TIM, VREF34>>VREF_SCALER);
 }
 
 
