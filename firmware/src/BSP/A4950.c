@@ -21,13 +21,15 @@
  */
 #include "A4950.h"
 
+#define MCU_VOUT 3300u //milliVolts
+
 #include "stepper_controller.h"
 extern volatile int32_t speed_slow;
 
 // phase lead due to DAC low pass filter C=uF, R=1k; phase = -atan(2pi*f*R*C)  
 // generatePhaseLeadTable.py
-#define PHASE_LEAD_MAX_SPEED  250 //revs/s
-static const int16_t phaseLead[PHASE_LEAD_MAX_SPEED] = {
+#define PHASE_LEAD_MAX_SPEED  250u //revs/s
+static const int16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 	0,   5,  10,  15,  20,  25,  30,  35,  40,  45,  49,  54,  58,
 	63,  67,  72,  76,  80,  84,  87,  91,  95,  98, 102, 105, 108,
 	111, 114, 117, 120, 123, 126, 128, 131, 133, 136, 138, 140, 142,
@@ -57,12 +59,12 @@ volatile bool A4950_Enabled = false;
 //phase 1
 inline static void bridge1(int state)
 {
-	if (state == 0)
+	if (state == 0) //Forward
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
 	}
-	if (state == 1)
+	if (state == 1) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0	
 		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1	
@@ -82,12 +84,12 @@ inline static void bridge1(int state)
 //phase 2
 inline static void bridge2(int state)
 {
-	if (state == 0)
+	if (state == 0) //Forward
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);	//IN4=0
 	}
-	if (state == 1)
+	if (state == 1) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);	//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
@@ -99,8 +101,8 @@ inline static void bridge2(int state)
 	}
 	if (state == 4) //brake
 	{
-		PIN_A4950->BSRR = PIN_A4950_IN3;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0
-		PIN_A4950->BSRR = PIN_A4950_IN4;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
+		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN3=0
+		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN4=0
 	}
 }
 
@@ -133,40 +135,42 @@ void A4950_enable(bool enable)
 // A4950_STEP_MICROSTEPS is 256 by default so stepAngle of 1024 is 360 degrees
 // Note you can only move up to +/-A4950_STEP_MICROSTEPS from where you
 // currently are.
-int32_t A4950_move(int32_t stepAngle, uint32_t mA)
+
+volatile uint16_t vrefY;
+volatile uint16_t vrefX;
+int32_t A4950_move(int16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees
 {
-	uint16_t angle = 0;
-	int32_t sin,cos;
-	uint16_t vrefSin,vrefCos;
-	int16_t anglePhaseLead = phaseLead[min(fastAbs(speed_slow) / (ANGLE_STEPS), PHASE_LEAD_MAX_SPEED)];
+	uint16_t elecAngleStep;
+	int16_t sin;
+	int16_t cos;
+	
+	int16_t stepPhaseLead = dacPhaseLead[min((uint32_t) fastAbs(speed_slow) / ANGLE_STEPS, PHASE_LEAD_MAX_SPEED)];
 	if (speed_slow > 0){
-		stepAngle += anglePhaseLead;
+		elecAngleStep = stepAngle + stepPhaseLead;
 	}else{
-		stepAngle -= anglePhaseLead;	
+		elecAngleStep = stepAngle - stepPhaseLead;	
 	}
 
+	//modulo operator of 2^N implemented as a bitmask of 2^N-1
+	elecAngleStep = elecAngleStep & (SINE_STEPS-1u);
+	
 	if (A4950_Enabled == false)
 	{
-		setVREF(0,0); //turn current off
+		setVREF(0,0); 	//turn current off
 		bridge1(3); 	//tri state bridge outputs
 		bridge2(3); 	//tri state bridge outputs
-		return stepAngle;
+		return 0;
 	}
 
-	//handle roll overs, could do with modulo operator
-	angle = (uint16_t)(stepAngle & 0x000003ff);
+	//calculate the sine and cosine of our elecAngleStep
+	sin = sine(elecAngleStep);
+	cos = cosine(elecAngleStep);
 
-	//calculate the sine and cosine of our angle
-	sin 	= 	 sine(angle);
-	cos 	= cosine(angle);
+	//calculate the sine and cosine of our elecAngleStep - lumped park transform - FOC Q and D force vectors
+	vrefX = (uint16_t)((mA * (uint16_t) fastAbs(cos)) / MCU_VOUT); //convert value into DAC scaled to 3300mV max
+	vrefY = (uint16_t)((mA * (uint16_t) fastAbs(sin)) / MCU_VOUT);
 
-
-	//convert value into DAC scaled to 3300mA max
-	vrefSin = (uint16_t)(mA * fastAbs(sin) / 3300);
-	//convert value into DAC scaled to 3300mA max
-	vrefCos = (uint16_t)(mA * fastAbs(cos) / 3300);
-
-	setVREF(vrefSin,vrefCos); //VREF12	VREF34
+	setVREF(vrefY,vrefX); //VREF12	VREF34
 
 	if (sin > 0)
 	{
@@ -182,7 +186,6 @@ int32_t A4950_move(int32_t stepAngle, uint32_t mA)
 	{
 		bridge2(motorParams.motorWiring ? 0u : 1u); 
 	}
-	
-	return stepAngle;
+	return elecAngleStep;
 }
 

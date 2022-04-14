@@ -27,11 +27,11 @@
 #include "board.h"
 #include "sine.h"
 
-#define A4950_STEP_MICROSTEPS ((int32_t)256)
+#define A4950_STEP_MICROSTEPS ((uint16_t)256)
 #define VREF_SCALER	6
 
 void A4950_enable(bool enable);
-int32_t A4950_move(int32_t stepAngle, uint32_t mA);
+int32_t A4950_move(int16_t stepAngle, uint16_t mA);
 void A4954_begin(void);
 
 #endif
