@@ -66,6 +66,8 @@ static void INPUT_init(void)
 //Init SSD1306				    
 static void OLED_init(void)
 { 			
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+	
 	GPIOA->CRL &= 0x0000ffff;
 	GPIOA->CRL |= 0xb3b30000;
 	GPIOA->ODR |= 0x000000f0;

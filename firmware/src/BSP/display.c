@@ -271,10 +271,8 @@ void display_updateLCD(void)
 	deg = desiredLocation - zeroAngleOffset;
 	deg = (deg * 225) / (ANGLE_STEPS >> 4);	//deg = (deg * 360 * 10) / (int32_t)ANGLE_STEPS;
 
-	__IO uint8_t K = 0;
 	if (abs(deg) > 9999)
 	{
-		K = 1;
 		deg = deg / 1000;
 	}
 

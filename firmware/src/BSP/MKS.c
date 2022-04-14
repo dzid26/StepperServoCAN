@@ -34,7 +34,7 @@ static void displayError(uint16_t error){
 	y = x / 100;
 	x = x - (y * 100);
 	x = fastAbs(x);
-	sprintf(str, "%d.%02d deg",y,x);
+	sprintf(str, "%ld.%02ld deg",y,x);
 	display_show("Max cal error", str, "", "");
 
 	while(GPIO_ReadInputDataBit(PIN_SW, PIN_SW3_ENTER) == 1)
@@ -394,18 +394,12 @@ void MKS_begin(void)
 
 	oled_begin();
 	display_begin(); //display init
-/*
-#ifndef MKS_SERVO42B
-	display_show("MKS", "Servo57B", VERSON, ""); //��ʾ57LOGO
-#else
-	display_show("MKS", "Servo42B", VERSON, ""); //��ʾ42LOGO
-#endif
-*/
-  #ifdef MKS_SERVO42B
+
+  	#ifdef MKS_SERVO42B
   	display_show("MKS", "Servo42B", VERSON, ""); //��ʾ57LOGO
-  #else
+  	#else
 	  display_show("MKS", "Servo57B", VERSON, ""); //��ʾ42LOGO
-  #endif
+  	#endif
 	delay_ms(800);
 
 	stepCtrlError = STEPCTRL_NO_CAL;
@@ -433,7 +427,7 @@ void MKS_begin(void)
 		if(STEPCTRL_NO_CAL == stepCtrlError)
 		{
 			display_show("   NOT ", "Calibrated", " ", "");
-			delay_ms(800);
+			delay_ms(2200);
 			display_setMenu(MenuCal);
 			display_forceMenuActive();
 
