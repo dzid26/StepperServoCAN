@@ -21,17 +21,17 @@ extern volatile int32_t loopError;
 
 extern volatile SystemParams_t systemParams;
 
-#define CHOOSE_DIR(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//short hand for swapping direction
+#define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//short hand for swapping direction
 
 void StepperCtrl_setDesiredLocation(int32_t deltaLocation){
 	disableTCInterrupts(); //reading from a global may result in partial data if called from outside
-	desiredLocation = StepperCtrl_getCurrentLocation() + CHOOSE_DIR(deltaLocation);
+	desiredLocation = StepperCtrl_getCurrentLocation() + DIR_SIGN(deltaLocation);
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 }
 
 void StepperCtrl_setFeedForwardTorque(int16_t Iq_feedforward){ //set feedforward torque
 	disableTCInterrupts(); //reading from a global may result in partial data if called from outside
-	feedForward = CHOOSE_DIR(Iq_feedforward);
+	feedForward = DIR_SIGN(Iq_feedforward);
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 }
 
@@ -67,7 +67,7 @@ int32_t StepperCtrl_getCurrentLocation(void) {
 int16_t StepperCtrl_getCloseLoop(void) {
 	int16_t ret;
 	disableTCInterrupts(); 
-	ret = (int16_t) CHOOSE_DIR(closeLoop);
+	ret = (int16_t) DIR_SIGN(closeLoop);
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 	return ret;
 }
@@ -75,7 +75,7 @@ int16_t StepperCtrl_getCloseLoop(void) {
 int16_t StepperCtrl_getControlOutput(void) {
 	int16_t ret;
 	disableTCInterrupts(); 
-	ret = CHOOSE_DIR(control);
+	ret = DIR_SIGN(control);
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 	return ret;
 }
@@ -83,7 +83,7 @@ int16_t StepperCtrl_getControlOutput(void) {
 int32_t StepperCtrl_getSpeedRev(void) { //revolutions/s
 	int32_t ret;
 	disableTCInterrupts(); 
-	ret = CHOOSE_DIR(speed_slow) / (int32_t) (ANGLE_STEPS);
+	ret = DIR_SIGN(speed_slow) / (int32_t) (ANGLE_STEPS);
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 	return ret;
 }
@@ -91,7 +91,7 @@ int32_t StepperCtrl_getSpeedRev(void) { //revolutions/s
 int32_t StepperCtrl_getPositionError(void) {
 	int32_t ret;
 	disableTCInterrupts(); 
-	ret = CHOOSE_DIR(loopError);
+	ret = DIR_SIGN(loopError);
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 	return ret;
 }
