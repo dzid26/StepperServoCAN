@@ -37,7 +37,24 @@ typedef enum {
 	STEPCTRL_NO_ENCODER=3,//encoder not working
 } stepCtrlError_t;
 
-typedef struct {
+typedef	enum {
+	STEPCTRL_OFF=0,
+	//Uses angle sensor to control the stepper load
+	STEPCTRL_FEEDBACK_POSITION_RELATIVE=1,	//relative closeloop positioning with feedforward torque
+	STEPCTRL_FEEDBACK_POSITION_ABSOLUTE=2,	//absolute closeloop positioning with feedforward torque
+	STEPCTRL_FEEDBACK_VELOCITY=3,			//velocity closeloop positioning with feedforward torque
+	STEPCTRL_FEEDBACK_TORQUE=4,				//torque control with no closeloop
+	STEPCTRL_FEEDBACK_CURRENT=5,			//current control
+	STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF=6,	//last torque ramp off
+
+	//Classical sensorless openloop
+	STEPCTRL_OPENLOOP_RELATIVE=7,			//relative openloop positioning
+	STEPCTRL_OPENLOOP_ABSOLUTE=8,			//absolute openloop positioning
+	STEPCTRL_OPENLOOP_VELOCITY=9,			//velocity openloop positioning
+	STEPCTRL_OPENLOOP_CURRENT=10,			//current openloop control
+} stepCtrlFeedbackMode_t;
+
+typedef struct { //closeloop position controller
 	int32_t Kp;
 	int32_t Ki;
 	int32_t Kd;
@@ -64,6 +81,7 @@ void StepperCtrl_updateParamsFromNVM(void);
 float StepperCtrl_measureStepSize(void);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
+void StepperCtrl_feedbackMode(uint8_t mode);
 bool StepperCtrl_processFeedback(void);
 bool StepperCtrl_simpleFeedback(int32_t error);
 void StepperCtrl_moveToAngle(int32_t a, uint16_t ma);

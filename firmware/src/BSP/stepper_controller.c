@@ -35,7 +35,9 @@ volatile PID_t vPID; //velocity PID control parameters
 
 volatile bool StepperCtrl_Enabled = false;
 extern volatile bool TC1_ISR_Enabled;
-volatile bool enableFeedback = false; //true if we are using PID control algorithm
+volatile bool enableFeedback = false; //true if control uses feedback
+volatile bool enableCloseLoop = false; //true if control uses PID
+volatile bool enableSoftOff = false; //true if soft off is enabled
 volatile int32_t angleFullStep = 327;
 
 volatile int32_t zeroAngleOffset = 0;
@@ -471,23 +473,69 @@ stepCtrlError_t StepperCtrl_begin(void)
 	return STEPCTRL_NO_ERROR;
 }
 
-void StepperCtrl_enable(bool enable)
+void StepperCtrl_enable(bool enable) //enables feedback sensor processing StepperCtrl_processFeedback()
 {
-	A4950_enable(enable); //enable or disable the stepper driver as needed
-
 	if(StepperCtrl_Enabled == true && enable == false)
 	{
-		enableFeedback = false;
 		disableTCInterrupts();
 	}
 	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
 	{
 		StepperCtrl_setLocationFromEncoder();
-		enableFeedback = true;
 		enableTCInterrupts();
 	}
-
 	StepperCtrl_Enabled = enable;
+}
+
+void StepperCtrl_feedbackMode(uint8_t mode)
+{
+	disableTCInterrupts();
+	switch (mode) //TODO add more modes
+	{
+	case STEPCTRL_OFF:
+		enableFeedback = false;
+		enableSoftOff = false;
+		A4950_enable(false);
+		break;
+	case STEPCTRL_FEEDBACK_POSITION_RELATIVE:
+		enableFeedback = true;
+		enableCloseLoop = true;
+		A4950_enable(true);
+		break;
+	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE: //TODO
+		enableFeedback = true;
+		enableCloseLoop = true;
+		A4950_enable(true);
+		break;
+	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
+		enableFeedback = true;
+		enableCloseLoop = true;
+		A4950_enable(true);
+		break;
+	case STEPCTRL_FEEDBACK_TORQUE:	//TODO
+		enableFeedback = true;
+		enableCloseLoop = false;
+		A4950_enable(true);
+		break;
+	case STEPCTRL_FEEDBACK_CURRENT:	//TODO
+		enableFeedback = true;
+		enableCloseLoop = false;
+		A4950_enable(true);
+		break;
+	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
+		enableFeedback = true;
+		enableCloseLoop = false;
+		enableSoftOff = true;
+		break;
+	default:
+		enableFeedback = false;
+		enableCloseLoop = false;
+		A4950_enable(false);
+		break;
+	}
+	enableTCInterruptsCond(StepperCtrl_Enabled);
+
+	
 }
 
 
@@ -514,25 +562,7 @@ bool StepperCtrl_processFeedback(void)
 
 	ret = StepperCtrl_simpleFeedback(error);
 
-//	switch (systemParams.controllerMode)
-//	{
-//		case CTRL_POS_PID:
-//		{
-////			ret = StepperCtrl_pidFeedback(desiredLoc, currentLoc, &ctrl);
-//			break;
-//		}
-//		default:
-//		case CTRL_SIMPLE:
-//		{
-//			ret = StepperCtrl_simpleFeedback(desiredLoc, currentLoc);
-//			break;
-//		}
-//		case CTRL_POS_VELOCITY_PID:
-//		{
-////			ret = StepperCtrl_vpidFeedback(desiredLoc, currentLoc, &ctrl);
-//			break;
-//		}
-//	}
+
 	lastLoc = currentLoc;
 	return ret;
 }
@@ -547,77 +577,110 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 	const uint16_t smallLoad = 25; //abs mA
 	if(enableFeedback)
 	{
-		int32_t errorSat;
-		int_fast16_t pTerm;
-		int_fast16_t dTerm;
-		static float iTerm = 0; //iTerm memory
-		static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
 		int16_t loadAngleDesired;
-		static uint16_t magnitude; //static for dTerm condition check
+		static uint16_t magnitude = 0; //static for dTerm condition check
 
-		//protect pTern and iTerm against overflow
-		int32_t errorMax = INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki); 
-		if( error > errorMax){
-			errorSat = closeLoopMax;
-		}else if (error < -errorMax)
+		if(enableCloseLoop)
 		{
-			errorSat = -closeLoopMax;
-		}else{
-			errorSat = error;
-		}
+			int32_t errorSat;
+			int_fast16_t pTerm;
+			int_fast16_t dTerm;
+			static float iTerm = 0; //iTerm memory
+			static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
+			
+			//protect pTerm and iTerm against overflow
+			int32_t errorMax = (int32_t) INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki); 
+			if( error > errorMax){
+				errorSat = errorMax;
+			}else if (error < -errorMax){
+				errorSat = -errorMax;
+			}else{
+				errorSat = error;
+			}
 
-		// PID proportional term
-		pTerm  =  errorSat * sPID.Kp / CTRL_PID_SCALING;
+			// PID proportional term
+			pTerm  =  errorSat * sPID.Kp / CTRL_PID_SCALING;
 
-		// PID derivative term
-		if(magnitude > smallLoad){ //dTerm causes noise when motor is not loaded enough
-			dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING; // (error - lastError) is small
-		}else{
-			dTerm=0;
+			// PID derivative term
+			if(magnitude > smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
+				dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING; // (error - lastError) is small
+			}else{
+				dTerm=0;
+			}
+			// PID integral term
+			if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values (0,1,2) from previous sample
+				iTerm += (float) errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS;  //mistake, should be * uS
+			}
+			
+			closeLoop = pTerm + (int16_t) iTerm + dTerm;
+
+			// If closeLoop is in the same direction as feedforward, closelooop is limited by closeLoopMax. 
+			// If closeLoop is in opposite direction to feedforward, then it is limited to -feedforward so that closeloop
+			// has always power to cancel out the feedforward to avoid uncontrolled rotation
+
+			if( closeLoop > max(closeLoopMax, -feedForward)) 
+			{	
+				closeLoop = max(closeLoopMax, -feedForward);
+				saturationId = 1;
+			} else if (closeLoop < -(max(closeLoopMax, feedForward)))
+			{
+				closeLoop = -(max(closeLoopMax, feedForward));
+				saturationId = 0;
+			} else {
+				saturationId = 2;
+			}
+			control = closeLoop + feedForward;
+
+			// add deadzone for small torque small error zero-crossing
+			const int16_t zerocrossMax = 20; //mA
+			if((control < zerocrossMax) && (control < -zerocrossMax) && (error < angleFullStep) && (error > -angleFullStep))
+			{
+				control = 0; //closeLoop * angleFullStep / zerocrossMax; //scale or just set to 0 if it keeps rocking
+			}
+			lastError = errorSat;
+
+		}else if (enableSoftOff){
+			static uint16_t rampsteps = 0;
+			const uint8_t rampstepsMax = 1; //seconds
+			if ((control != 0) && (rampsteps >= (SAMPLING_PERIOD_uS * rampstepsMax))){
+				(control > 0) ? control-- : control++;
+				rampsteps = 0;
+			}else if (control == 0){
+				A4950_enable(false);
+			}
+			rampsteps++;
+			lastError = 0;
+			closeLoop = 0;
 		}
-		// PID integral term
-		if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values
-			iTerm += (float) errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS;
+		else{
+			control = feedForward;
+			closeLoop = 0;
+			lastError = 0;
 		}
 		
-		closeLoop = pTerm + (int16_t) iTerm + dTerm;
 
-		// If closeLoop is in the same direction as feedforward, closelooop is limited by closeLoopMax. 
-		// If closeLoop is in opposite direction to feedforward, then it is limite to -feedforwad so that closeloop
-		// has always power to cancel out the feedfrward  to avoid uncontrolled rotation
-		if( closeLoop > max(closeLoopMax, -feedForward)) 
-		{	
-			closeLoop = max(closeLoopMax, -feedForward);
-			saturationId = 1;
-		} else if (closeLoop < -(max(closeLoopMax, feedForward)))
+		if (control > 0)
 		{
-			closeLoop = -(max(closeLoopMax, feedForward));
-			saturationId = 0;
-		} else {
-			saturationId = 2;
-		}
-
-		control = closeLoop + feedForward;
-		
-		//handle torque zero-crossing, otherwise request 90 elctrical degress torque vector
-		if( control > zerocrossMax) 
-		{	
 			loadAngleDesired = angleFullStep;
-		}
-		else if (control < -zerocrossMax)
+		}else if (control < 0)
 		{
 			loadAngleDesired = -angleFullStep;
 		}else{
-			loadAngleDesired = 0; //closeLoop * angleFullStep / zerocrossMax; //scale or just set to 0 if it keeps rocking
+			loadAngleDesired = 0;
 		}
 
-		magnitude = (uint16_t) (fastAbs(closeLoop + feedForward));
+		magnitude = (uint16_t) (fastAbs(control));
+
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
 		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + 10u);
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
 		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
 	
-		lastError = errorSat;
+	}else{
+		control = 0;
+		closeLoop = 0;
+		Iq_ma = 0;
+		lastError = 0;
 	}
 
   // error needs to exist for some time period

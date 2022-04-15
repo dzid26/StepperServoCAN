@@ -44,13 +44,13 @@ void StepperCtrl_setCloseLoopTorque(uint16_t Iq_closeloopLim){ //set error corre
 void StepperCtrl_setControlMode(uint8_t mode){ 
 	switch (mode){
 		case 0:
-			StepperCtrl_enable(false);
+			StepperCtrl_feedbackMode(STEPCTRL_OFF);
 			break;
 		case 1:
-			StepperCtrl_enable(true);
+			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE);
 			break;
 		default:
-			StepperCtrl_enable(false);
+			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 			
 			break;
 	}
