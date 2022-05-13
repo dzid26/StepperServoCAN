@@ -31,7 +31,7 @@
 #define VREF_SCALER	6
 
 void A4950_enable(bool enable);
-int32_t A4950_move(int16_t stepAngle, uint16_t mA);
+int32_t A4950_move(uint16_t stepAngle, uint16_t mA);
 void A4954_begin(void);
 
 #endif

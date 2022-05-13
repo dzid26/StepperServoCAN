@@ -95,7 +95,6 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	
 	motorParams = NVM->motorParams; //update motorParams
 	systemParams = NVM->SystemParams; //update systemParams
-	StepperCtrl_setLocationFromEncoder(); //measure new starting point
 	
 	if (state) {
 		enableTCInterrupts();	

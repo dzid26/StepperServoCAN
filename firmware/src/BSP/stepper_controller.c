@@ -216,7 +216,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	return maxError;
 }
 
-static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calZeroOffset){
+uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calZeroOffset){
 	
 	uint16_t maxError = 0;
 	
@@ -232,7 +232,7 @@ static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microStep
 		bool preRun = j < preRunPart;
 		delay_ms(1);
 		if (updateFlash && !preRun) 
-			delay_ms(50);
+			delay_ms(250);
 
 		
 		desiredAngle = (uint16_t) DIVIDE_WITH_ROUND(*microSteps * (int32_t)(ANGLE_STEPS>>2) / A4950_STEP_MICROSTEPS, motorParams.fullStepsPerRotation>>2);
@@ -342,23 +342,21 @@ float StepperCtrl_measureStepSize(void)
 {
 	int32_t angle1,angle2,x;
 	bool feedback = enableFeedback;
-	uint16_t microsteps = systemParams.microsteps;
-
-	systemParams.microsteps = 1;
 	enableFeedback = false;
-	motorParams.motorWiring = true; //assume forward wiring to start with
+	A4950_enable(true);
+
 	/////////////////////////////////////////
 	//// Measure the full step size /////
 	/// Note we assume machine can take one step without issue///
 
 	A4950_move(0,motorParams.currentMa); //this puts stepper motor at stepAngle of zero
-	delay_ms(1200);
+	delay_ms(200);
 
 	angle1 = StepperCtrl_sampleMeanEncoder(102); //angle1
 	A4950_move(A4950_STEP_MICROSTEPS/2,motorParams.currentMa); //move one half step 'forward'
 	delay_ms(100);
 	A4950_move(A4950_STEP_MICROSTEPS,motorParams.currentMa); //move one half step 'forward'
-	delay_ms(500);
+	delay_ms(200);
 	angle2 = StepperCtrl_sampleMeanEncoder(102); //angle2
 
 	if ( fastAbs(angle2 - angle1) > CALIBRATION_WRAP )
@@ -381,15 +379,15 @@ float StepperCtrl_measureStepSize(void)
 	delay_ms(100);
 	A4950_move(0,motorParams.currentMa);
 
-	systemParams.microsteps = microsteps;
 	enableFeedback = feedback;
+	A4950_enable(feedback);
 
 	return ((float)x)/100.0;
 }
 
 stepCtrlError_t StepperCtrl_begin(void)
 {
-	float x;
+	float x=9999;
 	enableFeedback = false;
 	currentLocation = 0;
 
@@ -427,8 +425,6 @@ stepCtrlError_t StepperCtrl_begin(void)
 	}
 
 	//Checking the motor parameters
-	//todo we might want to move this up a level to the NZS
-	//especially since it has default values
 	if (NVM->motorParams.parametersValid != valid) //NVM motor parameters are not set, we will update
 	{
 		// power could have just been applied and step size read wrong
@@ -440,12 +436,9 @@ stepCtrlError_t StepperCtrl_begin(void)
 			x = StepperCtrl_measureStepSize();
 		}
 
-		if (x > 0)
+		if (x < 0)
 		{
-			motorParams.motorWiring = true;
-		} else
-		{
-			motorParams.motorWiring = false;
+			motorParams.motorWiring = ~motorParams.motorWiring;
 		}
 		if (fabs(x) <= 1.2)
 		{
@@ -573,7 +566,6 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 {
 	static int32_t lastError = 0;
 	static uint32_t errorCount = 0;
-	const int16_t zerocrossMax = 20; //mA
 	const uint16_t smallLoad = 25; //abs mA
 	if(enableFeedback)
 	{
@@ -602,14 +594,13 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			pTerm  =  errorSat * sPID.Kp / CTRL_PID_SCALING;
 
 			// PID derivative term
-			if(magnitude > smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
-				dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING; // (error - lastError) is small
-			}else{
+			dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING * (int32_t) SAMPLING_PERIOD_uS;
+			if(magnitude < smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
 				dTerm=0;
 			}
 			// PID integral term
 			if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values (0,1,2) from previous sample
-				iTerm += (float) errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS;  //mistake, should be * uS
+				iTerm += (float) errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS;
 			}
 			
 			closeLoop = pTerm + (int16_t) iTerm + dTerm;
@@ -702,11 +693,14 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 	return false;
 }
 
-void StepperCtrl_moveToAngle(int32_t loadAngle, uint16_t magnitude) 
-{
-	//we need to convert 'Angle' to A4950 steps
-	loadAngle = StepperCtrl_getCurrentLocation() + loadAngle & ANGLE_MAX;	//we only interested in the rotor vs stator angle, which repeats after a half a rotation for 0.9stepper and full rotation for 1.8stepper 
 
-	loadAngle = DIVIDE_WITH_ROUND(loadAngle * (motorParams.fullStepsPerRotation >> 3), ANGLE_STEPS / A4950_STEP_MICROSTEPS >> 3); //2^2=8 which is a common denominator of 200 and 256
-	A4950_move(loadAngle, magnitude);
+void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude) 
+{
+	uint16_t absoluteAngle; //0-65535 -> 0-360
+	uint16_t absoluteMicrosteps;
+
+	absoluteAngle = (uint16_t) (((uint32_t) (currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
+	absoluteMicrosteps = DIVIDE_WITH_ROUND((uint32_t) absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS, ANGLE_STEPS); //2^2=8 which is a common denominator of 200 and 256
+
+	A4950_move(absoluteMicrosteps, magnitude);
 }

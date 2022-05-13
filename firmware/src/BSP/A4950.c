@@ -29,7 +29,7 @@ extern volatile int32_t speed_slow;
 // phase lead due to DAC low pass filter C=uF, R=1k; phase = -atan(2pi*f*R*C)  
 // generatePhaseLeadTable.py
 #define PHASE_LEAD_MAX_SPEED  250u //revs/s
-static const int16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
+static const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 	0,   5,  10,  15,  20,  25,  30,  35,  40,  45,  49,  54,  58,
 	63,  67,  72,  76,  80,  84,  87,  91,  95,  98, 102, 105, 108,
 	111, 114, 117, 120, 123, 126, 128, 131, 133, 136, 138, 140, 142,
@@ -138,13 +138,13 @@ void A4950_enable(bool enable)
 
 volatile uint16_t vrefY;
 volatile uint16_t vrefX;
-int32_t A4950_move(int16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees
+int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees
 {
 	uint16_t elecAngleStep;
 	int16_t sin;
 	int16_t cos;
 	
-	int16_t stepPhaseLead = dacPhaseLead[min((uint32_t) fastAbs(speed_slow) / ANGLE_STEPS, PHASE_LEAD_MAX_SPEED)];
+	uint16_t stepPhaseLead = dacPhaseLead[min((uint32_t) fastAbs(speed_slow) / ANGLE_STEPS, PHASE_LEAD_MAX_SPEED)];
 	if (speed_slow > 0){
 		elecAngleStep = stepAngle + stepPhaseLead;
 	}else{

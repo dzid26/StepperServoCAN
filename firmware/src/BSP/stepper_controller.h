@@ -23,7 +23,6 @@
 #ifndef __STEPPER_CONTROLLER_H
 #define __STEPPER_CONTROLLER_H
 
-#include "A4950.h"
 #include "delay.h"
 #include "nonvolatile.h"
 #include "calibration.h"
@@ -64,7 +63,7 @@ typedef struct { //closeloop position controller
 #define ANGLE_T0_DEGREES(x) ( (float) ((float(x) * 360.0) / ((float)ANGLE_STEPS) ))
 
 //scales PID parameters from Flash (floating point) to int32_t used in control 
-#define CTRL_PID_SCALING 			(uint16_t)(1024)
+#define CTRL_PID_SCALING 			(int16_t)(8096)
 
 #define S_to_uS   	(uint32_t)(1000000)
 #define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop
@@ -74,7 +73,7 @@ void  StepperCtrl_motorReset(void);
 void StepperCtrl_setLocationFromEncoder(void);
 int32_t StepperCtrl_updateCurrentLocation(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
-static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calLocOffset);
+uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calLocOffset);
 uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
 uint16_t StepperCtrl_getEncoderAngle(void);
 void StepperCtrl_updateParamsFromNVM(void);
@@ -84,7 +83,7 @@ void StepperCtrl_enable(bool enable);
 void StepperCtrl_feedbackMode(uint8_t mode);
 bool StepperCtrl_processFeedback(void);
 bool StepperCtrl_simpleFeedback(int32_t error);
-void StepperCtrl_moveToAngle(int32_t a, uint16_t ma);
+void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
 
 
 #endif
