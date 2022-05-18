@@ -22,6 +22,10 @@
 #include "control_api.h"
 #include "../OP/Msg.h"
 
+#define RAW_TORQUE_TO_mA 1
+#define RAW_TORQUE_MAX_TO_mA 1
+#define RAW_POSITION_TO_MOTOR 64
+
 volatile uint32_t can_rx_cnt = 0;
 volatile uint32_t can_tx_cnt = 0;
 volatile uint32_t can_err_cnt = 0;
@@ -66,9 +70,9 @@ void CAN_TransmitMotorStatus(void)
 {
   static uint8_t counter = 0;
   ControlStatus.counter_stat1 = (counter++) & 0xF;
-  ControlStatus.torque_actual = StepperCtrl_getControlOutput();
-  ControlStatus.torque_close_loop_actual = StepperCtrl_getCloseLoop();
-  ControlStatus.position_error = StepperCtrl_getPositionError() / 64;
+  ControlStatus.torque_actual = StepperCtrl_getControlOutput() / RAW_TORQUE_TO_mA;
+  ControlStatus.torque_close_loop_actual = StepperCtrl_getCloseLoop() / RAW_TORQUE_TO_mA;
+  ControlStatus.position_error = StepperCtrl_getPositionError() / RAW_POSITION_TO_MOTOR;
   ControlStatus.speed_actual =  StepperCtrl_getSpeedRev();
 
   SystemStatus.chip_temp = GetTemperature();
@@ -119,9 +123,9 @@ void CAN_InterpretMesssages(CanRxMsg message) {
   	case MSG_CONTROL_CMD1_FRAME_ID: {
       Msg_control_cmd1_unpack(&ControlCmds, message.Data, sizeof(message.Data));
 
-      StepperCtrl_setDesiredLocation( (int32_t) ControlCmds.position_change * 64);
-      StepperCtrl_setFeedForwardTorque(ControlCmds.torque_feedforward); //set feedforward torque
-      StepperCtrl_setCloseLoopTorque(ControlCmds.torque_closeloop_max); //set feedforward torque
+      StepperCtrl_setDesiredLocation( (int32_t) ControlCmds.position_change * RAW_POSITION_TO_MOTOR);
+      StepperCtrl_setFeedForwardTorque(ControlCmds.torque_feedforward * RAW_TORQUE_TO_mA); //set feedforward torque
+      StepperCtrl_setCloseLoopTorque(ControlCmds.torque_closeloop_max * RAW_TORQUE_MAX_TO_mA); //set feedforward torque
       StepperCtrl_setControlMode(ControlCmds.target_mode); //set control mode
       
     }

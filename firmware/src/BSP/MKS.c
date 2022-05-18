@@ -366,7 +366,7 @@ void validateAndInitNVMParams(void)
 		nvmParams.pPID.Kp = 1.0;  nvmParams.pPID.Ki = 0.0; 	  nvmParams.pPID.Kd = 0.0;
 		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
 
-		nvmParams.SystemParams.microsteps = 16;
+		nvmParams.SystemParams.microsteps = 256; //unused
 		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;
 		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
 		nvmParams.SystemParams.errorLimit = (int32_t)ANGLE_FROM_DEGREES(1.8);

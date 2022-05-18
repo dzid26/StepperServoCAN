@@ -438,7 +438,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 
 		if (x < 0)
 		{
-			motorParams.motorWiring = ~motorParams.motorWiring;
+			motorParams.motorWiring = !motorParams.motorWiring;
 		}
 		if (fabs(x) <= 1.2)
 		{

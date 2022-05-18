@@ -116,9 +116,9 @@ struct Msg_control_cmd1_t {
     int16_t position_change;
 
     /**
-     * Feedforward torque at steering wheel to motor raw current mA x 8.
+     * Feedforward torque at steering wheel to motor raw current mA.
      * Factor formula:
-     * 8_const * 1A/1000mA * MotorRatedTorque / MotorRatedCurrent * GearboxRatio * FinalGearRatio
+     * 1A/1000mA * MotorRatedTorque / MotorRatedCurrent * GearboxRatio * FinalGearRatio
      *
      * Range: -974.0228116142480056882932198..974.0228116142480056882932198 (-10..10 N*m)
      * Scale: 0.0102667
@@ -127,12 +127,12 @@ struct Msg_control_cmd1_t {
     int16_t torque_feedforward;
 
     /**
-     * Closeloop torque limit at steering wheel to motor raw current mA x 32.
+     * Closeloop torque limit at steering wheel to motor raw current mA
      * If internally close loop is in the same direction as feedforward, closelooop is simply limited by the value.
      * If internally close loop is in opposite direction to feedforward, then close loop limit is set to |feedforwad| so that closeloop has always power to cancel the feedfrward to avoid uncontrolled rotation away from target position.
      * 
      * Factor formula:
-     * 32_const * 1A/1000mA * MotorRatedTorque / MotorRatedCurrent * GearboxRatio * FinalGearRatio
+     * 1A/1000mA * MotorRatedTorque / MotorRatedCurrent * GearboxRatio * FinalGearRatio
      *
      * Range: 0..974.0228116142480056882932198 (0..10 N*m)
      * Scale: 0.0102667
@@ -222,7 +222,7 @@ struct Msg_control_status1_t {
     int16_t torque_close_loop_actual;
 
     /**
-     * Filered speed in revolutions per seconds
+     * Filtsered speed in revolutions per seconds
      * 
      * factor =  1[rev/s]/ FinalGearRatio / GearboxRatio
      *
