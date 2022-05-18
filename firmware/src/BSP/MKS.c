@@ -362,7 +362,7 @@ void validateAndInitNVMParams(void)
 {
 	if (NVM->SystemParams.parametersValid != valid) //SystemParams invalid
 	{
-		nvmParams.sPID.Kp = 0.6;  nvmParams.sPID.Ki = 0.001;  nvmParams.sPID.Kd = 0.001;
+		nvmParams.sPID.Kp = .1;  nvmParams.sPID.Ki = .008;  nvmParams.sPID.Kd = 0.2;
 		nvmParams.pPID.Kp = 1.0;  nvmParams.pPID.Ki = 0.0; 	  nvmParams.pPID.Kd = 0.0;
 		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
 

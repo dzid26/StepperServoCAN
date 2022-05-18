@@ -567,27 +567,40 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 	static int32_t lastError = 0;
 	static uint32_t errorCount = 0;
 	const uint16_t smallLoad = 25; //abs mA
+
+	static float iTerm; //iTerm memory
+	static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
+	static uint16_t magnitude = 0; //static for dTerm condition check
+
 	if(enableFeedback)
 	{
 		int16_t loadAngleDesired;
-		static uint16_t magnitude = 0; //static for dTerm condition check
-
+		
+		//todo add close loop intiazliation - I term with last control
 		if(enableCloseLoop)
 		{
 			int32_t errorSat;
 			int_fast16_t pTerm;
 			int_fast16_t dTerm;
-			static float iTerm = 0; //iTerm memory
-			static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
 			
-			//protect pTerm and iTerm against overflow
-			int32_t errorMax = (int32_t) INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki); 
+			//protect pTerm and iTerm 16bit variables against overflow
+			int32_t errorMax = (int32_t) INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki);  //todo: move this to StepperCtrl_updateParamsFromNVM()
 			if( error > errorMax){
 				errorSat = errorMax;
 			}else if (error < -errorMax){
 				errorSat = -errorMax;
 			}else{
 				errorSat = error;
+			}
+
+			// PID integral term
+			if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values (0,1,2) from previous sample //todo - actually... make it more explicit
+				iTerm += (float) (errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS);
+			}
+			
+			//error deadzone to reduce mechanical vibration due to P term
+			if(abs(errorSat) < angleFullStep){
+				errorSat = 0;  
 			}
 
 			// PID proportional term
@@ -598,10 +611,6 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			if(magnitude < smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
 				dTerm=0;
 			}
-			// PID integral term
-			if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values (0,1,2) from previous sample
-				iTerm += (float) errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS;
-			}
 			
 			closeLoop = pTerm + (int16_t) iTerm + dTerm;
 
@@ -609,7 +618,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			// If closeLoop is in opposite direction to feedforward, then it is limited to -feedforward so that closeloop
 			// has always power to cancel out the feedforward to avoid uncontrolled rotation
 
-			if( closeLoop > max(closeLoopMax, -feedForward)) 
+			if( closeLoop > max(closeLoopMax, -feedForward)) //todo: often spikes double the limit. Create smooth antiwindup
 			{	
 				closeLoop = max(closeLoopMax, -feedForward);
 				saturationId = 1;
@@ -647,6 +656,9 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			control = feedForward;
 			closeLoop = 0;
 			lastError = 0;
+
+			iTerm = 0;
+			saturationId = 2;
 		}
 		
 
@@ -671,7 +683,11 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		control = 0;
 		closeLoop = 0;
 		Iq_ma = 0;
+
 		lastError = 0;
+		iTerm = 0;
+		saturationId = 2;
+		magnitude = 0;
 	}
 
   // error needs to exist for some time period
