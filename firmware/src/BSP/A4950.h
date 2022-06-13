@@ -27,8 +27,9 @@
 #include "board.h"
 #include "sine.h"
 
-#define A4950_STEP_MICROSTEPS ((uint16_t)256)
+#define A4950_STEP_MICROSTEPS (uint16_t)256
 #define VREF_SCALER	6
+#define VREF_SINE_RATIO	(SINE_MAX / VREF_MAX)
 
 void A4950_enable(bool enable);
 int32_t A4950_move(uint16_t stepAngle, uint16_t mA);

@@ -111,8 +111,9 @@ inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
 {
 	//VREF_SCALER reduces PWM resolution by 2^VREF_SCALER,
 	//but also increasesPWM freq - needed for low pass filter to effectively filter V reference)
-	TIM_SetCompare3(VREF_TIM, VREF12>>VREF_SCALER);
-	TIM_SetCompare4(VREF_TIM, VREF34>>VREF_SCALER);
+	//VREF12,34 between 0 and VREF_MAX corrresponds to 0 and MCU_VOUT mVolts
+	TIM_SetCompare3(VREF_TIM, VREF12);
+	TIM_SetCompare4(VREF_TIM, VREF34);
 }
 
 
@@ -167,8 +168,8 @@ int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electr
 	cos = cosine(elecAngleStep);
 
 	//calculate the sine and cosine of our elecAngleStep - lumped park transform - FOC Q and D force vectors
-	vrefX = (uint16_t)((mA * (uint16_t) fastAbs(cos)) / MCU_VOUT); //convert value into DAC scaled to 3300mV max
-	vrefY = (uint16_t)((mA * (uint16_t) fastAbs(sin)) / MCU_VOUT);
+	vrefX = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * (uint32_t) fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
+	vrefY = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * (uint32_t) fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
 
 	setVREF(vrefY,vrefX); //VREF12	VREF34
 
