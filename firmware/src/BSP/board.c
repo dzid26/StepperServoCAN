@@ -124,13 +124,33 @@ static void A4950_init(void)
 {	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-	//Init A4950 IO
+#ifdef MKS
 	GPIOB->CRL &= 0x00ffff00;	//clean VREF12(PB0) VREF34(PB1) IN1(PB6) IN2(PB7) control bit
 	GPIOB->CRL |= 0x330000bb;	//config VREF12(PB0) VREF34(PB1)Multiplexed push-pull output IN1(PB6) IN2(PB7) Universal push-pull output
 	GPIOB->CRH &= 0xffffff00;	//clean IN3(PB8) IN4(PB9) control bit	
 	GPIOB->CRH |= 0x00000033;	//config IN3(PB8) IN4(PB9) Universal push-pull output	
 	GPIOB->ODR &= 0xfffffc3f;	//defualt IN1(PB6) IN2(PB7) IN3(PB8) IN4(PB9) 
-	
+#elif BTT
+	//A4950 Input pins
+	GPIO_InitTypeDef  GPIO_InitStructure; 
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
+    GPIO_Init(PIN_A4950, &GPIO_InitStructure);
+
+	//A4950 Vref pins
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); //has to be enabled before remap
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);	//Release pins for VREF34, DIP2, DIP1
+	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
+
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+	GPIO_InitStructure.GPIO_Pin = PIN_A4950_VREF12|PIN_A4950_VREF34;
+    GPIO_Init(PIN_A4950, &GPIO_InitStructure);
+
+	//Remap to the upper pins
+#endif
+
 	//Init TIM3
 	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
 	TIM_TimeBaseStructure.TIM_Period = VREF_MAX;									//reload c
@@ -145,12 +165,17 @@ static void A4950_init(void)
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
  	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = 0;
+#ifdef MKS
 	TIM_OC3Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH3
 	TIM_OC4Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH4
- 
 	TIM_OC3PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
 	TIM_OC4PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
- 
+#elif BTT
+	TIM_OC1Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH1
+	TIM_OC2Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH2
+	TIM_OC1PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
+	TIM_OC2PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
+ #endif
 	TIM_Cmd(VREF_TIM, ENABLE);
 }
 
