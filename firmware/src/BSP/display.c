@@ -175,7 +175,7 @@ void display_updateMenu(void)
 		}
 	}
 	//(buttonState & 0x01)==0
-	if (GPIO_ReadInputDataBit(PIN_SW, PIN_SW1_NEXT) == 0 && (buttonState & 0x01) == 0)
+	if (GPIO_ReadInputDataBit(PIN_SW_GPIOA, PIN_SW1_NEXT) == 0 && (buttonState & 0x01) == 0)
 	{
 		buttonState |= 0x01;
 
@@ -199,7 +199,7 @@ void display_updateMenu(void)
 
 	}
 
-	if (GPIO_ReadInputDataBit(PIN_SW, PIN_SW1_NEXT))
+	if (GPIO_ReadInputDataBit(PIN_SW_GPIOA, PIN_SW1_NEXT))
 	{
 		buttonState &= (~0x01);
 	}

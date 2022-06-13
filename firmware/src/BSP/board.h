@@ -39,10 +39,17 @@
 #define PIN_OLED_D1    			GPIO_Pin_7
 
 //SW
-#define	PIN_SW							GPIOA
-#define	PIN_SW4_EXIT				GPIO_Pin_8	//exit
-#define	PIN_SW3_ENTER				GPIO_Pin_9	//enter
-#define	PIN_SW1_NEXT				GPIO_Pin_10	//next
+#define	PIN_SW                      GPIOB
+#define	PIN_SW4_EXIT				GPIO_Pin_0	//exit
+#define	PIN_SW4_MENU				GPIO_Pin_0	//exit
+#define	PIN_SW3_ENTER				GPIO_Pin_1	//enter
+#define	PIN_DIP2					GPIO_Pin_3
+#define	PIN_DIP3					GPIO_Pin_11
+#define	PIN_DIP4					GPIO_Pin_10
+#define	PIN_SW_GPIOA                GPIOA
+#define	PIN_SW1_NEXT				GPIO_Pin_3	//next
+#define	PIN_DIP1					GPIO_Pin_15
+
 
 //A4950
 #define PIN_A4950     			GPIOB
@@ -67,10 +74,12 @@
 #define	PIN_LED_RED					GPIO_Pin_3
 #define PIN_BLUE						GPIOC
 #define PIN_LED_BLUE				GPIO_Pin_13
+#define PIN_LED						    GPIOC
+#define PIN_LED_WORK				GPIO_Pin_13
 
 void board_init(void);
-void RED_LED(bool state);
-void BLUE_LED(bool state);
+void POWER_LED(bool state);
+void WORK_LED(bool state);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
 void setupTCInterrupts(uint16_t period);

@@ -534,7 +534,7 @@ void StepperCtrl_feedbackMode(uint8_t mode)
 
 bool StepperCtrl_processFeedback(void)
 {
-	bool ret = false;
+	bool no_error = false;
 	int32_t desiredLoc;
 	int32_t currentLoc;
 	static int32_t lastLoc;
@@ -553,11 +553,11 @@ bool StepperCtrl_processFeedback(void)
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // 360deg/65536/s
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
-	ret = StepperCtrl_simpleFeedback(error);
+	no_error = StepperCtrl_simpleFeedback(error);
 
 
 	lastLoc = currentLoc;
-	return ret;
+	return no_error;
 }
 
 //this was written to do the PID loop not modeling a DC servo

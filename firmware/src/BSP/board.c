@@ -25,9 +25,9 @@
 //Init clock
 static void CLOCK_init(void)
 {	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 	//CAN, OLED SPI, INPUTS, SWITCH, RED LED
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	//ANGLE SPI2, VREF12, VREF34
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);	//BLUE LED
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 	//CAN, INPUTS, SWITCH, TLE5012B_SPI
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	//VREF12, VREF34, OLED S42B
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);	//LED
 
 }
 
@@ -89,9 +89,21 @@ static void OLED_init(void)
 //Init switch IO
 static void SWITCH_init(void)
 {
+	#ifdef MKS
 	GPIOA->CRH &= 0xfffff000;	//SW4 SW3 SW1 (PA8 PA9 PA10)	
 	GPIOA->CRH |= 0x00000888;	//SW4 SW3 SW1 (PA8 PA9 PA10)	
 	GPIOA->ODR |= 0x00000700;	//SW4 SW3 SW1 (PA8 PA9 PA10)
+	#elif BTT
+
+	//dip switches
+	GPIO_InitTypeDef  GPIO_InitStructure; 
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin = PIN_DIP2|PIN_DIP3|PIN_DIP4|PIN_SW4_MENU|PIN_SW3_ENTER;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = PIN_DIP1 | PIN_SW1_NEXT|PIN_SW4_EXIT;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	#endif
 }
 
 //Init A4950
@@ -154,15 +166,19 @@ static void A1333_init (void)
 
 static void LED_init(void)
 {
-	//RED_LED
+#ifdef MKS
+	//POWER_LED
 	GPIOA->CRL &= 0xffff0fff; //PA3
 	GPIOA->CRL |= 0x00003000; //Universal push-pull output
 	GPIOA->ODR |= 0x00000008;
-
-	//BLUE_LED
-	GPIOC->CRH &= 0xff0fffff; //PC13
-	GPIOC->CRH |= 0x00300000; //Universal push-pull output
-	GPIOC->ODR |= 0x00002000;
+	
+#elif BTT
+	GPIO_InitTypeDef  GPIO_InitStructure; 
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_InitStructure.GPIO_Pin = PIN_LED_WORK;
+    GPIO_Init(PIN_LED, &GPIO_InitStructure); 
+#endif
 }
 static void CAN_begin(){
 
@@ -171,7 +187,7 @@ static void CAN_begin(){
 	/* Configure CAN pin: RX */
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -259,23 +275,24 @@ void board_init(void)
 	SWITCH_init();
 	LED_init();
 	CAN_begin();
-	ChipTemp_init();
 }
 
 //red led
-//state = true  open
-//state = false close
-void RED_LED(bool state)
+//state = true  light up
+//state = false dim
+void POWER_LED(bool state)
 {
+	#ifdef MKS
 	GPIO_WriteBit(PIN_RED, PIN_LED_RED, (BitAction)state);
+	#endif
 }
 
 //blue led
-//state(error) = true  open
-//state(error) = false close
-void BLUE_LED(bool state)
+//state(error) = light up
+//state(error) = dim
+void WORK_LED(bool state)
 {
-	GPIO_WriteBit(PIN_BLUE, PIN_LED_BLUE, (BitAction)(!state));
+	GPIO_WriteBit(PIN_LED, PIN_LED_WORK, (BitAction)(state));
 }
 
 

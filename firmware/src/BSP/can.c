@@ -75,7 +75,7 @@ void CAN_TransmitMotorStatus(void)
   ControlStatus.position_error = StepperCtrl_getPositionError() / RAW_POSITION_TO_MOTOR;
   ControlStatus.speed_actual =  StepperCtrl_getSpeedRev();
 
-  SystemStatus.chip_temp = GetTemperature();
+  // SystemStatus.chip_temp = GetTemperature();
   SystemStatus.position_raw = StepperCtrl_getCurrentLocation();
   
   /* transmit */

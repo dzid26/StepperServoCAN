@@ -394,14 +394,17 @@ void MKS_begin(void)
 
 	oled_begin();
 	display_begin(); //display init
-
+	
   	#ifdef MKS_SERVO42B
   	display_show("MKS", "Servo42B", VERSON, ""); //��ʾ57LOGO
+  	#elif S42Bv2
+	  display_show("BTT", "S42Bv2", VERSON, ""); //��ʾ42LOGO
   	#else
 	  display_show("MKS", "Servo57B", VERSON, ""); //��ʾ42LOGO
   	#endif
 	delay_ms(800);
-
+	
+	WORK_LED(true);
 	stepCtrlError = STEPCTRL_NO_CAL;
 	while(STEPCTRL_NO_ERROR != stepCtrlError)
 	{
@@ -439,7 +442,7 @@ void MKS_begin(void)
 	}
 	display_setMenu(MenuMain);
 
-	RED_LED(false); //��ʼ������Ϩ������
+	WORK_LED(false);
 }
 
 void MKS_loop(void)
@@ -452,10 +455,10 @@ void TIM1_UP_IRQHandler(void)
 {
 	if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET)
 	{
-		bool error = false;
+		bool no_error = false;
 
-		error = StepperCtrl_processFeedback(); //handle the control loop
-		BLUE_LED(error);
+		no_error = StepperCtrl_processFeedback(); //handle the control loop
+		WORK_LED(no_error);
 
 		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);	//writing a one clears the flag ovf flag
 	}
