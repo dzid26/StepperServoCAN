@@ -63,27 +63,40 @@ static void INPUT_init(void)
 	GPIOA->ODR |= 0x00000007;	//default STEP(PA0) DIR(PA1) ENABLE(PA2) pullup
 }
 
-//Init SSD1306				    
-static void OLED_init(void)
-{ 			
+//Init TLE5012B				    
+static void TLE5012B_init(void)
+{
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 	
-	GPIOA->CRL &= 0x0000ffff;
-	GPIOA->CRL |= 0xb3b30000;
-	GPIOA->ODR |= 0x000000f0;
+	GPIO_InitTypeDef  GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | GPIO_Pin_6 | PIN_TLE5012B_DATA;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //PB13/14/15 
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
 	
 	SPI_InitTypeDef SPI_InitStructure;	
-	SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
+	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
-	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_16b;
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_InitStructure.SPI_CRCPolynomial = 7;
+	SPI_InitStructure.SPI_CRCPolynomial = 0x8E; //X8+X4+X3+X2+1  J1850
 	SPI_Init (SPI1,&SPI_InitStructure);	
 	SPI_Cmd (SPI1,ENABLE);
+
+	
+  	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_CS;				 //PA4  
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
+		
+  	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);
+}
+
 }
 
 //Init switch IO
@@ -146,6 +159,7 @@ static void A1333_init (void)
 {	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
 
+	//todo replace with std_periph functions:
 	GPIOB->CRH &= 0x0000ffff;	//clean CS SCK MOSI MISO control bit
 	GPIOB->CRH |= 0xb8b30000;	//config CS Universal push-pull output��SCK MOSI Multiplexed push-pull output��MISO pulldown input
 	GPIOB->ODR |= 0x0000f000;	//default CS SCK MOSI MISO output high
@@ -159,9 +173,11 @@ static void A1333_init (void)
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_InitStructure.SPI_CRCPolynomial = 7;
+	SPI_InitStructure.SPI_CRCPolynomial = 0x9; //X4+X+1
 	SPI_Init (SPI2,&SPI_InitStructure);	
 	SPI_Cmd (SPI2,ENABLE);
+
+	// SPI2->CR1 |= SPI_CR1_CRCEN;		//CRC enable - to be tested. Probably DMA would be also beneficial
 }
 
 static void LED_init(void)
@@ -270,7 +286,12 @@ void board_init(void)
 	NVIC_init(); 
 	INPUT_init();
 	A4950_init();
+#ifdef MKS
 	A1333_init();
+	ChipTemp_init();
+#elif BTT
+	TLE5012B_init();
+#endif
 	OLED_init();
 	SWITCH_init();
 	LED_init();

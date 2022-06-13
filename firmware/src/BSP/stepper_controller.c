@@ -56,6 +56,31 @@ volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
 
 
+uint16_t ReadEncoderAngle(void){ //15bits -  32767 is 360
+	#ifdef MKS
+		return A1333_readEncoderAngle();
+	#elif BTT
+		return TLE5012_ReadAngle();
+		// uint16_t angle = 0;
+		// errorTypes error = readAngleValue(&angle);
+		// return angle;
+	#else
+		return 0;	
+	#endif
+}
+
+bool Encoder_begin(void){
+	#ifdef MKS
+		return A1333_begin();
+	#elif BTT
+		return TLE5012_begin();
+		// return true;
+	#else
+		return false;	
+	#endif
+}
+
+
 void StepperCtrl_updateParamsFromNVM(void)
 {
 	if(NVM->SystemParams.parametersValid == valid)
@@ -183,16 +208,10 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	int32_t microSteps = 0;
 	uint8_t passes = 0;
 	bool feedback = enableFeedback;
-	bool state = TC1_ISR_Enabled;
 	disableTCInterrupts();
 
 	A4950_Enabled = true;
 	enableFeedback = false;
-
-	// Enable hardware averaging and disable hysteresis filter:
-	// 	orate | hysteresis | zero_offset | ro | rd
-	A1333_setRegister_ANG(12, 0, 0, 0, 0); 
-	//max averaging of 12 is 4096 samples which is equates to 4ms lag. Assuming motor stay in the full step for at least 4ms the signal will be settled and fully filtered 
 
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);
@@ -206,7 +225,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 		StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
 	}
 	StepperCtrl_motorReset();
-	A1333_begin(); //Reset filters and perform sensor tests
+	Encoder_begin(); //Reset filters and perform sensor tests
 
 	enableFeedback = feedback;
 	if (state) {
@@ -279,8 +298,7 @@ uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples)
 	for(i=0; i < numSamples; i++)
 	{
 		lastx = x;
-		x = (int32_t)A1333_readEncoderAngle();
-
+		x = (int32_t)ReadEncoderAngle();
 		if(i == 0)
 		{
 			lastx = x;
@@ -331,7 +349,7 @@ uint16_t StepperCtrl_getEncoderAngle(void)
 {
 	uint16_t EncoderAngle;
 
-	EncoderAngle = CalibrationTable_fastReverseLookup(A1333_readEncoderAngle()); //0-65535
+	EncoderAngle = CalibrationTable_fastReverseLookup(ReadEncoderAngle()); //0-65535
 
 	return EncoderAngle;
 }
@@ -395,7 +413,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 	StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
 
 	//start up encoder
-	if (false == A1333_begin())
+	if (false == Encoder_begin())
 	{
 		return STEPCTRL_NO_ENCODER;
 	}
@@ -675,7 +693,14 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		magnitude = (uint16_t) (fastAbs(control));
 
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + 10u);
+	#ifdef MKS
+		uint16_t sensDelay = 10u;
+	#elif BTT
+		uint16_t sensDelay = 90u;
+	#else
+		uint16_t sensDelay = 0u;
+	#endif
+		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + sensDelay);
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
 		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
 	

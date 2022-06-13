@@ -69,6 +69,12 @@
 #define PIN_A1333_MISO   		GPIO_Pin_14
 #define PIN_A1333_MOSI   		GPIO_Pin_15
 
+//TLE5012B
+#define PIN_TLE5012B					GPIOA
+#define PIN_TLE5012B_CS					GPIO_Pin_4
+#define PIN_TLE5012B_SCK				GPIO_Pin_5
+#define PIN_TLE5012B_DATA    			GPIO_Pin_7
+
 //LED
 #define PIN_RED							GPIOA
 #define	PIN_LED_RED					GPIO_Pin_3
