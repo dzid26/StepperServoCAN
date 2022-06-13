@@ -32,6 +32,9 @@
 #define OLED_CS_H			PIN_OLED->BSRR = PIN_OLED_CS;		//GPIO_SetBits(PIN_OLED, PIN_OLED_CS)
 #define OLED_CS_L			PIN_OLED->BRR  = PIN_OLED_CS;		//GPIO_ResetBits(PIN_OLED, PIN_OLED_CS)
 
+#define OLED_RST_H			PIN_OLED_R->BSRR = PIN_OLED_RST;		//GPIO_SetBits(PIN_OLED_R, PIN_OLED_RST)
+#define OLED_RST_L			PIN_OLED_R->BRR  = PIN_OLED_RST;		//GPIO_ResetBits(PIN_OLED_R, PIN_OLED_RST)
+
 void oled_writeCmd(uint8_t command);
 void oled_writeData(uint8_t data);
 void oled_setCursor(uint8_t x, uint8_t y);

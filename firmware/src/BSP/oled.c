@@ -24,18 +24,36 @@
 #include "oledfont.h"
 #include "string.h"
 
+void OLED_WR_Byte(u8 dat)  //software SPI
+{	
+	u8 i;
+	OLED_CS_L;	  
+	for(i=0;i<8;i++)
+	{			  
+		GPIO_ResetBits(PIN_OLED, PIN_OLED_D0);
+		if(dat&0x80)
+			GPIO_SetBits(PIN_OLED, PIN_OLED_D1);
+		else 
+			GPIO_ResetBits(PIN_OLED, PIN_OLED_D1);
+		GPIO_SetBits(PIN_OLED, PIN_OLED_D0);
+		dat<<=1;   
+	}				 
+	OLED_CS_H;	  
+	OLED_DC_DAT;
+}
+
 //write command	to	SSD1306
 void oled_writeCmd(uint8_t command)
 {
 	OLED_DC_CMD;
-	SPI_Write(SPI1,command);
+	OLED_WR_Byte(command);
 }
 
 //write data	to	SSD1306
 void oled_writeData(uint8_t data)
 {
 	OLED_DC_DAT;
-	SPI_Write(SPI1,data);
+	OLED_WR_Byte(data);
 }
 
 //set	Cursor
@@ -191,8 +209,16 @@ void oled_drawStr(uint8_t x, uint8_t y, char* s)
 
 void oled_begin(void)
 {						  
-	OLED_CS_L;
 
+
+
+	
+	OLED_RST_L;
+	delay_ms(100);
+	OLED_RST_H;
+
+	OLED_CS_L;
+	
 	oled_writeCmd(0xae);//--turn off oled panel
 	oled_writeCmd(0x00);//---set low column address
 	oled_writeCmd(0x10);//---set high column address
@@ -221,7 +247,7 @@ void oled_begin(void)
 	oled_writeCmd(0xa4);// Disable Entire Display On (0xa4/0xa5)
 	oled_writeCmd(0xa6);// Disable Inverse Display On (0xa6/a7)
 	oled_writeCmd(0xaf);//--turn on oled panel
-
+	
 	OLED_CS_H;
 
 	oled_clearDisplay();

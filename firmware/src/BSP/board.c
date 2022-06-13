@@ -97,6 +97,19 @@ static void TLE5012B_init(void)
   	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);
 }
 
+
+//Init SSD1306				    
+static void OLED_init(void)
+{	
+	GPIO_InitTypeDef  GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin = PIN_OLED_CS|PIN_OLED_D0|PIN_OLED_DC|PIN_OLED_D1;
+    GPIO_Init(PIN_OLED, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = PIN_OLED_RST;
+	GPIO_Init(PIN_OLED_R, &GPIO_InitStructure);
+
+
 }
 
 //Init switch IO

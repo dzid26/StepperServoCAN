@@ -32,11 +32,14 @@
 #define	VERSON	"Ver:1.0.3"
 
 //OLED
-#define PIN_OLED						GPIOA
-#define PIN_OLED_CS					GPIO_Pin_4
-#define PIN_OLED_D0					GPIO_Pin_5
-#define PIN_OLED_DC					GPIO_Pin_6
-#define PIN_OLED_D1    			GPIO_Pin_7
+#define PIN_OLED						GPIOB
+#define PIN_OLED_CS					GPIO_Pin_12
+#define PIN_OLED_D0					GPIO_Pin_15
+#define PIN_OLED_DC					GPIO_Pin_13
+#define PIN_OLED_D1    			    GPIO_Pin_14
+#define PIN_OLED_R                      GPIOA
+#define PIN_OLED_RST   			    GPIO_Pin_8
+
 
 //SW
 #define	PIN_SW                      GPIOB
