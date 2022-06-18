@@ -135,21 +135,9 @@ void StepperCtrl_updateParamsFromNVM(void)
 		motorParams.currentMa = 800;
 #endif
 
-		motorParams.motorWiring = true;
 	}
 }
 
-void StepperCtrl_motorReset(void)
-{
-	//when we reset the motor we want to also sync the motor
-	//phase.Therefore we move forward a few full steps then back
-	//to sync motor phasing, leaving the motor at "phase 0"
-	A4950_move(0,motorParams.currentMa);
-	delay_ms(1200);
-
-  //measure new starting point
-	StepperCtrl_setLocationFromEncoder();
-}
 
 void StepperCtrl_setLocationFromEncoder(void)
 {
@@ -216,7 +204,11 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);
 	uint16_t calZeroOffset=(StepperCtrl_sampleMeanEncoder(202)<<1) - (CalibrationTable_getCal(0)<<1);//returns (0-32767) scaled to (0-65535)
+	
+	//! first calibration pass to the right
 	maxError = CalibrationMove(updateFlash, 1, &microSteps, &passes, calZeroOffset); //run clockwise
+	//! second calibration to the left - reduces influence of magnetic hysteresis
+	delay_ms(500);  	//give some time before motor starts to move the other direction
 	if(updateFlash) {	//second pass anticlockwise when calibrating
 		calZeroOffset=0; //on the second run, the calTab values are alligned with the sensor, so no offset
 		maxError = CalibrationMove(updateFlash, -1, &microSteps, &passes, calZeroOffset); 
@@ -224,9 +216,10 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 		CalibrationTable_saveToFlash(); //saves the calibration to flash
 		StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
 	}
-	StepperCtrl_motorReset();
+	//measure new starting point
+	StepperCtrl_setLocationFromEncoder();
+	A4950_move(0, 0); //release motor
 	Encoder_begin(); //Reset filters and perform sensor tests
-
 	enableFeedback = feedback;
 	
 	enableTCInterruptsCond(StepperCtrl_Enabled);
@@ -241,13 +234,13 @@ uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint
 	(*passes)++;
 	int16_t microStep = A4950_STEP_MICROSTEPS*motorParams.fullStepsPerRotation/CALIBRATION_TABLE_SIZE;
 	
-	const uint16_t preRunPart = CALIBRATION_TABLE_SIZE/2; //do half rotation preRun to start calibration with max hysteresis
-	for (uint16_t j = 0; j < preRunPart + CALIBRATION_TABLE_SIZE; j++) //Starting calibration 
+	const uint16_t intialMotion = CALIBRATION_TABLE_SIZE/2; //do half rotation preRun to start calibration with max hysteresis
+	for (uint16_t j = 0; j < intialMotion + CALIBRATION_TABLE_SIZE; j++) //Starting calibration 
 	{
 		static volatile uint16_t desiredAngle;
 		static volatile uint16_t sampled;
 
-		bool preRun = j < preRunPart;
+		bool preRun = j < intialMotion;
 		delay_ms(1);
 		if (updateFlash && !preRun) 
 			delay_ms(100);
@@ -263,7 +256,7 @@ uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint
 		
 		if (updateFlash && !preRun) {
 			uint16_t average = cal + (dist / (*passes)); //add half a distance to average
-			CalibrationTable_updateTableValue(( (dir<0) ? (preRunPart + CALIBRATION_TABLE_SIZE -j) : j)%CALIBRATION_TABLE_SIZE, average>>1);	// (0-65535) scaled to (0-32767)
+			CalibrationTable_updateTableValue(( (dir<0) ? (intialMotion + CALIBRATION_TABLE_SIZE -j) : j)%CALIBRATION_TABLE_SIZE, average>>1);	// (0-65535) scaled to (0-32767)
 		}
 		//move one half step at a time, a full step move could cause a move backwards
 		
@@ -353,7 +346,6 @@ uint16_t StepperCtrl_getEncoderAngle(void)
 	return EncoderAngle;
 }
 
-// TODO This function does two things, set rotation direction
 // return is anlge in degreesx100 ie 360.0 is returned as 36000
 float StepperCtrl_measureStepSize(void)
 {
@@ -465,6 +457,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 			motorParams.fullStepsPerRotation = 200;
 		}
 		//Motor params are now good
+		A4950_move(0, 0); //release the motor
 		nvmParams.motorParams = motorParams;
 		nvmWriteConfParms(&nvmParams);
 	}

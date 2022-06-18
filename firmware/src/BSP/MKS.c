@@ -35,7 +35,7 @@ static void displayError(uint16_t error){
 	x = x - (y * 100);
 	x = fastAbs(x);
 	sprintf(str, "%ld.%02ld deg",y,x);
-	display_show("Max cal error", str, "", "");
+	display_show("Max cal error", str, " -> Press Enter", "to continue");
 
 	while(GPIO_ReadInputDataBit(PIN_SW, PIN_SW3_ENTER) == 1)
 	{

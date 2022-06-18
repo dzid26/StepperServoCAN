@@ -73,7 +73,6 @@ typedef struct { //closeloop position controller
 #define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop. 35uS puts theoretical limit of ~125rev/s on the motor which is plenty.  Adjust to reduce harmonics. 
 #define SAMPLING_HZ		(uint32_t)(S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
 
-void  StepperCtrl_motorReset(void);
 void StepperCtrl_setLocationFromEncoder(void);
 int32_t StepperCtrl_updateCurrentLocation(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
