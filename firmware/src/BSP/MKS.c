@@ -21,6 +21,7 @@
  */
 
 #include "MKS.h"
+#include "control_api.h"
 
 extern volatile bool StepperCtrl_Enabled;
 extern volatile uint32_t NVM_address;
@@ -460,22 +461,35 @@ volatile uint16_t Task_Motor_execution_us;
 
 volatile uint32_t Background_counter;
 
+
 void Background_process(void){
 	Background_counter++;
 
 	display_process();
 }
 
+
 void Task_motor(void){
 	Task_Motor_count++;
 
-	bool no_error = false;
-	no_error = StepperCtrl_processFeedback(); //handle the control loop
-	// WORK_LED(no_error);
+	bool closeloop_error = false;
+	closeloop_error = StepperCtrl_processFeedback(); //handle the control loop
+	// WORK_LED(closeloop_error);
 }
 
+
+extern volatile bool enableFeedback; 
 void Task_10ms(void){
 	Task_10ms_counter++;
 
 	CAN_TransmitMotorStatus();
+
+	//go to Soft Off if motor is actively controlled but control signal is not received
+	bool comm_error = false;
+	if(enableFeedback)
+	comm_error = Check_Control_CAN_rx_validate() == false;
+	if(comm_error)
+	{	//once SOFT_TORQUE_OFF is set, the motor will not be controlled until STEPCTRL_OFF is requested
+		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
+	}
 }

@@ -117,10 +117,12 @@ void CheckTxStatus(uint8_t TransmitMailbox){
 }
 
 
+static volatile uint16_t ControlCmds_cnt = 0;
 struct Msg_control_cmd1_t ControlCmds;
 void CAN_InterpretMesssages(CanRxMsg message) { 
   switch (message.StdId){
   	case MSG_CONTROL_CMD1_FRAME_ID: {
+      ControlCmds_cnt++;
       Msg_control_cmd1_unpack(&ControlCmds, message.Data, sizeof(message.Data));
 
       StepperCtrl_setDesiredLocation( (int32_t) ControlCmds.position_change * RAW_POSITION_TO_MOTOR);
@@ -154,4 +156,26 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
         CAN_ClearITPendingBit(CAN1, CAN_IT_FF0);
     } 
 
+}
+
+bool Check_Control_CAN_rx_validate(void)
+{
+  static uint16_t ControlCmds_cnt_prev = 0;
+  static uint8_t rx_fail_cnt = 0;
+
+
+  if (ControlCmds_cnt != ControlCmds_cnt_prev) //counter has changed - OK
+  {
+    ControlCmds_cnt_prev = ControlCmds_cnt;
+    rx_fail_cnt = 0; //reset counter
+    return true;
+  }else{
+    rx_fail_cnt++;
+    if (rx_fail_cnt > CHECK_RX_FAIL_LIM)
+    {
+      rx_fail_cnt = CHECK_RX_FAIL_LIM; 
+      return false;
+    }
+    return true;
+  }
 }

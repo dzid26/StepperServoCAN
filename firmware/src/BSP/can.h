@@ -36,7 +36,9 @@ void CAN_TransmitMotorStatus(void);
 void CAN_MsgsFiltersSetup(void);
 void CheckTxStatus(uint8_t TransmitMailbox);
 void CAN_InterpretMesssages(CanRxMsg message);
+bool Check_Control_CAN_rx_validate(void);
 
+#define CHECK_RX_FAIL_LIM 5
 
 #ifdef __cplusplus
 }
