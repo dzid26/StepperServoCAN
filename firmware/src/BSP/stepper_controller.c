@@ -35,7 +35,7 @@ volatile PID_t vPID; //velocity PID control parameters
 
 volatile bool StepperCtrl_Enabled = false;
 extern volatile bool TC1_ISR_Enabled;
-volatile bool enableFeedback = false; //true if control uses feedback
+volatile bool enableFeedback = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
 volatile int32_t angleFullStep = 327;
@@ -496,7 +496,8 @@ void StepperCtrl_feedbackMode(uint8_t mode)
 	switch (mode) //TODO add more modes
 	{
 	case STEPCTRL_OFF:
-		enableFeedback = false;
+		enableFeedback = false; //motor control using angle sensor feedback is off
+		// enableNoFeedback = false; //motor control fallback to open loop
 		enableSoftOff = false;
 		A4950_enable(false);
 		break;
@@ -587,8 +588,20 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		int16_t loadAngleDesired;
 		
 		//todo add close loop intiazliation - I term with last control
-		if(enableCloseLoop)
-		{
+		if (enableSoftOff){
+			static uint16_t rampsteps = 0;
+			const uint8_t rampstepsMax = 1; //seconds
+			if ((control != 0) && (rampsteps >= (SAMPLING_PERIOD_uS * rampstepsMax))){
+				(control > 0) ? control-- : control++;
+				rampsteps = 0;
+			}else if (control == 0){
+				A4950_enable(false);
+			}
+			rampsteps++;
+			lastError = 0;
+			closeLoop = 0;
+		}
+		else if(enableCloseLoop){
 			int32_t errorSat;
 			int_fast16_t pTerm;
 			int_fast16_t dTerm;
@@ -649,20 +662,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			}
 			lastError = errorSat;
 
-		}else if (enableSoftOff){
-			static uint16_t rampsteps = 0;
-			const uint8_t rampstepsMax = 1; //seconds
-			if ((control != 0) && (rampsteps >= (SAMPLING_PERIOD_uS * rampstepsMax))){
-				(control > 0) ? control-- : control++;
-				rampsteps = 0;
-			}else if (control == 0){
-				A4950_enable(false);
-			}
-			rampsteps++;
-			lastError = 0;
-			closeLoop = 0;
-		}
-		else{
+		}else{
 			control = feedForward;
 			closeLoop = 0;
 			lastError = 0;
