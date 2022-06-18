@@ -49,6 +49,9 @@ void StepperCtrl_setControlMode(uint8_t mode){
 		case 1:
 			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE);
 			break;
+		case 2:
+			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_TORQUE);
+			break;
 		default:
 			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 			
