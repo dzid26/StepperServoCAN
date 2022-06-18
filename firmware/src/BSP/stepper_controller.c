@@ -228,9 +228,8 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	Encoder_begin(); //Reset filters and perform sensor tests
 
 	enableFeedback = feedback;
-	if (state) {
-		enableTCInterrupts();
-	}
+	
+	enableTCInterruptsCond(StepperCtrl_Enabled);
 
 	return maxError;
 }
@@ -251,7 +250,7 @@ uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint
 		bool preRun = j < preRunPart;
 		delay_ms(1);
 		if (updateFlash && !preRun) 
-			delay_ms(250);
+			delay_ms(100);
 
 		
 		desiredAngle = (uint16_t) DIVIDE_WITH_ROUND(*microSteps * (int32_t)(ANGLE_STEPS>>2) / A4950_STEP_MICROSTEPS, motorParams.fullStepsPerRotation>>2);
@@ -479,7 +478,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 		return STEPCTRL_NO_CAL;
 	}
 
-	setupTCInterrupts(SAMPLING_PERIOD_uS);
+	setupMotorTask_interrupt(SAMPLING_PERIOD_uS);
 
 	return STEPCTRL_NO_ERROR;
 }

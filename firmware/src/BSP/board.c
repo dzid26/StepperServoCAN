@@ -34,8 +34,8 @@ static void CLOCK_init(void)
 //Init NVIC
 static void NVIC_init(void)
 {
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); //��4��:4λ��ռ���ȼ�
-	NVIC_SetPriority(SysTick_IRQn,15); //����SysTick_IRQn��ռ���ȼ����
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); 
+	NVIC_SetPriority(SysTick_IRQn,15); //Not used currently
 	
 	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0; //��Ӧ���ȼ�
@@ -48,10 +48,17 @@ static void NVIC_init(void)
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn; //��ռ���ȼ�Ϊ1(����ѭ��)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_Init(&NVIC_InitStructure);
-
+	
 	NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&NVIC_InitStructure);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn; //10ms loop
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_Init(&NVIC_InitStructure);
+
 	NVIC_Init(&NVIC_InitStructure);
 }
 
@@ -166,8 +173,8 @@ static void A4950_init(void)
 
 	//Init TIM3
 	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Period = VREF_MAX;									//reload c
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;											//72MHz
+	TIM_TimeBaseStructure.TIM_Period = VREF_MAX;									
+	TIM_TimeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(VREF_TIM, &TIM_TimeBaseStructure);
@@ -355,7 +362,7 @@ void WORK_LED(bool state)
 }
 
 
-void setupTCInterrupts(uint16_t period)
+void setupMotorTask_interrupt(uint16_t period)
 {
 	//setup timer
 	TIM_DeInit(TIM1);
@@ -372,10 +379,34 @@ void setupTCInterrupts(uint16_t period)
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 	TIM_SetCounter(TIM1, 0);
 	TIM_Cmd(TIM1, ENABLE);
 }
+
+
+void Task_10ms_init(void){
+	//setup timer
+	TIM_DeInit(TIM2);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+	
+
+	//Init TIM2
+	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
+	TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock / MHz_to_Hz - 1);	//Prescale timer clock to 1MHz - 1us period
+	TIM_TimeBaseStructure.TIM_Period = 10*1000-1;	//10ms = 10000us
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+
+	TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+	TIM_ClearFlag(TIM2,TIM_FLAG_Update);
+	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);
+
+	TIM_SetCounter(TIM2, 0);
+	TIM_Cmd(TIM2, ENABLE);
+}
+
 
 volatile bool TC1_ISR_Enabled = false;
 void enableTCInterrupts(void)
@@ -397,4 +428,25 @@ void disableTCInterrupts(void)
 	TC1_ISR_Enabled = false;
 	TIM_ITConfig(TIM1, TIM_IT_Update, DISABLE);
 	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+}
+
+void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
+{
+	if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET)
+	{
+		Task_motor();
+		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);	//writing a one clears the flag ovf flag
+	}
+}
+
+
+
+void TIM2_IRQHandler(void) //TIM2 used for task triggering
+{
+	if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+	{
+		Task_10ms();
+
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);	//writing a one clears the flag ovf flag
+	}
 }

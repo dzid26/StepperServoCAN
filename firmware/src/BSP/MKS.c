@@ -382,7 +382,7 @@ void validateAndInitNVMParams(void)
 	// as that there we can auto set much of them.
 }
 
-void MKS_begin(void)
+void Begin_process(void)
 {
 	stepCtrlError_t stepCtrlError;
 
@@ -394,7 +394,8 @@ void MKS_begin(void)
 
 	oled_begin();
 	display_begin(); //display init
-	
+	Task_10ms_init(); //task init
+
   	#ifdef MKS_SERVO42B
   	display_show("MKS", "Servo42B", VERSON, ""); //��ʾ57LOGO
   	#elif S42Bv2
@@ -441,25 +442,30 @@ void MKS_begin(void)
 		}
 	}
 	display_setMenu(MenuMain);
+	StepperCtrl_enable(true);
 
 	WORK_LED(false);
 }
+volatile static uint16_t Task_10ms_counter; 
+volatile static uint16_t Task_Motor_count;
+volatile static uint16_t Background_counter;
 
-void MKS_loop(void)
-{
-	CAN_TransmitMotorStatus(); //todo replace with a 10ms task
+void Background_process(void){
+	Background_counter++;
 
+	display_process();
 }
 
-void TIM1_UP_IRQHandler(void)
-{
-	if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET)
-	{
-		bool no_error = false;
+void Task_motor(void){
+	Task_Motor_count++;
 
-		no_error = StepperCtrl_processFeedback(); //handle the control loop
-		WORK_LED(no_error);
+	bool no_error = false;
+	no_error = StepperCtrl_processFeedback(); //handle the control loop
+	// WORK_LED(no_error);
+}
 
-		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);	//writing a one clears the flag ovf flag
-	}
+void Task_10ms(void){
+	Task_10ms_counter++;
+
+	CAN_TransmitMotorStatus();
 }

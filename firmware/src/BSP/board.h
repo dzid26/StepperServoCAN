@@ -28,6 +28,7 @@
 #include "delay.h"
 #include "can.h"
 #include "A4950.h"
+#include "MKS.h"
 
 #define	VERSON	"Ver:1.0.3"
 
@@ -108,9 +109,10 @@ void POWER_LED(bool state);
 void WORK_LED(bool state);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
-void setupTCInterrupts(uint16_t period);
+void setupMotorTask_interrupt(uint16_t period);
 void enableTCInterrupts(void);
 void enableTCInterruptsCond(bool previously_enabled);
 void disableTCInterrupts(void);
 
+void Task_10ms_init(void);
 #endif

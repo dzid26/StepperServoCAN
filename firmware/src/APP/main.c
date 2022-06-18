@@ -23,9 +23,9 @@
 #include "../BSP/MKS.h"
 int main (void)
 {
-	MKS_begin();
+	Begin_process();
 	while(1)
 	{
-		MKS_loop();
+		Background_process();
 	}
 }
