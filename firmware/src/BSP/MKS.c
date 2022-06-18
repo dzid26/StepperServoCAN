@@ -446,9 +446,19 @@ void Begin_process(void)
 
 	WORK_LED(false);
 }
-volatile static uint16_t Task_10ms_counter; 
-volatile static uint16_t Task_Motor_count;
-volatile static uint16_t Background_counter;
+
+
+volatile uint32_t Task_10ms_counter;
+volatile bool Task_10ms_overrun;
+volatile uint32_t Task_10ms_overrun_count;
+volatile uint16_t Task_10ms_execution_us;
+
+volatile uint32_t Task_Motor_count;
+volatile bool Task_Motor_overrun;
+volatile uint32_t Task_Motor_overrun_count;
+volatile uint16_t Task_Motor_execution_us;
+
+volatile uint32_t Background_counter;
 
 void Background_process(void){
 	Background_counter++;

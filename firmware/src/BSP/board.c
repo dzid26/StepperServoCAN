@@ -362,18 +362,15 @@ void WORK_LED(bool state)
 }
 
 
-void setupMotorTask_interrupt(uint16_t period)
+void setupMotorTask_interrupt(uint16_t taskPeriod)
 {
 	//setup timer
 	TIM_DeInit(TIM1);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	RCC_ClocksTypeDef clocksData;
-	RCC_GetClocksFreq(&clocksData);
-
-	TIM_TimeBaseStructure.TIM_Prescaler = (clocksData.PCLK2_Frequency / MHz_to_Hz - 1);	//Prescale to 1MHz - Timer 1 is clocked by PCLK2 (abp2)
-	TIM_TimeBaseStructure.TIM_Period = period-1;
+	TIM_TimeBaseStructure.TIM_Prescaler = SystemCoreClock / MHz_to_Hz -1; //Prescale to 1MHz - 1uS
+	TIM_TimeBaseStructure.TIM_Period = taskPeriod - 1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -430,12 +427,36 @@ void disableTCInterrupts(void)
 	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
 
+
+extern volatile bool Task_Motor_overrun;
+extern volatile uint32_t Task_Motor_overrun_count;
+extern volatile uint16_t Task_Motor_execution_us;
+
+extern volatile bool Task_10ms_overrun;
+extern volatile uint32_t Task_10ms_overrun_count;
+extern volatile uint16_t Task_10ms_execution_us;
+
 void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
 {
 	if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET)
-	{
+	{	
+		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+
+		// ! Call the task here !
 		Task_motor();
-		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);	//writing a one clears the flag ovf flag
+		
+		//Task diagnostic
+		Task_Motor_execution_us = TIM_GetCounter(TIM1); //get current timer value in uS thanks to the prescaler
+		if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
+		{
+			Task_Motor_overrun = true; //clear the flag in 10ms task so that LED is visible
+			Task_Motor_execution_us += TIM1->ARR; //assume that timer rolled over and add the full period to the current value
+			Task_Motor_overrun_count++;
+			TIM_ClearITPendingBit(TIM1, TIM_IT_Update); //don't allow to reenter this task if it overruns. Being highest priority it would block everything.
+		}else{
+			Task_Motor_overrun = false;
+		}
+		WORK_LED(Task_Motor_overrun); //show the error LED
 	}
 }
 
@@ -445,8 +466,23 @@ void TIM2_IRQHandler(void) //TIM2 used for task triggering
 {
 	if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
 	{
-		Task_10ms();
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+		
 
-		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);	//writing a one clears the flag ovf flag
+		// ! Call the task here !
+		Task_10ms();
+		
+		//Task diagnostic
+		Task_10ms_execution_us = TIM_GetCounter(TIM2); //get current timer value in uS thanks to the prescaler
+		if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
+		{
+			Task_10ms_overrun = true; //clear the flag in 10ms task so that LED is visible
+			Task_10ms_execution_us += TIM2->ARR; //assume that timer rolled over and add the full period to the current value
+			Task_10ms_overrun_count++;
+		}else
+		{
+			Task_10ms_overrun = false;
+		}
+
 	}
 }

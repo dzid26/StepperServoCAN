@@ -109,7 +109,7 @@ void POWER_LED(bool state);
 void WORK_LED(bool state);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
-void setupMotorTask_interrupt(uint16_t period);
+void setupMotorTask_interrupt(uint16_t taskPeriod);
 void enableTCInterrupts(void);
 void enableTCInterruptsCond(bool previously_enabled);
 void disableTCInterrupts(void);
