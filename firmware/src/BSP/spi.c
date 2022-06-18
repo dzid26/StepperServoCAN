@@ -23,21 +23,21 @@
 #include "spi.h"
 
 //SPI Write and Read
-uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t Data)
+uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t data)
 {
-	uint16_t timeout = 0;
-	while((SPIx->SR & SPI_I2S_FLAG_TXE) == RESET)
+	uint_fast16_t timeout = 0;
+	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE)) == RESET)
 	{
-		++timeout;
+		++timeout;  //normally this doesn't occur and timeout is 0
 		if(timeout >= 400)
 		{
 			return 0;
 		}		
 	}
-	SPIx->DR = Data;
+	SPI_I2S_SendData(SPIx, data);
 	
 	timeout = 0;
-	while((SPIx->SR & SPI_I2S_FLAG_RXNE) == RESET)
+	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
 		{
 		++timeout;
 		if(timeout >= 400)
@@ -45,14 +45,14 @@ uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t Data)
 			return 0;
 		}
 	}
-	return (SPIx->DR);
+	return SPI_I2S_ReceiveData(SPIx);
 }
 
 //SPI write
 bool SPI_Write(SPI_TypeDef* SPIx, uint8_t data)
 {
-	uint16_t timeout = 0;
-	while((SPIx->SR & SPI_I2S_FLAG_BSY) != RESET)
+	uint_fast16_t timeout = 0;
+	while(SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_BSY) != RESET)
 	{
 		++timeout;
 		if(timeout >= 400)
@@ -61,10 +61,10 @@ bool SPI_Write(SPI_TypeDef* SPIx, uint8_t data)
 		}
 	}
 	
-	SPIx->DR = data;
+	SPI_I2S_SendData(SPIx, data);
 	
 	timeout = 0;
-	while((SPIx->SR & SPI_I2S_FLAG_TXE) == RESET)
+	while(SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE) == RESET)
 	{
 		++timeout;
 		if(timeout >= 400)
