@@ -428,13 +428,13 @@ void disableTCInterrupts(void)
 }
 
 
-extern volatile bool Task_Motor_overrun;
-extern volatile uint32_t Task_Motor_overrun_count;
-extern volatile uint16_t Task_Motor_execution_us;
+volatile bool Task_Motor_overrun;
+volatile uint32_t Task_Motor_overrun_count;
+volatile uint16_t Task_Motor_execution_us;
 
-extern volatile bool Task_10ms_overrun;
-extern volatile uint32_t Task_10ms_overrun_count;
-extern volatile uint16_t Task_10ms_execution_us;
+volatile bool Task_10ms_overrun;
+volatile uint32_t Task_10ms_overrun_count;
+volatile uint16_t Task_10ms_execution_us;
 
 void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
 {

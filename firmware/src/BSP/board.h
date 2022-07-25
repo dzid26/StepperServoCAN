@@ -110,9 +110,19 @@ void WORK_LED(bool state);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
 void setupMotorTask_interrupt(uint16_t taskPeriod);
+void Task_10ms_init(void);
+
+extern volatile bool TC1_ISR_Enabled;
 void enableTCInterrupts(void);
 void enableTCInterruptsCond(bool previously_enabled);
 void disableTCInterrupts(void);
 
-void Task_10ms_init(void);
+extern volatile bool Task_Motor_overrun;
+extern volatile uint32_t Task_Motor_overrun_count;
+extern volatile uint16_t Task_Motor_execution_us;
+
+extern volatile bool Task_10ms_overrun;
+extern volatile uint32_t Task_10ms_overrun_count;
+extern volatile uint16_t Task_10ms_execution_us;
+
 #endif

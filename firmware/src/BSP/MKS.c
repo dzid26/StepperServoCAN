@@ -23,7 +23,6 @@
 #include "MKS.h"
 #include "control_api.h"
 
-extern volatile bool StepperCtrl_Enabled;
 extern volatile uint32_t NVM_address;
 
 nvm_t nvmParams = {0};
@@ -450,15 +449,7 @@ void Begin_process(void)
 
 
 volatile uint32_t Task_10ms_counter;
-volatile bool Task_10ms_overrun;
-volatile uint32_t Task_10ms_overrun_count;
-volatile uint16_t Task_10ms_execution_us;
-
 volatile uint32_t Task_Motor_count;
-volatile bool Task_Motor_overrun;
-volatile uint32_t Task_Motor_overrun_count;
-volatile uint16_t Task_Motor_execution_us;
-
 volatile uint32_t Background_counter;
 
 
@@ -468,7 +459,6 @@ void Background_process(void){
 	display_process();
 }
 
-
 void Task_motor(void){
 	Task_Motor_count++;
 
@@ -477,8 +467,6 @@ void Task_motor(void){
 	// WORK_LED(closeloop_error);
 }
 
-
-extern volatile bool enableFeedback; 
 void Task_10ms(void){
 	Task_10ms_counter++;
 

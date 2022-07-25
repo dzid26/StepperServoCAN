@@ -6,22 +6,9 @@
 #include "stepper_controller.h"
 #include "sine.h"
 
-extern volatile bool StepperCtrl_Enabled;
-//api - commanded
-extern volatile int32_t desiredLocation;
-extern volatile int_fast16_t feedForward;
-extern volatile int_fast16_t closeLoopMax;
 
-//api - measured
-extern volatile int32_t currentLocation;
-extern volatile int_fast16_t closeLoop;
-extern volatile int16_t control;
-extern volatile int32_t speed_slow;
-extern volatile int32_t loopError;
 
-extern volatile SystemParams_t systemParams;
-
-#define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//short hand for swapping direction
+#define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
 
 void StepperCtrl_setDesiredLocation(int32_t deltaLocation){
 	disableTCInterrupts(); //reading from a global may result in partial data if called from outside

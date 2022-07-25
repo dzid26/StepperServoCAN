@@ -25,7 +25,6 @@
 
 extern volatile MotorParams_t motorParams;
 extern volatile SystemParams_t systemParams;
-extern volatile bool TC1_ISR_Enabled;
 
 volatile uint32_t NVM_address = FLASH_PAGE30_ADDR;
 

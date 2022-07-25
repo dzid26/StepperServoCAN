@@ -21,8 +21,8 @@
  */
 
 #include "stepper_controller.h"
+#include "A4950.h"
 
-extern volatile bool A4950_Enabled;
 extern volatile uint8_t DIR;
 extern volatile uint32_t NVM_address;
 extern nvm_t nvmParams;
@@ -34,7 +34,6 @@ volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 volatile bool StepperCtrl_Enabled = false;
-extern volatile bool TC1_ISR_Enabled;
 volatile bool enableFeedback = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
@@ -198,7 +197,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	bool feedback = enableFeedback;
 	disableTCInterrupts();
 
-	A4950_Enabled = true;
+	A4950_enable(true);
 	enableFeedback = false;
 
 	A4950_move(0, motorParams.currentMa);

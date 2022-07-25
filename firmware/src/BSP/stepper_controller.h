@@ -73,6 +73,28 @@ typedef struct { //closeloop position controller
 #define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop. 35uS puts theoretical limit of ~125rev/s on the motor which is plenty.  Adjust to reduce harmonics. 
 #define SAMPLING_HZ		(uint32_t)(S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
 
+//api - nvram mirror
+extern volatile MotorParams_t motorParams;
+extern volatile SystemParams_t systemParams;
+
+//api - control states
+extern volatile bool StepperCtrl_Enabled;
+extern volatile bool enableFeedback;
+extern volatile bool enableCloseLoop;
+extern volatile bool enableSoftOff;
+
+//api - commanded
+extern volatile int32_t desiredLocation;
+extern volatile int_fast16_t feedForward;
+extern volatile int_fast16_t closeLoopMax;
+
+//api - measured
+extern volatile int32_t currentLocation;
+extern volatile int_fast16_t closeLoop;
+extern volatile int_fast16_t control;
+extern volatile int32_t speed_slow;
+extern volatile int32_t loopError;
+
 void StepperCtrl_setLocationFromEncoder(void);
 int32_t StepperCtrl_updateCurrentLocation(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
