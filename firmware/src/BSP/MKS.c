@@ -438,14 +438,21 @@ void MKS_begin(void)
 		}
 	}
 	display_setMenu(MenuMain);
-
+	StepperCtrl_enable(true);
 	RED_LED(false); //��ʼ������Ϩ������
 }
 
+#include "control_api.h"
 void MKS_loop(void)
 {
 	CAN_TransmitMotorStatus(); //todo replace with a 10ms task
+	
+	display_process();
 
+	//DEMO
+	StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE); //set the control mode to position relative
+	StepperCtrl_setFeedForwardTorque(5000); //set the feed forward torque to 5Nm
+	StepperCtrl_setDesiredLocation(100); //set the desired location to 100 degrees
 }
 
 void TIM1_UP_IRQHandler(void)
