@@ -32,11 +32,11 @@
 
 extern CAN_TypeDef hcan;
 
-void CAN_TransmitMotorStatus(void);
+void CAN_TransmitMotorStatus(uint32_t frame);
 void CAN_MsgsFiltersSetup(void);
 void CheckTxStatus(uint8_t TransmitMailbox);
 void CAN_InterpretMesssages(CanRxMsg message);
-bool Check_Control_CAN_rx_validate(void);
+bool Check_Control_CAN_rx_validate_tick(void);
 
 #define CHECK_RX_FAIL_LIM 5
 

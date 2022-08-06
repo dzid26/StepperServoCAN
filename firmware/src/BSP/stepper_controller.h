@@ -63,8 +63,8 @@ typedef struct { //closeloop position controller
 	int32_t Kd;
 } PID_t;
 
-#define ANGLE_FROM_DEGREES(x) ((int32_t) ( ((float)ANGLE_STEPS * (float)(x)+ 180.0) / 360.0 ) )
-#define ANGLE_T0_DEGREES(x) ( (float) ((float(x) * 360.0) / ((float)ANGLE_STEPS) ))
+#define DEGREES_TO_ANGLERAW(x) ( ((float)(x) / 360.0f * ANGLE_STEPS) )
+#define ANGLERAW_T0_DEGREES(x) ( ((float)(x) * 360.0f / ANGLE_STEPS) )
 
 //scales PID parameters from Flash (floating point) to int32_t used in control 
 #define CTRL_PID_SCALING 			(int16_t)(8096)

@@ -21,7 +21,9 @@
  */
 
 #include "MKS.h"
+#include "actuator_config.h"
 #include "control_api.h"
+#include "can.h"
 
 extern volatile uint32_t NVM_address;
 
@@ -367,9 +369,9 @@ void validateAndInitNVMParams(void)
 		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
 
 		nvmParams.SystemParams.microsteps = 256; //unused
-		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;
+		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;  //unused
 		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
-		nvmParams.SystemParams.errorLimit = (int32_t)ANGLE_FROM_DEGREES(1.8);
+		nvmParams.SystemParams.errorLimit = (int32_t)DEGREES_TO_ANGLERAW(1.8);  //unused
 		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
 
 		if(NVM->motorParams.parametersValid == valid)
@@ -385,6 +387,8 @@ void validateAndInitNVMParams(void)
 void Begin_process(void)
 {
 	stepCtrlError_t stepCtrlError;
+	
+	update_actuator_parameters();
 
 	board_init();	//set up the pins correctly on the board.
 
@@ -470,12 +474,13 @@ void Task_motor(void){
 void Task_10ms(void){
 	Task_10ms_counter++;
 
-	CAN_TransmitMotorStatus();
+	//transmit CAN every 10ms
+	CAN_TransmitMotorStatus(Task_10ms_counter);
 
 	//go to Soft Off if motor is actively controlled but control signal is not received
 	bool comm_error = false;
 	if(enableFeedback)
-	comm_error = Check_Control_CAN_rx_validate() == false;
+	comm_error = (Check_Control_CAN_rx_validate_tick() == false);
 	if(comm_error)
 	{	//once SOFT_TORQUE_OFF is set, the motor will not be controlled until STEPCTRL_OFF is requested
 		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);

@@ -24,11 +24,8 @@
 #define __BOARD_H
 
 #include "../CMSIS/stm32f10x.h"
-#include "oled.h"
-#include "delay.h"
-#include "can.h"
 #include "A4950.h"
-#include "MKS.h"
+
 
 #define	VERSON	"Ver:1.0.3"
 

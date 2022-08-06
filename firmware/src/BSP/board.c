@@ -331,9 +331,9 @@ void board_init(void)
 	NVIC_init(); 
 	INPUT_init();
 	A4950_init();
+	ChipTemp_init();
 #ifdef MKS
 	A1333_init();
-	ChipTemp_init();
 #elif BTT
 	TLE5012B_init();
 #endif
@@ -406,6 +406,7 @@ void Task_10ms_init(void){
 
 
 volatile bool TC1_ISR_Enabled = false;
+//enable motor fast loop interrupt
 void enableTCInterrupts(void)
 {
 	TC1_ISR_Enabled = true;
@@ -413,6 +414,7 @@ void enableTCInterrupts(void)
 	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
 }
 
+//enable motor fast loop interrupt conditional
 void enableTCInterruptsCond(bool previously_enabled)
 {
 	if(previously_enabled){
@@ -420,6 +422,7 @@ void enableTCInterruptsCond(bool previously_enabled)
 	}
 }
 
+//disable motor fast loop interrupt
 void disableTCInterrupts(void)
 {
 	TC1_ISR_Enabled = false;
@@ -449,7 +452,7 @@ void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
 		Task_Motor_execution_us = TIM_GetCounter(TIM1); //get current timer value in uS thanks to the prescaler
 		if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
 		{
-			Task_Motor_overrun = true; //clear the flag in 10ms task so that LED is visible
+			Task_Motor_overrun = true;
 			Task_Motor_execution_us += TIM1->ARR; //assume that timer rolled over and add the full period to the current value
 			Task_Motor_overrun_count++;
 			TIM_ClearITPendingBit(TIM1, TIM_IT_Update); //don't allow to reenter this task if it overruns. Being highest priority it would block everything.
@@ -476,7 +479,7 @@ void TIM2_IRQHandler(void) //TIM2 used for task triggering
 		Task_10ms_execution_us = TIM_GetCounter(TIM2); //get current timer value in uS thanks to the prescaler
 		if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
 		{
-			Task_10ms_overrun = true; //clear the flag in 10ms task so that LED is visible
+			Task_10ms_overrun = true;
 			Task_10ms_execution_us += TIM2->ARR; //assume that timer rolled over and add the full period to the current value
 			Task_10ms_overrun_count++;
 		}else

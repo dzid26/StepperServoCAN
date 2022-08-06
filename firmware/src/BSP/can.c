@@ -1,34 +1,13 @@
-/**
-  ******************************************************************************
-  * File Name          : CAN.c
-  * Description        : This file provides code for the configuration
-  *                      of the CAN instances.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
-
+//todo: pass pointer to structure like rxMessage to limit stack size
 /* Includes ------------------------------------------------------------------*/
 #include "can.h"
 #include "control_api.h"
 #include "../OP/Msg.h"
 
-#define RAW_TORQUE_TO_mA 1
-#define RAW_TORQUE_MAX_TO_mA 1
-#define RAW_POSITION_TO_MOTOR 64
-
 volatile uint32_t can_rx_cnt = 0;
 volatile uint32_t can_tx_cnt = 0;
-volatile uint32_t can_err_cnt = 0;
+volatile uint32_t can_err_tx_cnt = 0;
+volatile uint32_t can_err_rx_cnt = 0;
 volatile uint32_t can_overflow_cnt = 0;
 
 static int GetTemperature()
@@ -36,10 +15,13 @@ static int GetTemperature()
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_55Cycles5);  
   ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
   while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET);
-  int ADCConvertedValue = ADC_GetConversionValue(ADC1);
-  float fTemp = (1.6f - ADCConvertedValue*3.3f/4096)*1000/4.1f + 25;
-
-return (int)(fTemp);
+  volatile float ADCVolt = ADC_GetConversionValue(ADC1)*3.3f/4096;
+  //todo add this calibration as a display feature
+  const float t0 = 35.0f;
+  const float ADCVoltRef = 1.325f; //! calibrate at some t0
+  const float TempSlop = 4.3f/1000; //typically 4.3mV per C
+  float fTemp = (ADCVoltRef - ADCVolt) / TempSlop + t0;
+  return (int)(fTemp);
 
 }
 
@@ -52,9 +34,9 @@ void CAN_MsgsFiltersSetup()
 	CAN_FilterInitStructure.CAN_FilterNumber=0;
 	CAN_FilterInitStructure.CAN_FilterScale=CAN_FilterScale_16bit;
 	CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdList;
-  //IdList mode - fields below can store list of 4 IDs.  STID requires << 5 
-	CAN_FilterInitStructure.CAN_FilterIdHigh=MSG_CONTROL_CMD1_FRAME_ID<<5; 
-	CAN_FilterInitStructure.CAN_FilterIdLow=MSG_LIMITS_CMD2_FRAME_ID<<5;
+  //IdList mode - fields below can store list of 4 receiving IDs.  STID requires << 5 
+	CAN_FilterInitStructure.CAN_FilterIdHigh=MSG_STEERING_COMMAND_FRAME_ID<<5; 
+	CAN_FilterInitStructure.CAN_FilterIdLow=0x0000<<5;
 	CAN_FilterInitStructure.CAN_FilterMaskIdHigh=0x0000 <<5;
 	CAN_FilterInitStructure.CAN_FilterMaskIdLow=0x0000 <<5;  
   //End CAN_FilterMode_IdList
@@ -64,35 +46,59 @@ void CAN_MsgsFiltersSetup()
 	CAN_FilterInit(&CAN_FilterInitStructure);
   }
 
-struct Msg_control_status1_t ControlStatus;
-struct Msg_system_status2_t SystemStatus;
-void CAN_TransmitMotorStatus(void)
-{
-  static uint8_t counter = 0;
-  ControlStatus.counter_stat1 = (counter++) & 0xF;
-  ControlStatus.torque_actual = StepperCtrl_getControlOutput() / RAW_TORQUE_TO_mA;
-  ControlStatus.torque_close_loop_actual = StepperCtrl_getCloseLoop() / RAW_TORQUE_TO_mA;
-  ControlStatus.position_error = StepperCtrl_getPositionError() / RAW_POSITION_TO_MOTOR;
-  ControlStatus.speed_actual =  StepperCtrl_getSpeedRev();
+uint8_t Msg_calc_checksum_8bit(uint8_t *data, uint8_t len, uint16_t msg_id){
+  //checksum is sum of all bytes and message id
+  uint8_t checksum = (uint8_t) msg_id;
+  for(int i = 0; i < len; i++){
+    checksum += data[i];
+  }
+  return checksum;
+}
 
-  // SystemStatus.chip_temp = GetTemperature();
-  SystemStatus.position_raw = StepperCtrl_getCurrentLocation();
+struct Msg_steering_status_t ControlStatus;
+
+void CAN_TransmitMotorStatus(uint32_t frame)
+{
+  //populate message structure:
+  ControlStatus.counter = frame & 0xF;
+  ControlStatus.steering_angle = Msg_steering_status_steering_angle_encode(StepperCtrl_getAngleFromEncoder());
+  ControlStatus.steering_speed = Msg_steering_status_steering_speed_encode(StepperCtrl_getSpeedRev());
+  ControlStatus.steering_torque = Msg_steering_status_steering_torque_encode(StepperCtrl_getControlOutput());
+  ControlStatus.temperature = Msg_steering_status_temperature_encode(GetTemperature());
+  uint16_t states = StepperCtrl_getStatuses();
+  ControlStatus.control_status = states & 0xFF;
+  ControlStatus.debug_states = (states >> 8)  & 0xFF;
   
-  /* transmit */
+  //calculate checksum:
+  uint8_t DataTemp[8];
+  Msg_steering_status_pack(DataTemp, &ControlStatus, sizeof(DataTemp));
+  ControlStatus.checksum = Msg_calc_checksum_8bit(DataTemp, MSG_STEERING_STATUS_LENGTH, MSG_STEERING_STATUS_FRAME_ID);
+
+  //pack and transmit
   CanTxMsg TxMessage;
   uint8_t TransmitMailbox;
   TxMessage.RTR=CAN_RTR_DATA;
   TxMessage.IDE=CAN_ID_STD;
 
-  Msg_control_status1_pack((&TxMessage)->Data, &ControlStatus, sizeof(TxMessage.Data));
-  TxMessage.StdId=MSG_CONTROL_STATUS1_FRAME_ID;
-  TxMessage.DLC=MSG_CONTROL_STATUS1_LENGTH;
+  Msg_steering_status_pack((&TxMessage)->Data, &ControlStatus, sizeof(TxMessage.Data));
+  TxMessage.StdId=MSG_STEERING_STATUS_FRAME_ID;
+  TxMessage.DLC=MSG_STEERING_STATUS_LENGTH;
   TransmitMailbox=CAN_Transmit(CAN1, &TxMessage);
 
-  Msg_system_status2_pack((&TxMessage)->Data, &SystemStatus, sizeof(TxMessage.Data));
-  TxMessage.StdId=MSG_SYSTEM_STATUS2_FRAME_ID;
-  TxMessage.DLC=MSG_SYSTEM_STATUS2_LENGTH;
-  TransmitMailbox=CAN_Transmit(CAN1, &TxMessage);
+  // TxMessage.StdId=0xC4; //todo remove debug
+  // extern int16_t pTerm_glob;
+  // extern int16_t iTerm_glob;
+  // extern int16_t dTerm_glob;
+  // TxMessage.DLC=8;
+  // TxMessage.Data[0] = (StepperCtrl_getAngleFromEncoder() / RAW_POSITION_TO_MOTOR) & 0xFF;
+  // TxMessage.Data[1] = (StepperCtrl_getAngleFromEncoder() / RAW_POSITION_TO_MOTOR) >> 8;
+  // TxMessage.Data[3] =  StepperCtrl_getSpeedRev() & 0xFF;
+  // TxMessage.Data[4] =  StepperCtrl_getSpeedRev() >> 8;
+  
+  // TxMessage.Data[5] = (pTerm_glob / RAW_TORQUE_TO_mA) & 0xFF;
+  // TxMessage.Data[6] = (iTerm_glob / RAW_TORQUE_TO_mA) & 0xFF;
+  // TxMessage.Data[7] = (dTerm_glob / RAW_TORQUE_TO_mA) & 0xFF;
+  // TransmitMailbox=CAN_Transmit(CAN1, &TxMessage);
   
   CheckTxStatus(TransmitMailbox);
 
@@ -108,7 +114,7 @@ void CheckTxStatus(uint8_t TransmitMailbox){
     status = CAN_TransmitStatus(CAN1, TransmitMailbox);
     i++;
     if (status == CAN_TxStatus_Failed || (i == 0xFF)){
-      can_err_cnt++;
+      can_err_tx_cnt++;
       status = CAN_GetLastErrorCode(CAN1);
       return;
     }
@@ -117,19 +123,29 @@ void CheckTxStatus(uint8_t TransmitMailbox){
 }
 
 
-static volatile uint16_t ControlCmds_cnt = 0;
-struct Msg_control_cmd1_t ControlCmds;
+static volatile uint16_t can_control_cmd_cnt = 0;
+struct Msg_steering_command_t ControlCmds;
 void CAN_InterpretMesssages(CanRxMsg message) { 
   switch (message.StdId){
-  	case MSG_CONTROL_CMD1_FRAME_ID: {
-      ControlCmds_cnt++;
-      Msg_control_cmd1_unpack(&ControlCmds, message.Data, sizeof(message.Data));
-
-      StepperCtrl_setDesiredLocation( (int32_t) ControlCmds.position_change * RAW_POSITION_TO_MOTOR);
-      StepperCtrl_setFeedForwardTorque(ControlCmds.torque_feedforward * RAW_TORQUE_TO_mA); //set feedforward torque
-      StepperCtrl_setCloseLoopTorque(ControlCmds.torque_closeloop_max * RAW_TORQUE_MAX_TO_mA); //set feedforward torque
-      StepperCtrl_setControlMode(ControlCmds.target_mode); //set control mode
+  	case MSG_STEERING_COMMAND_FRAME_ID: {      
+      Msg_steering_command_unpack(&ControlCmds, message.Data, sizeof(message.Data));
+      // Note signals may correspond to different motor sample
+      StepperCtrl_setDesiredAngle(Msg_steering_command_steer_angle_decode(ControlCmds.steer_angle));
+      StepperCtrl_setFeedForwardTorque(Msg_steering_command_steer_torque_decode(ControlCmds.steer_torque));
+      StepperCtrl_setControlMode(ControlCmds.steer_mode); //set control mode
       
+      //calculate checksum:
+      message.Data[0] = 0; //!clear checksum - make sure which byte is checksum
+      uint8_t checksum = Msg_calc_checksum_8bit(message.Data, MSG_STEERING_COMMAND_LENGTH, MSG_STEERING_COMMAND_FRAME_ID);
+      #ifdef IGNORE_CAN_CHECKSUM
+        ControlCmds.checksum = checksum;
+      #endif
+      if (ControlCmds.checksum == checksum){
+        can_control_cmd_cnt++; //if this counter is not incremented, the error will be raised
+      } else {
+        can_err_rx_cnt++;
+      }
+      // todo also check counter is rolling by 1
     }
   }
 }
@@ -158,15 +174,15 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 
 }
 
-bool Check_Control_CAN_rx_validate(void)
+bool Check_Control_CAN_rx_validate_tick(void) //call from 10ms task
 {
-  static uint16_t ControlCmds_cnt_prev = 0;
+  static uint16_t can_control_cmds_cnt_prev = 0;
   static uint8_t rx_fail_cnt = 0;
 
 
-  if (ControlCmds_cnt != ControlCmds_cnt_prev) //counter has changed - OK
+  if (can_control_cmd_cnt != can_control_cmds_cnt_prev) //counter has changed - OK
   {
-    ControlCmds_cnt_prev = ControlCmds_cnt;
+    can_control_cmds_cnt_prev = can_control_cmd_cnt;
     rx_fail_cnt = 0; //reset counter
     return true;
   }else{

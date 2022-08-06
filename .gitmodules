@@ -1,0 +1,9 @@
+[submodule "cantools"]
+	path = cantools
+	url = ./cantools
+[submodule "opendbc-retropilot"]
+	path = opendbc
+	url = https://github.com/RetroPilot/opendbc.git
+[submodule "opendbc"]
+	path = opendbc
+	url = ./opendbc

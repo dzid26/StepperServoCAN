@@ -44,7 +44,7 @@ volatile int32_t zeroAngleOffset = 0;
 //api - commanded
 volatile int32_t desiredLocation;
 volatile int_fast16_t feedForward;
-volatile int_fast16_t closeLoopMax;
+volatile int_fast16_t closeLoopMax=1000;
 
 //api - measured
 volatile int32_t currentLocation = 0;
