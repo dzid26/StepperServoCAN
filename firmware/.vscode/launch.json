@@ -1,0 +1,41 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+//
+// PIO Unified Debugger
+//
+// Documentation: https://docs.platformio.org/page/plus/debugging.html
+// Configuration: https://docs.platformio.org/page/projectconf/section_env_debug.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "toolchainBinDir": "${userHome}/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "${userHome}/.platformio/platforms/ststm32@11.0.0/misc/svd/STM32F103xx.svd",
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug"
+            }
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (skip Pre-Debug)",
+            "toolchainBinDir": "${userHome}/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "${userHome}/.platformio/platforms/ststm32@11.0.0/misc/svd/STM32F103xx.svd"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (without uploading)",
+            "toolchainBinDir": "${userHome}/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "${userHome}/.platformio/platforms/ststm32@11.0.0/misc/svd/STM32F103xx.svd",
+            "loadMode": "manual"
+        }
+    ]
+}
