@@ -25,6 +25,7 @@
 #include "control_api.h"
 #include "can.h"
 
+volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
 extern volatile uint32_t NVM_address;
 
 nvm_t nvmParams = {0};
@@ -386,7 +387,6 @@ void validateAndInitNVMParams(void)
 
 void Begin_process(void)
 {
-	stepCtrlError_t stepCtrlError;
 	
 	update_actuator_parameters();
 

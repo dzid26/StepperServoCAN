@@ -60,6 +60,9 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 }
 
 void StepperCtrl_setControlMode(uint8_t mode){ 
+	if (stepCtrlError != STEPCTRL_NO_ERROR){
+		return;
+	}
 	switch (mode){
 		case 0:
 			StepperCtrl_feedbackMode(STEPCTRL_OFF);

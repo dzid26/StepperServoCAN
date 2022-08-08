@@ -79,6 +79,7 @@ extern volatile SystemParams_t systemParams;
 
 //api - control states
 extern volatile bool StepperCtrl_Enabled;
+extern volatile stepCtrlError_t stepCtrlError;
 extern volatile bool enableFeedback;
 extern volatile bool enableCloseLoop;
 extern volatile bool enableSoftOff;
