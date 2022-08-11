@@ -545,7 +545,7 @@ void StepperCtrl_feedbackMode(uint8_t mode)
 bool StepperCtrl_processFeedback(void)
 {
 	bool no_error = false;
-	int32_t desiredLoc;
+	int32_t commandedLoc;
 	int32_t currentLoc;
 	static int32_t lastLoc;
 	const int16_t speed_filter_tc = 128; //speed filter time constant
@@ -554,13 +554,13 @@ bool StepperCtrl_processFeedback(void)
 	int32_t error;
 	static int32_t desiredLoc_slow = 0;
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
-	desiredLoc = desiredLocation;
+	commandedLoc = desiredLocation; //StepperCtrl_compensateBacklash(desiredLocation, currentLoc, control);
 
-	loopError = desiredLoc - currentLoc;
-	desiredLoc_slow = (desiredLoc + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc; 
+	loopError = commandedLoc - currentLoc;
+	desiredLoc_slow = (commandedLoc + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc; 
 	error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 
-	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // 360deg/65536/s
+	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
 	no_error = StepperCtrl_simpleFeedback(error);
@@ -582,7 +582,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 	static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
 	static uint16_t magnitude = 0; //static for dTerm condition check
 
-	if(enableFeedback)
+	if(enableFeedback) //todo add openloop control
 	{
 		int16_t loadAngleDesired;
 		

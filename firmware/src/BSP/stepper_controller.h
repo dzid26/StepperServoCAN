@@ -46,15 +46,16 @@ typedef	enum {
 	STEPCTRL_FEEDBACK_POSITION_RELATIVE=1,	//relative closeloop positioning with feedforward torque
 	STEPCTRL_FEEDBACK_POSITION_ABSOLUTE=2,	//absolute closeloop positioning with feedforward torque
 	STEPCTRL_FEEDBACK_VELOCITY=3,			//velocity closeloop positioning with feedforward torque
+	//todo replace FEEDBACK with SENSED
 	STEPCTRL_FEEDBACK_TORQUE=4,				//torque control with no closeloop
 	STEPCTRL_FEEDBACK_CURRENT=5,			//current control
 	STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF=6,	//last torque ramp off
 
 	//Classical sensorless openloop
-	STEPCTRL_OPENLOOP_RELATIVE=7,			//relative openloop positioning
-	STEPCTRL_OPENLOOP_ABSOLUTE=8,			//absolute openloop positioning
+	STEPCTRL_OPENLOOP_POSITION_RELATIVE=7,	//relative openloop positioning
+	STEPCTRL_OPENLOOP_POSITION_ABSOLUTE=8,	//absolute openloop positioning
 	STEPCTRL_OPENLOOP_VELOCITY=9,			//velocity openloop positioning
-	STEPCTRL_OPENLOOP_CURRENT=10,			//current openloop control
+	STEPCTRL_OPENLOOP_SLOW_CURRENT_OFF=6,	//last current ramp off
 } stepCtrlFeedbackMode_t;
 
 typedef struct { //closeloop position controller
