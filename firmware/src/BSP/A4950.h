@@ -29,6 +29,7 @@
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
 #define VREF_SCALER	6
 #define VREF_SINE_RATIO	(1<<VREF_SCALER)
+#define PWM_SCALER	3 //low vibration
 
 void A4950_enable(bool enable);
 void A4950_move(uint16_t stepAngle, uint16_t mA);
