@@ -60,24 +60,24 @@ volatile bool A4950_Enabled = false;
 inline static void bridge1(int state)
 {
 	if (state == 0) //Forward
-	{
+	{	//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
 		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
-		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
+		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 	}
 	if (state == 1) //Reverse
 	{
-		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0	
-		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1	
+		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0	
+		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1
 	}
 	if (state == 3) //Coast (off)
 	{
-		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0
-		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
+		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0
+		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 	}
 	if (state == 4) //brake
 	{
-		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=0
-		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=0
+		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=1
+		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=1
 	}
 }
 
@@ -87,26 +87,26 @@ inline static void bridge2(int state)
 	if (state == 0) //Forward
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
-		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);	//IN4=0
+		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 	}
 	if (state == 1) //Reverse
 	{
-		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);	//IN3=0
+		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
 	}
 	if (state == 3) //Coast (off)
 	{
-		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);	//IN3=0
-		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);	//IN4=0
+		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
+		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 	}
 	if (state == 4) //brake
 	{
-		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN3=0
-		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN4=0
+		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN3=1
+		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN4=1
 	}
 }
 
-//Vref
+//Set reference voltage for the current driver regulator using PWM and RC filter
 inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
 {
 	//VREF_SCALER reduces PWM resolution by 2^VREF_SCALER,
@@ -173,20 +173,20 @@ int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electr
 	sin = sine(elecAngleStep);
 	cos = cosine(elecAngleStep);
 
-	//calculate the sine and cosine of our elecAngleStep - lumped park transform - FOC Q and D force vectors
-	vrefX = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * (uint32_t) fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
-	vrefY = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * (uint32_t) fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
+	//Modified Park transform for Iq current. Here load angle is introduced ~ +/-90 degrees which controls the direction (instead of current sign in Park)
+	vrefX = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
+	vrefY = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
 
-	setVREF(vrefY,vrefX); //VREF12	VREF34
+	setVREF(vrefX,vrefY); //VREF12	VREF34
 
-	if (sin > 0)
+	if (sin < 0)
 	{
 		bridge1(1);
 	}else
 	{
 		bridge1(0);
 	}
-	if (cos > 0)
+	if (cos < 0)
 	{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
 		bridge2(motorParams.motorWiring ? 1u : 0u); 
 	}else

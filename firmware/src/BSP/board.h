@@ -69,16 +69,13 @@
 #define RS_A4950            (uint16_t) 100 //mOhm
 #endif
 
-#define I_RS_A4950_div     (uint16_t) (1000/10) //mOhm to Ohm and 10x multiplier
-#define I_RS_A4950_rat     (uint16_t) (RS_A4950/I_RS_A4950_div) //mOhm to Ohm and 10x multiplier
-
 #define PIN_A4950_IN1   	GPIO_Pin_6
 #define PIN_A4950_IN2   	GPIO_Pin_7
 #define PIN_A4950_IN3  		GPIO_Pin_8
 #define PIN_A4950_IN4  		GPIO_Pin_9
     
 #define	VREF_TIM			TIM3
-#define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less noise
+#define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
 
 //A1333
 #define PIN_A1333     			GPIOB
