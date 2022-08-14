@@ -67,6 +67,10 @@
 #define	VREF_TIM			TIM3
 #define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
 
+#define PWM_TIM             TIM4
+#define PWM_TIM_MAX         SINE_MAX
+#define PWM_TIM_MIN         1
+
 #define GPIO_LSS        GPIOA
 #define PIN_LSS_A       GPIO_Pin_0
 #define PIN_LSS_B       GPIO_Pin_1

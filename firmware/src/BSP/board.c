@@ -129,10 +129,11 @@ static void SWITCH_init(void)
 static void A4950_init(void)
 {	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 
 	//A4950 Input pins
 	GPIO_InitTypeDef  gpio_initStructure; 
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
     gpio_initStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
     GPIO_Init(PIN_A4950, &gpio_initStructure);
@@ -147,7 +148,6 @@ static void A4950_init(void)
 	gpio_initStructure.GPIO_Pin = PIN_A4950_VREF12|PIN_A4950_VREF34;
     GPIO_Init(PIN_A4950, &gpio_initStructure);
 
-	//Remap to the upper pins
 
 	//Init TIM3
 	TIM_TimeBaseInitTypeDef  		timeBaseStructure;
@@ -169,6 +169,46 @@ static void A4950_init(void)
 	TIM_OC2PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
  
 	TIM_Cmd(VREF_TIM, ENABLE);
+
+	//Init TIM4 - PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4
+	timeBaseStructure.TIM_Period = PWM_TIM_MAX;
+	timeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
+	timeBaseStructure.TIM_ClockDivision = 0;
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(PWM_TIM, &timeBaseStructure);
+
+	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+ 	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	tim_OCInitStructure.TIM_Pulse = 0;
+	TIM_OC1Init(VREF_TIM, &tim_OCInitStructure);	//CH1
+	TIM_OC2Init(VREF_TIM, &tim_OCInitStructure);	//CH2
+
+	TIM_OC1PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
+	TIM_OC2PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
+ 
+	TIM_Cmd(VREF_TIM, ENABLE);
+
+	//Init TIM4 - PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4
+	timeBaseStructure.TIM_Period = PWM_TIM_MAX;
+	timeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
+	timeBaseStructure.TIM_ClockDivision = 0;
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(PWM_TIM, &timeBaseStructure);
+
+	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+ 	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	tim_OCInitStructure.TIM_Pulse = 0;
+	TIM_OC1Init(PWM_TIM, &tim_OCInitStructure);	//CH1
+	TIM_OC2Init(PWM_TIM, &tim_OCInitStructure);	//CH2
+	TIM_OC3Init(PWM_TIM, &tim_OCInitStructure);	//CH3
+	TIM_OC4Init(PWM_TIM, &tim_OCInitStructure);	//CH4
+	TIM_OC1PreloadConfig(PWM_TIM, TIM_OCPreload_Enable);
+	TIM_OC2PreloadConfig(PWM_TIM, TIM_OCPreload_Enable);
+	TIM_OC3PreloadConfig(PWM_TIM, TIM_OCPreload_Enable);
+	TIM_OC4PreloadConfig(PWM_TIM, TIM_OCPreload_Enable);
+	TIM_Cmd(PWM_TIM, ENABLE);
 }
 
 static void LED_init(void)

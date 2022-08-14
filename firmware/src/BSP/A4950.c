@@ -65,21 +65,29 @@ inline static void bridge1(int state)
 	{	//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
 		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
+		TIM_SetCompare1(PWM_TIM, 0);
+		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 1) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0	
 		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1
+		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare2(PWM_TIM, 0);
 	}
 	if (state == 3) //Coast (off)
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
+		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 4) //brake
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=1
 		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=1
+		TIM_SetCompare1(PWM_TIM, 0);
+		TIM_SetCompare2(PWM_TIM, 0);
 	}
 }
 
@@ -90,21 +98,29 @@ inline static void bridge2(int state)
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
+		TIM_SetCompare3(PWM_TIM, 0);
+		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 1) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
+		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare4(PWM_TIM, 0);
 	}
 	if (state == 3) //Coast (off)
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
+		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 4) //brake
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN3=1
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN4=1
+		TIM_SetCompare3(PWM_TIM, 0);
+		TIM_SetCompare4(PWM_TIM, 0);
 	}
 }
 
@@ -119,6 +135,29 @@ inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
 
 }
 
+//Vref
+static void setPWM(uint16_t duty12, uint16_t duty34, bool quadrant1or2, bool quadrant3or4)
+{
+	//duty12,34 between 0 and PWM_MAX corrresponds to 0 and MCU_VOUT mVolts
+	//quadrant1or2,3or4 - determines which phase is used
+	
+	if (quadrant1or2)
+	{
+		TIM_SetCompare1(PWM_TIM, duty12);
+	}
+	else
+	{
+		TIM_SetCompare2(PWM_TIM, duty12);
+	}
+	if (quadrant3or4)
+	{
+		TIM_SetCompare3(PWM_TIM, duty34);
+	}
+	else
+	{
+		TIM_SetCompare4(PWM_TIM, duty34);
+	}
+}
 
 void A4950_enable(bool enable)
 {
@@ -190,22 +229,43 @@ void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrica
 	//Modified Park transform for Iq current. Here load angle is introduced ~ +/-90 degrees which controls the direction (instead of current sign in Park)
 	vrefX = (uint16_t)((uint32_t) vref * (uint32_t)fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
 	vrefY = (uint16_t)((uint32_t) vref * (uint32_t)fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
-
-	setVREF(vrefX,vrefY); //VREF12	VREF34
-
-	if (sin < 0)
-	{
-		bridge1(1);
-	}else
-	{
-		bridge1(0);
+	
+	bool voltageControl;
+	bool currentControl;
+	if(0){
+		voltageControl = false;
+		currentControl = true;
+	}else{
+		voltageControl = true;
+		currentControl = false;
 	}
-	if (cos < 0)
-	{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
-		bridge2(motorParams.motorWiring ? 1u : 0u); 
-	}else
-	{
-		bridge2(motorParams.motorWiring ? 0u : 1u); 
+
+	if (currentControl){
+		setVREF(vrefX,vrefY); //VREF12	VREF34
+	}else{
+		setVREF((uint32_t) vref * VREF_MAX / MCU_VOUT, (uint32_t)vref * VREF_MAX / MCU_VOUT); //VREF12	VREF34
+	}
+	
+	if(voltageControl){
+		PWM_TIM->ARR = PWM_TIM_MAX;
+		setPWM(fastAbs(sin), fastAbs(cos), (sin < 0), motorParams.motorWiring ? (cos < 0) : (cos > 0)); //PWM12	PWM34
+	}else{
+		PWM_TIM->ARR = PWM_TIM_MIN; //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
+
+		if (sin < 0)
+		{
+			bridge1(1);
+		}else
+		{
+			bridge1(0);
+		}
+		if (cos < 0)
+		{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
+			bridge2(motorParams.motorWiring ? 1u : 0u); 
+		}else
+		{
+			bridge2(motorParams.motorWiring ? 0u : 1u); 
+		}
 	}
 }
 
