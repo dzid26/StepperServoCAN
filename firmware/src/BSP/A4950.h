@@ -30,6 +30,8 @@
 #define VREF_SCALER	6
 #define VREF_SINE_RATIO	(1<<VREF_SCALER)
 #define PWM_SCALER	3 //low vibration
+#define SYS_Vin 14500 //mV
+#define PHASE_R 4 //ohm
 
 void A4950_enable(bool enable);
 void A4950_move(uint16_t stepAngle, uint16_t mA);

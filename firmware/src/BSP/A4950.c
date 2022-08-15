@@ -248,7 +248,10 @@ void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrica
 	
 	if(voltageControl){
 		PWM_TIM->ARR = PWM_TIM_MAX;
-		setPWM(fastAbs(sin>>PWM_SCALER), fastAbs(cos>>PWM_SCALER), (sin < 0), motorParams.motorWiring ? (cos < 0) : (cos > 0)); //PWM12	PWM34
+		//timer compare
+		uint16_t duty12 = (((uint32_t)fastAbs(sin)) * mA * PHASE_R / SYS_Vin);
+		uint16_t duty34 = (((uint32_t)fastAbs(cos)) * mA * PHASE_R / SYS_Vin);
+		setPWM(duty12>>PWM_SCALER, duty34>>PWM_SCALER, (sin < 0), motorParams.motorWiring ? (cos < 0) : (cos > 0)); //PWM12	PWM34
 	}else{
 		PWM_TIM->ARR = PWM_TIM_MIN; //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
 
