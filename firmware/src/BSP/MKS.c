@@ -125,7 +125,7 @@ options_t currentOptions[] = {
 		{"1800"},
 		{"1900"},
 		{"2000"},
-#ifndef MKS_SERVO42B
+#ifndef S42Bv2
 		{"2100"},
 		{"2200"},
 		{"2300"},
@@ -161,7 +161,7 @@ options_t currentHoldOptions[] = {
 		{"1300"},
 		{"1400"},
 		{"1500"},
-#ifndef MKS_SERVO42B
+#ifndef S42Bv2
 		{"1600"},
 		{"1700"},
 		{"1800"},
@@ -400,13 +400,7 @@ void Begin_process(void)
 	display_begin(); //display init
 	Task_10ms_init(); //task init
 
-  	#ifdef MKS_SERVO42B
-  	display_show("MKS", "Servo42B", VERSON, ""); //��ʾ57LOGO
-  	#elif S42Bv2
-	  display_show("BTT", "S42Bv2", VERSON, ""); //��ʾ42LOGO
-  	#else
-	  display_show("MKS", "Servo57B", VERSON, ""); //��ʾ42LOGO
-  	#endif
+	display_show("BTT", "S42Bv2", VERSON, "");
 	delay_ms(800);
 	
 	WORK_LED(true);

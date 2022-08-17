@@ -109,17 +109,12 @@ inline static void bridge2(int state)
 //Set reference voltage for the current driver regulator using PWM and RC filter
 inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
 {
-	//VREF_SCALER reduces PWM resolution by 2^VREF_SCALER,
-	//but also increasesPWM freq - needed for low pass filter to effectively filter V reference)
+	
 	
 	//VREF12,34 between 0 and VREF_MAX corrresponds to 0 and MCU_VOUT mVolts
-#ifdef MKS
-	TIM_SetCompare3(VREF_TIM, VREF12);
-	TIM_SetCompare4(VREF_TIM, VREF34);
-#elif BTT
 	TIM_SetCompare2(VREF_TIM, VREF12);
 	TIM_SetCompare1(VREF_TIM, VREF34);
-#endif
+
 }
 
 

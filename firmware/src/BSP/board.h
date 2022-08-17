@@ -54,14 +54,8 @@
 
 //A4950
 #define PIN_A4950     			GPIOB
-#ifdef MKS
-#define PIN_A4950_VREF12    GPIO_Pin_0	//TIM3_CH3
-#define PIN_A4950_VREF34    GPIO_Pin_1	//TIM3_CH4
-#define RS_A4950            (uint16_t) 100 //mOhm
-#elif BTT
 #define PIN_A4950_VREF12    GPIO_Pin_5	//TIM3_CH2
 #define PIN_A4950_VREF34    GPIO_Pin_4	//TIM3_CH1
-#endif
 
 #ifdef S42Bv2
 #define RS_A4950            (uint16_t) 200 //mOhm

@@ -26,11 +26,7 @@
 #include "delay.h"
 #include "nonvolatile.h"
 #include "calibration.h"
-#ifdef MKS
-#include "A1333.h"
-#elif BTT
 #include "tle5012.h"
-#endif
 #include "math.h"
 
 typedef enum {

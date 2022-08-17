@@ -55,28 +55,13 @@ volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
 
 
-uint16_t ReadEncoderAngle(void){ //15bits -  32767 is 360
-	#ifdef MKS
-		return A1333_readEncoderAngle();
-	#elif BTT
-		return TLE5012_ReadAngle();
-		// uint16_t angle = 0;
-		// errorTypes error = readAngleValue(&angle);
-		// return angle;
-	#else
-		return 0;	
-	#endif
+uint16_t ReadEncoderAngle(void){ 
+	//Expects 15bits - 32767 is 360deg
+	return TLE5012_ReadAngle();
 }
 
 bool Encoder_begin(void){
-	#ifdef MKS
-		return A1333_begin();
-	#elif BTT
-		return TLE5012_begin();
-		// return true;
-	#else
-		return false;	
-	#endif
+	return TLE5012_begin();
 }
 
 
@@ -684,13 +669,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		magnitude = (uint16_t) (fastAbs(control));
 
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-	#ifdef MKS
-		uint16_t sensDelay = 10u;
-	#elif BTT
 		uint16_t sensDelay = 90u;
-	#else
-		uint16_t sensDelay = 0u;
-	#endif
 		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + sensDelay);
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
 		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);

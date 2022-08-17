@@ -122,12 +122,6 @@ static void OLED_init(void)
 //Init switch IO
 static void SWITCH_init(void)
 {
-	#ifdef MKS
-	GPIOA->CRH &= 0xfffff000;	//SW4 SW3 SW1 (PA8 PA9 PA10)	
-	GPIOA->CRH |= 0x00000888;	//SW4 SW3 SW1 (PA8 PA9 PA10)	
-	GPIOA->ODR |= 0x00000700;	//SW4 SW3 SW1 (PA8 PA9 PA10)
-	#elif BTT
-
 	//dip switches
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -136,7 +130,6 @@ static void SWITCH_init(void)
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin = PIN_DIP1 | PIN_SW1_NEXT|PIN_SW4_EXIT;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	#endif
 }
 
 //Init A4950
@@ -144,13 +137,6 @@ static void A4950_init(void)
 {	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-#ifdef MKS
-	GPIOB->CRL &= 0x00ffff00;	//clean VREF12(PB0) VREF34(PB1) IN1(PB6) IN2(PB7) control bit
-	GPIOB->CRL |= 0x330000bb;	//config VREF12(PB0) VREF34(PB1)Multiplexed push-pull output IN1(PB6) IN2(PB7) Universal push-pull output
-	GPIOB->CRH &= 0xffffff00;	//clean IN3(PB8) IN4(PB9) control bit	
-	GPIOB->CRH |= 0x00000033;	//config IN3(PB8) IN4(PB9) Universal push-pull output	
-	GPIOB->ODR &= 0xfffffc3f;	//defualt IN1(PB6) IN2(PB7) IN3(PB8) IN4(PB9) 
-#elif BTT
 	//A4950 Input pins
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
@@ -169,7 +155,6 @@ static void A4950_init(void)
     GPIO_Init(PIN_A4950, &GPIO_InitStructure);
 
 	//Remap to the upper pins
-#endif
 
 	//Init TIM3
 	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
@@ -185,17 +170,11 @@ static void A4950_init(void)
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
  	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = 0;
-#ifdef MKS
-	TIM_OC3Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH3
-	TIM_OC4Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH4
-	TIM_OC3PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
-	TIM_OC4PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
-#elif BTT
-	TIM_OC1Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH1
-	TIM_OC2Init(VREF_TIM, &TIM_OCInitStructure);	//TIM3 CH2
+	TIM_OC1Init(VREF_TIM, &TIM_OCInitStructure);	//CH1
+	TIM_OC2Init(VREF_TIM, &TIM_OCInitStructure);	//CH2
 	TIM_OC1PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
 	TIM_OC2PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
- #endif
+ 
 	TIM_Cmd(VREF_TIM, ENABLE);
 }
 
@@ -227,19 +206,11 @@ static void A1333_init (void)
 
 static void LED_init(void)
 {
-#ifdef MKS
-	//POWER_LED
-	GPIOA->CRL &= 0xffff0fff; //PA3
-	GPIOA->CRL |= 0x00003000; //Universal push-pull output
-	GPIOA->ODR |= 0x00000008;
-	
-#elif BTT
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
  	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStructure.GPIO_Pin = PIN_LED_WORK;
-    GPIO_Init(PIN_LED, &GPIO_InitStructure); 
-#endif
+    GPIO_Init(PIN_LED, &GPIO_InitStructure);
 }
 static void CAN_begin(){
 
@@ -332,11 +303,7 @@ void board_init(void)
 	INPUT_init();
 	A4950_init();
 	ChipTemp_init();
-#ifdef MKS
-	A1333_init();
-#elif BTT
 	TLE5012B_init();
-#endif
 	OLED_init();
 	SWITCH_init();
 	LED_init();
@@ -348,9 +315,7 @@ void board_init(void)
 //state = false dim
 void POWER_LED(bool state)
 {
-	#ifdef MKS
-	GPIO_WriteBit(PIN_RED, PIN_LED_RED, (BitAction)state);
-	#endif
+	//power led not controllable
 }
 
 //blue led
