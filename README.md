@@ -1,4 +1,4 @@
-﻿# Stepper CAN Actuator firmware
+# Stepper CAN Actuator firmware
 - The currently targetted hardware is S42Bv2 board or similar. 
 
 ## Hardware (BTT S42Bv2, S57Bv2)
@@ -12,6 +12,7 @@
 ## Firmware 
 - The frmware is compatible with Bigtreetech S42Bv2 and S57Bv2 boards.
 - Dip switches, step, dir, enable pin, USART are currenlty NOT used in the firmware
+- Uses ST's old Standard Peripheral Library (src/lib) for registers configuration
 - Buttons order on the board is set as follows: 
     `Next` -- `Menu` -- `Enter`
 - CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh` 
