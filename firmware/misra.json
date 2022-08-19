@@ -1,0 +1,7 @@
+{
+    "script": "misra.py",
+    "args": [
+      "--rule-texts=\"misra_rules_set_cppcheck.txt\"",
+      "--suppress-rules 15.5"
+    ]
+  }

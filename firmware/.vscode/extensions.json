@@ -4,6 +4,7 @@
     "recommendations": [
         "platformio.platformio-ide",
         "gruntfuggly.todo-tree",
-        "jbenden.c-cpp-flylint"
+        "jbenden.c-cpp-flylint",
+        "SonarSource.sonarlint-vscode",
     ],
 }

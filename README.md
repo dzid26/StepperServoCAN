@@ -60,6 +60,9 @@ Actuator will report back its status every 10ms:
     - TEMPERATURE (C)
     - DEBUG_STATES
 
+## Contributing
+- Develop using MISRA C:2012 standard. Project is preconfigured (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) extension together with [Cppcheck](https://cppcheck.sourceforge.io/) (with python extensions) to highlight violations in VScode.
+
 ## BSP Firmware License 
 - The firmware is based on Misfittech project which is based on [nano_stepper](https://github.com/Misfittech/nano_stepper) project and it inherited GPL V3 license
 - I continue [GPL v3 license](https://github.com/dzid26/RetroPilot-SERVO42B/blob/openpilot_S42B/LICENSE) scheme as required for the software derivatives

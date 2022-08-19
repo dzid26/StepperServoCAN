@@ -1,3 +1,34 @@
 {
-    "platformio-ide.autoRebuildAutocompleteIndex": false,
+    "c-cpp-flylint.cppcheck.enable": true,
+    "c-cpp-flylint.clang.enable": true,
+    "c-cpp-flylint.lizard.enable": true,
+    "c-cpp-flylint.flawfinder.enable": false, //security related
+
+    "c-cpp-flylint.cppcheck.includePaths": [
+        "${workspaceFolder}/src/BSP/", //unlike clang, cppcheck only needs to inlcude aplication headers
+    ],
+    //"c-cpp-flylint.includePaths":[] - clang and others includes everything from c_cpp_properties.json automatically
+    "c-cpp-flylint.cppcheck.addons": [
+        "misra.json",
+        "naming.json",
+    ],
+    "c-cpp-flylint.cppcheck.severityLevels": {
+
+        "error": "Error",
+        "warning": "Warning",
+        "style": "Information",
+        "performance": "Information",
+        "portability": "Information",
+        "information": "Information"
+    },
+    "c-cpp-flylint.language": "c",
+    "c-cpp-flylint.standard": [
+        "c99"
+    ],
+    "c-cpp-flylint.cppcheck.extraArgs": [
+        "--cppcheck-build-dir=.vscode" //temporary files location
+    ],
+
+    //Run Task: "PlatformIO: Compilation Database" - to generate this file
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}\\compile_commands.json", 
 }
