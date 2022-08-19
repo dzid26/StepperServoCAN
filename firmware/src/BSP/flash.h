@@ -23,9 +23,10 @@
 #ifndef __FLASH_H
 #define __FLASH_H
 
-//#include "stm32f10x.h"
-#include "../CMSIS/stm32f10x.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include "stm32f10x_flash.h"
 
 #define FLASH_WAIT_TIMEOUT			100000
 #define FLASH_PAGE_SIZE   			(1024)

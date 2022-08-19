@@ -22,8 +22,9 @@
 #ifndef __A4950_H
 #define __A4950_H
 
-#include "../CMSIS/stm32f10x.h"
-#include "stdlib.h"
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "sine.h"
 
 #define I_RS_A4950_div     (uint16_t) (1000/10) //mOhm to Ohm and 10x multiplier

@@ -23,7 +23,7 @@
 #ifndef __SPI_H
 #define __SPI_H
 
-#include "../CMSIS/stm32f10x.h"
+#include "stm32f10x_spi.h"
 
 uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t Data);
 bool SPI_Write(SPI_TypeDef* SPIx, uint8_t data);

@@ -22,7 +22,7 @@
 
 #include "delay.h"
 
-void delay_us (__IO uint32_t us)
+void delay_us (volatile uint32_t us)
 {
 	uint32_t i;
 	/**
@@ -32,15 +32,15 @@ void delay_us (__IO uint32_t us)
 		*/
 	SysTick_Config (SystemCoreClock / 1000000); //1us
 
-	//value = 0£¬CTRL's bit16 will set 1
+	//value = 0ï¿½ï¿½CTRL's bit16 will set 1
 	 for(i = 0; i < us; i++)
 			while (!((SysTick -> CTRL) & (1 << 16))); 
 	 
 	 //close SysTick tim
-	 SysTick -> CTRL &= ~SysTick_CTRL_ENABLE_Msk; //SysTick_CTRL_ENABLE_Msk,¼´Îª(1<<0)	 
+	 SysTick -> CTRL &= ~SysTick_CTRL_ENABLE_Msk; //SysTick_CTRL_ENABLE_Msk,ï¿½ï¿½Îª(1<<0)	 
 }
 
-void delay_ms (__IO uint32_t ms)
+void delay_ms (volatile uint32_t ms)
 {
 		uint32_t i, t0;
 	/**
@@ -50,7 +50,7 @@ void delay_ms (__IO uint32_t ms)
 		*/
 	SysTick_Config (SystemCoreClock / 1000); //1ms
 	
-	//value = 0£¬CTRL's bit16 will set 1
+	//value = 0ï¿½ï¿½CTRL's bit16 will set 1
 	 for(i = 0; i < ms; i++)
 	 {
 			t0 = 0;

@@ -1,10 +1,9 @@
 #ifndef __TLE5012_H
 #define __TLE5012_H
 
-
-#include "../CMSIS/stm32f10x.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "board.h"
-#include "delay.h"
 #include "spi.h"
 
 #define SPI_TX_OFF   {GPIOA->CRL&=0x0FFFFFFF;GPIOA->CRL|=0x40000000;}

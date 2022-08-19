@@ -2,7 +2,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "can.h"
 #include "control_api.h"
-#include "../OP/Msg.h"
+#include "Msg.h"
 
 volatile uint32_t can_rx_cnt = 0;
 volatile uint32_t can_tx_cnt = 0;

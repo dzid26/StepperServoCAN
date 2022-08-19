@@ -22,9 +22,8 @@
 #ifndef __CALIBRATION_H
 #define __CALIBRATION_H
 
-#include "../CMSIS/stm32f10x.h"
-#include "stdlib.h"
-#include "string.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "flash.h"
 
 #define	CALIBRATION_TABLE_SIZE	(400)  // 400 will work good for calibrating 1.8deg stepper every half step and 0.9deg stepper every full step 

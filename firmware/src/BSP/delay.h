@@ -23,10 +23,9 @@
 #ifndef __delay_H
 #define __delay_H
 
-//#include "stm32f10x.h"
-#include "../CMSIS/stm32f10x.h"
+#include "stm32f10x_rcc.h"
 
-void delay_us (__IO uint32_t us);
-void delay_ms (__IO uint32_t ms);
+void delay_us (volatile uint32_t us);
+void delay_ms (volatile uint32_t ms);
 
 #endif

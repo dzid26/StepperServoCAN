@@ -22,8 +22,7 @@
 #ifndef __SINE_H
 #define __SINE_H
 
-//#include "stm32f10x.h"
-#include "../CMSIS/stm32f10x.h"
+#include <stdint.h>
 
 #define SINE_STEPS	((uint16_t)1024)
 #define SINE_PI     ((uint16_t)256)

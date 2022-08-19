@@ -20,7 +20,7 @@
  *
  */
 
-#include "../BSP/MKS.h"
+#include "MKS.h"
 int main (void)
 {
 	Begin_process();

@@ -23,6 +23,8 @@
 #ifndef __NONVOLATILE_H
 #define __NONVOLATILE_H
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "calibration.h"
 
 typedef enum {
