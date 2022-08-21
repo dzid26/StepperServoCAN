@@ -1,5 +1,9 @@
-# Stepper CAN Actuator firmware
-- The currently targetted hardware is S42Bv2 board or similar. 
+[![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=dzid26_RetroPilot-SERVO42B&metric=alert_status)](https://sonarcloud.io/dashboard?id=dzid26_RetroPilot-SERVO42B)
+[![CodeFactor](https://www.codefactor.io/repository/github/dzid26/StepperServoCAN/badge)](https://www.codefactor.io/repository/github/dzid26/StepperServoCAN)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/fce99e1ae7d149a0a6768b91afb259d7)](https://www.codacy.com/gh/dzid26/StepperServoCAN/dashboard)
+# StepperServoCAN - firmware
+- This is firmware for stepper motor actuators
+- The currently targetted hardware is S42Bv2 board or similar
 
 ## Hardware (BTT S42Bv2, S57Bv2)
 - STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit, Cortex™-M3 CPU Core, 72MHz maximum frequency, 20k RAM, 64k Flash (but really 128k ??).
@@ -61,7 +65,7 @@ Actuator will report back its status every 10ms:
     - DEBUG_STATES
 
 ## Contributing
-- Develop using MISRA C:2012 standard. Project is preconfigured (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) extension together with [Cppcheck](https://cppcheck.sourceforge.io/) (with python extensions) to highlight violations in VScode.
+- Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is preconfigured (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode.
 
 ## BSP Firmware License 
 - The firmware is based on Misfittech project which is based on [nano_stepper](https://github.com/Misfittech/nano_stepper) project and it inherited GPL V3 license
