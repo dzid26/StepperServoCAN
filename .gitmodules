@@ -4,3 +4,6 @@
 [submodule "opendbc-retropilot"]
 	path = opendbc
 	url = https://github.com/RetroPilot/opendbc.git
+[submodule "hardware"]
+	path = hardware
+	url = https://github.com/dzid26/StepperServo-hardware.git
