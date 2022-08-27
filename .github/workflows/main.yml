@@ -1,6 +1,21 @@
 name: PlatformIO CI
 
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+    paths:
+    - "firmware/src/**/*.c"
+    - "firmware/src/**/*.h"
+    - "firmware/*.json"
+    - "firmware/*.ini"
+    - "firmware/linker_options_pio.py"
+  pull_request:
+    paths:
+    - "firmware/src/**/*.c"
+    - "firmware/src/**/*.h"
+    - "firmware/*.json"
+    - "firmware/*.ini"
+    - "firmware/linker_options_pio.py"
 
 jobs:
   build_and_check:
