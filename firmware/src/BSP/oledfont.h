@@ -1,8 +1,7 @@
- /**
- * MKS SERVO42B
- * Copyright (c) 2020 Makerbase. 
+ /*
+ * StepperServo
  *
- * Based on nano_stepper project by Misfittech
+ * Copyright (c) 2020 Makerbase.
  * Copyright (C) 2018  MisfitTech LLC.
  *
  * This program is free software: you can redistribute it and/or modify
