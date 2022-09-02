@@ -111,13 +111,8 @@ void StepperCtrl_updateParamsFromNVM(void)
 	{
 		motorParams.fullStepsPerRotation = 200;
 
-#ifndef MKS_SERVO42B
-		motorParams.currentHoldMa = 800;
-		motorParams.currentMa = 1440;
-#else
 		motorParams.currentHoldMa = 400;
 		motorParams.currentMa = 800;
-#endif
 
 	}
 }
