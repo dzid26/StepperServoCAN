@@ -65,13 +65,17 @@ void CAN_MsgsFiltersSetup()
 	CAN_FilterInit(&CAN_FilterInitStructure);
   }
 
-uint8_t Msg_calc_checksum_8bit(uint8_t *data, uint8_t len, uint16_t msg_id){
-  //checksum is sum of all bytes and message id
-  uint8_t checksum = (uint8_t) msg_id;
-  for(int i = 0; i < len; i++){
+// Return checksum is lower byte of added lower and upper 
+// bytes of 16bit sum of data values and message id
+uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t msg_id){
+  uint16_t checksum = msg_id;
+  for(uint8_t i = 0; i < len; i++){
     checksum += data[i];
   }
-  return checksum;
+  checksum = (checksum & 0xFFu) + (checksum >> 8); 
+  checksum &= 0xFFu;
+
+  return (uint8_t) checksum;
 }
 
 struct Msg_steering_status_t ControlStatus;
