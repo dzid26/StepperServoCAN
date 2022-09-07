@@ -31,10 +31,6 @@
 extern const uint16_t rated_current; //mA
 extern const uint16_t rated_torque; //cNm
 
-//specify gearing parameters here:
-extern const float motor_gearbox_ratio; //gearbox ratio
-extern const float final_drive_ratio; //assembly gearing ratio
-
 //calculate actuator parameters to be used by control_api 
 extern volatile float gearing_ratio;
 extern volatile float actuatorTq_to_current;

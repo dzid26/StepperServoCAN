@@ -4,6 +4,7 @@
 # StepperServoCAN - firmware
 - This is firmware for stepper motor actuators
 - The currently targetted hardware is S42Bv2 board or similar
+- Main control mode is torque based
 
 ## Hardware (BTT S42Bv2, S57Bv2)
 - PCB Schematics repo [here](https://github.com/dzid26/StepperServo-hardware)
@@ -30,6 +31,14 @@
 - Upload firmware to the board by pressing Upload arrow at the status bar in VScode
 - Eeprom is not erased when flashing the firmware - any future calibration will not be lost.
 
+### Configuration
+- In `firmware/src/BSP/actuator_config.c` set:
+    - `rated_current` (single phase) and `rated_torque` from motor spec or measurment. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
+    - `motor_gearbox_ratio` - gearbox attached to the motor
+    - `final_drive_ratio` - any additional gearing - separate parameter for convenience
+- In the display menu - set `Rotation` to `CW` or `CCW` according to the needs. Alternatively, you can effectively change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to negative value code.
+Many other parameters are not used and are slated for removal.
+
 ### Calibration and first run
 - On first start defualt parameters are loaded and then calibrated and stored in eeprom.
 - During first start two phases are briefly actuated and `motorParams.motorWiring` state is automatically determined based on angle sensor movement. (you will know if this parameter is incorrect, if phases will be audibly actuated in wrong order). This corresponds to 
@@ -46,7 +55,7 @@ CAN Command - expect rate is 10ms
     - STEER_MODE
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
-        - 2 - "RelativeControl" **DEPRICATED** - uses STEER_ANGLE signal to control relative angle using PID and STEER_TORQUE as feedforward
+        - 2 - "RelativeControl" **To be DEPRICATED** - uses STEER_ANGLE signal to control relative angle using PID and STEER_TORQUE as feedforward
         - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for coommunication error safe mode
     - COUNTER
     - CHECKSUM

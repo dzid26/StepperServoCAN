@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+    - ".github/workflows/build.yaml"
     - "firmware/src/**/*.c"
     - "firmware/src/**/*.h"
     - "firmware/*.json"
@@ -11,6 +12,7 @@ on:
     - "firmware/linker_options_pio.py"
   pull_request:
     paths:
+    - ".github/workflows/build.yaml"
     - "firmware/src/**/*.c"
     - "firmware/src/**/*.h"
     - "firmware/*.json"
