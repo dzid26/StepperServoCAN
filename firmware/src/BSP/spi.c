@@ -21,15 +21,14 @@
 
 #include "spi.h"
 
-//SPI Write and Read
+//SPI Write and Read single word
 uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t data)
 {
 	uint_fast16_t timeout = 0;
 	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE)) == RESET)
 	{
 		++timeout;  //normally this doesn't occur and timeout is 0
-		if(timeout >= 400)
-		{
+		if(timeout >= 400U){
 			return 0;
 		}		
 	}
@@ -39,36 +38,25 @@ uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t data)
 	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
 		{
 		++timeout;
-		if(timeout >= 400)
-		{
+		if(timeout >= 400U){
 			return 0;
 		}
 	}
 	return SPI_I2S_ReceiveData(SPIx);
 }
 
-//SPI write
-bool SPI_Write(SPI_TypeDef* SPIx, uint8_t data)
+//SPI write word - transmit only mode
+void SPI_Write(SPI_TypeDef* SPIx, uint16_t data)
 {
 	uint_fast16_t timeout = 0;
-	while(SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_BSY) != RESET)
-	{
-		++timeout;
-		if(timeout >= 400)
-		{
-			return false;		
-		}
-	}
-	
 	SPI_I2S_SendData(SPIx, data);
-	
-	timeout = 0;
+
 	while(SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE) == RESET)
 	{
 		++timeout;
-		if(timeout >= 400)
+		if(timeout >= 400U)
 		{
-			return false;
+			return;
 		}
 	}
 	
@@ -76,11 +64,25 @@ bool SPI_Write(SPI_TypeDef* SPIx, uint8_t data)
 	while((SPIx->SR & SPI_I2S_FLAG_BSY) != RESET)
 	{
 		++timeout;
-		if(timeout >= 400)
+		if(timeout >= 400U)
 		{
-			return false;		
+			return;		
 		}
 	}
 	
-	return true;
+	return;
+}
+
+//SPI Read word - receive only mode
+uint16_t SPI_Read(SPI_TypeDef* SPIx)
+{
+	uint_fast16_t timeout = 0;
+	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
+		{
+		++timeout;
+		if(timeout >= 400U){
+			return 0;
+		}
+	}
+	return SPI_I2S_ReceiveData(SPIx);
 }

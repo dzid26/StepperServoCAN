@@ -24,8 +24,8 @@
 #include "board.h"
 #include "spi.h"
 
-#define SPI_TX_OFF   {GPIOA->CRL&=0x0FFFFFFF;GPIOA->CRL|=0x40000000;}
-#define SPI_TX_ON    {GPIOA->CRL&=0x0FFFFFFF;GPIOA->CRL|=0xB0000000;}   
+#define SPI_RX_ON  SPI_BiDirectionalLineConfig(SPI1, SPI_Direction_Rx)
+#define SPI_RX_OFF   SPI_BiDirectionalLineConfig(SPI1, SPI_Direction_Tx)
 
 // dummy variable used for receive. Each time this is sent, it is for the purposes of receiving using SPI transfer.
 #define DUMMY                   0xFFFF

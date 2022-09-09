@@ -74,14 +74,18 @@ static void TLE5012B_init(void)
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 	
 	GPIO_InitTypeDef  GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | GPIO_Pin_6 | PIN_TLE5012B_DATA;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //PB13/14/15 
+	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | PIN_TLE5012B_DATA;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //SPI alternate function
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
 	
+  	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_CS;
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; //software NSS gpio switching - non-alternate function
+ 	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
+	
+  	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);
 	SPI_InitTypeDef SPI_InitStructure;	
-	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+	SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
 	SPI_InitStructure.SPI_DataSize = SPI_DataSize_16b;
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
@@ -89,17 +93,10 @@ static void TLE5012B_init(void)
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
 	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_InitStructure.SPI_CRCPolynomial = 0x8E; //X8+X4+X3+X2+1  J1850
+	 //X8+X4+X3+X2+1  J1850 - sadly to use hardware CRC8, SPI_DataSize would need to be change to 8bit - not ideal
+	SPI_InitStructure.SPI_CRCPolynomial = 0x1D;
 	SPI_Init (SPI1,&SPI_InitStructure);	
 	SPI_Cmd (SPI1,ENABLE);
-
-	
-  	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_CS;				 //PA4  
- 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
- 	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
-		
-  	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);
 }
 
 

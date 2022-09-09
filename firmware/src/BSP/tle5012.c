@@ -29,32 +29,36 @@ bool TLE5012_begin(void)
 {
   bool ok = true;
   
-  // uint16_t state=TLE5012_ReadState();// read state register
-  // if(state & 0x0080) {// Status Magnitude Out of Limit
-  //   ok = false; // GMR-magnitude out of limit
-  // }
-  ok = TLE5012_WriteAndCheck(WRITE_MOD2_VALUE,0x804);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
+  uint16_t state=TLE5012_ReadState();// read state register
+  if((state & 0x0080U) != 0U) {// Status Magnitude Out of Limit
+    ok = ok && false; // GMR-magnitude out of limit
+  }
+  ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
+  //todo calculate CRC for crc_par register to remove S_FUSE error
 
   return ok;
 }
 
 
 //
+volatile uint16_t safety;
 uint16_t TLE5012_ReadValue(uint16_t Command)
 {
-  uint16_t safety;
   uint16_t data;
-
+  
   TLE012_CS_L;
-  SPI_TX_ON;
-  data = SPI_WriteAndRead(SPI1, Command); //command loopback
+  SPI_Cmd(SPI1, ENABLE);
+  SPI_Write(SPI1, Command); //command write, read to just clear the buffer
+  
+  //delay_us(1); //tle5012 - twr_delay  - seems like it works without the delay
 
-  SPI_TX_OFF;
-  Command = DUMMY; //dummy send used for reading
-  data = SPI_WriteAndRead(SPI1, Command);
-  safety = SPI_WriteAndRead(SPI1, Command);
+  SPI_RX_ON;
+  data = SPI_Read(SPI1);
+  safety = SPI_Read(SPI1);
   TLE012_CS_H;
-
+  SPI_Cmd(SPI1, DISABLE);
+  SPI_RX_OFF;
+  
   return data;
 }
 
@@ -62,10 +66,11 @@ uint16_t TLE5012_ReadValue(uint16_t Command)
 void TLE5012_WriteValue(uint16_t Command,uint16_t RegValue)
 {
   TLE012_CS_L;
-  SPI_TX_ON;
-  SPI_WriteAndRead(SPI1, Command);
-  SPI_WriteAndRead(SPI1, RegValue);
+  SPI_Cmd(SPI1, ENABLE);
+  SPI_Write(SPI1, Command);
+  SPI_Write(SPI1, RegValue);
   TLE012_CS_H;
+  SPI_Cmd(SPI1, DISABLE);
 }
 
 bool TLE5012_WriteAndCheck(uint16_t Command,uint16_t RegValue)
@@ -84,6 +89,7 @@ uint16_t TLE5012_ReadState(void)
 {
   return (TLE5012_ReadValue(READ_STATUS));
 }
+
 //
 uint16_t TLE5012_ReadAngle(void)
 {
