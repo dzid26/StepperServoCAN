@@ -1056,6 +1056,11 @@ static void SetSysClockTo72(void)
     RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
 #endif /* STM32F10X_CL */
 
+    //normally SetSysClockTo72 assumes 8Mhz HSE. If HSE is e.g. 16Mhz, enable HSE divider by 2
+    if (HSE_VALUE > 8000000){
+      RCC->CFGR |= RCC_CFGR_PLLXTPRE_HSE_Div2;
+    }
+
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
 

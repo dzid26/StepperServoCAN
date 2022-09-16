@@ -23,10 +23,12 @@
 //Init clock
 static void CLOCK_init(void)
 {	
+	//SystemInit() with clocks settings is run from startup_stm32f103xb.S
+	SystemCoreClockUpdate();
+
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 	//CAN, INPUTS, SWITCH, TLE5012B_SPI
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	//VREF12, VREF34, OLED S42B
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);	//LED
-
 }
 
 //Init NVIC
