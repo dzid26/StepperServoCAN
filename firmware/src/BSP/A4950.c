@@ -145,7 +145,7 @@ int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electr
 	int16_t sin;
 	int16_t cos;
 	
-	uint16_t stepPhaseLead = dacPhaseLead[min((uint32_t) fastAbs(speed_slow) / ANGLE_STEPS, PHASE_LEAD_MAX_SPEED)];
+	uint16_t stepPhaseLead = dacPhaseLead[min((uint32_t) fastAbs(speed_slow) / ANGLE_STEPS, PHASE_LEAD_MAX_SPEED - 1U)];
 	if (speed_slow > 0){
 		elecAngleStep = stepAngle + stepPhaseLead;
 	}else{
