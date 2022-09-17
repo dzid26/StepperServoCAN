@@ -102,8 +102,8 @@ void StepperCtrl_updateParamsFromNVM(void);
 float StepperCtrl_measureStepSize(void);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
-void StepperCtrl_feedbackMode(uint8_t mode);
-bool StepperCtrl_processFeedback(void);
+void StepperCtrl_setMotionMode(uint8_t mode);
+bool StepperCtrl_processMotion(void);
 bool StepperCtrl_simpleFeedback(int32_t error);
 void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
 

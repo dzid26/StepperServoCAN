@@ -46,21 +46,21 @@ void nonvolatile_begin(void)
 
 bool nvmWriteCalTable(void *ptrData)
 {
-	bool state = TC1_ISR_Enabled;
-	disableTCInterrupts(); 
+	bool state = motion_task_isr_enabled;
+	Motion_task_disable(); 
 	
 	Flash_ProgramPage(FLASH_PAGE31_ADDR, ptrData, (sizeof(FlashCalData_t)/2));
 	
 	if (state) {
-		enableTCInterrupts();
+		Motion_task_enable();
 	}
 	return true;
 }
 
 bool nvmWriteConfParms(nvm_t* ptrNVM)
 {		
-	bool state = TC1_ISR_Enabled;
-	disableTCInterrupts();
+	bool state = motion_task_isr_enabled;
+	Motion_task_disable();
 	
 	ptrNVM->motorParams.parametersValid  = valid;
 	ptrNVM->SystemParams.parametersValid = valid;
@@ -94,7 +94,7 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	systemParams = NVM->SystemParams; //update systemParams
 	
 	if (state) {
-		enableTCInterrupts();	
+		Motion_task_enable();	
 	}
 	return true;
 }

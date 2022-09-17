@@ -20,7 +20,7 @@
 
 /*
 	@ Description:
-	Simple interface to read StepperCtrl_processFeedback() global variables
+	Simple interface to read StepperCtrl_processMotion() global variables
 	All functions are supposed to be called from lesser priority task than StepperCtrl loop
 	Todo: if needed, create snapshot of all variables before read so all are synced
 */
@@ -88,16 +88,16 @@ void StepperCtrl_setControlMode(uint8_t mode){
 	}
 	switch (mode){
 		case 0:
-			StepperCtrl_feedbackMode(STEPCTRL_OFF);
+			StepperCtrl_setMotionMode(STEPCTRL_OFF);
 			break;
 		case 1:
-			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_TORQUE);
+			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
 			break;
 		case 2:
-			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE);
+			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE);
 			break;
 		default:
-			StepperCtrl_feedbackMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
+			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
 	__enable_irq();
 }
@@ -170,7 +170,7 @@ uint16_t StepperCtrl_getStatuses(void) {
 
 	//debug - other
 	ret2 |= ((A4950_Enabled & 0x01) << 0);
-	ret2 |= ((TC1_ISR_Enabled & 0x01) << 1); //here should be always 0
+	ret2 |= ((motion_task_isr_enabled & 0x01) << 1); //here should be always 0
 
 	// actuator parameters
 	ret2 |= ((motorParams.motorWiring & 0x01) << 2);
@@ -181,8 +181,8 @@ uint16_t StepperCtrl_getStatuses(void) {
 	ret2 |= (((can_err_rx_cnt > 0) & 0x01) << 5);
 	
 	//task status
-	ret2 |= (((Task_Motor_overrun_count > 0) & 0x01) << 6);
-	ret2 |= (((Task_10ms_overrun_count > 0) & 0x01) << 7);
+	ret2 |= (((motion_task_overrun_count > 0) & 0x01) << 6);
+	ret2 |= (((service_task_overrun_count > 0) & 0x01) << 7);
 	
 	return (ret2 << 8) | ret1 ;
 }

@@ -239,7 +239,7 @@ options_t microstepOptions[] = {
 		{""}
 };
 
-int microsteps(int argc, char *argv[])
+int setMicrosteps(int argc, char *argv[])
 {
 	if (argc == 1)
 	{
@@ -349,7 +349,7 @@ menuItem_t MenuMain[] = {	//���˵�
 		{"Max mA", motorCurrent, currentOptions},
 		{"Hold mA", motorHoldCurrent, currentHoldOptions},
 		// {"Current mA", motorCurrent, currentOptions},
-		{"Microstep", microsteps, microstepOptions},
+		{"Microstep", setMicrosteps, microstepOptions},
 		{"EnablePin", enablePin, enablePinOptions},
 		{"Rotation", changeDir, dirOptions},
 		{ "", NULL, NULL}
@@ -398,7 +398,7 @@ void Begin_process(void)
 
 	oled_begin();
 	display_begin(); //display init
-	Task_10ms_init(); //task init
+	Serivice_task_init(); //task init
 
 	display_show("BTT", "S42Bv2", VERSON, "");
 	delay_ms(800);
@@ -445,36 +445,35 @@ void Begin_process(void)
 	WORK_LED(false);
 }
 
-
-volatile uint32_t Task_10ms_counter;
-volatile uint32_t Task_Motor_count;
-volatile uint32_t Background_counter;
-
+//rolling counters for debugging
+volatile uint32_t motion_task_counter=0;	// cppcheck-suppress  misra-c2012-8.4
+volatile uint32_t motion_task_count=0;		// cppcheck-suppress  misra-c2012-8.4
 
 void Background_process(void){
-	Background_counter++;
-
 	display_process();
 }
 
-void Task_motor(void){
-	Task_Motor_count++;
+//fast motor control task
+void Motion_task(void){
+	motion_task_count++;
 
 	bool closeloop_error = false;
-	closeloop_error = StepperCtrl_processFeedback(); //handle the control loop
+	closeloop_error = StepperCtrl_processMotion(); //handle the control loop
 	// WORK_LED(closeloop_error);
 }
 
-void Task_10ms(void){
-	Task_10ms_counter++;
+//10ms task for communication and diagnostic
+void Service_task(void){
+	motion_task_counter++;
 
 	//transmit CAN every 10ms
-	CAN_TransmitMotorStatus(Task_10ms_counter);
+	CAN_TransmitMotorStatus(motion_task_counter);
 
 	//go to Soft Off if motor is actively controlled but control signal is not received
 	bool comm_error = false;
-	if(enableFeedback)
-	comm_error = (Check_Control_CAN_rx_validate_tick() == false);
+	if(enableFeedback){
+		comm_error = (Check_Control_CAN_rx_validate_tick() == false);
+	}
 	if(comm_error)
 	{	//once SOFT_TORQUE_OFF is set, the motor will not be controlled until STEPCTRL_OFF is requested
 		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);

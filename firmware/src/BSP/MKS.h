@@ -31,7 +31,7 @@ int menuTestCal(int argc, char *argv[]);
 int motorSteps(int argc, char *argv[]);
 int motorCurrent(int argc, char *argv[]);
 int motorHoldCurrent(int argc, char *argv[]);
-int microsteps(int argc, char *argv[]);
+int setMicrosteps(int argc, char *argv[]);
 int controlLoop(int argc, char *argv[]);
 int enablePin(int argc, char *argv[]);
 int changeDir(int argc, char *argv[]);
@@ -39,8 +39,8 @@ int changeDir(int argc, char *argv[]);
 void validateAndInitNVMParams(void);
 void Begin_process(void);
 
-void Task_motor(void);
+void Motion_task(void);
 void Background_process(void);
-void Task_10ms(void);
+void Service_task(void);
 
 #endif

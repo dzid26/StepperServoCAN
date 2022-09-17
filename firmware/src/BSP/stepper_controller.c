@@ -174,7 +174,8 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	uint16_t maxError;
 	int32_t microSteps = 0;
 	uint8_t passes = 0;
-	disableTCInterrupts();
+	bool state = motion_task_isr_enabled;
+	Motion_task_disable();
 
 	A4950_enable(true);
 	speed_slow = 0; //TODO: create a function that disables feedback processing
@@ -203,7 +204,9 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	A4950_move(0, 0); //release motor
 	Encoder_begin(); //Reset filters and perform sensor tests
 
-	enableTCInterruptsCond(StepperCtrl_Enabled);
+	if(state){
+		Motion_task_enable();
+	}
 
 	return maxError;
 }
@@ -327,7 +330,7 @@ uint16_t StepperCtrl_getEncoderAngle(void)
 	return EncoderAngle;
 }
 
-// return is anlge in degreesx100 ie 360.0 is returned as 36000
+// return is angle in degreesx100 ie 360.0 is returned as 36000
 float StepperCtrl_measureStepSize(void)
 {
 	int32_t angle1,angle2,x;
@@ -452,26 +455,26 @@ stepCtrlError_t StepperCtrl_begin(void)
 		return STEPCTRL_NO_CAL;
 	}
 
-	setupMotorTask_interrupt(SAMPLING_PERIOD_uS);
+	Motion_task_init(SAMPLING_PERIOD_uS);
 
 	return STEPCTRL_NO_ERROR;
 }
 
-void StepperCtrl_enable(bool enable) //enables feedback sensor processing StepperCtrl_processFeedback()
+void StepperCtrl_enable(bool enable) //enables feedback sensor processing StepperCtrl_processMotion()
 {
 	if(StepperCtrl_Enabled == true && enable == false)
 	{
-		disableTCInterrupts();
+		Motion_task_disable();
 	}
 	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
 	{
 		StepperCtrl_setLocationFromEncoder();
-		enableTCInterrupts();
+		Motion_task_enable();
 	}
 	StepperCtrl_Enabled = enable;
 }
 
-void StepperCtrl_feedbackMode(uint8_t mode)
+void StepperCtrl_setMotionMode(uint8_t mode)
 {
 	switch (mode) //TODO add more modes
 	{
@@ -520,7 +523,7 @@ void StepperCtrl_feedbackMode(uint8_t mode)
 }
 
 
-bool StepperCtrl_processFeedback(void)
+bool StepperCtrl_processMotion(void)
 {
 	bool no_error = false;
 	int32_t commandedLoc;

@@ -19,6 +19,7 @@
  */
 
 #include "board.h"
+#include "MKS.h"
 
 //Init clock
 static void CLOCK_init(void)
@@ -333,129 +334,123 @@ void WORK_LED(bool state)
 }
 
 
-void setupMotorTask_interrupt(uint16_t taskPeriod)
+#define MOTION_TASK_TIM TIM1
+#define SERVICE_TASK_TIM  TIM2
+
+void Motion_task_init(uint16_t taskPeriod)
 {
 	//setup timer
-	TIM_DeInit(TIM1);
+	TIM_DeInit(MOTION_TASK_TIM);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Prescaler = SystemCoreClock / MHz_to_Hz -1; //Prescale to 1MHz - 1uS
-	TIM_TimeBaseStructure.TIM_Period = taskPeriod - 1;
+	TIM_TimeBaseStructure.TIM_Prescaler = SystemCoreClock / MHz_to_Hz - 1U; //Prescale to 1MHz - 1uS
+	TIM_TimeBaseStructure.TIM_Period = taskPeriod - 1U;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(MOTION_TASK_TIM, &TIM_TimeBaseStructure);
 
-	TIM_SetCounter(TIM1, 0);
-	TIM_Cmd(TIM1, ENABLE);
+	TIM_SetCounter(MOTION_TASK_TIM, 0);
+	TIM_Cmd(MOTION_TASK_TIM, ENABLE);
 }
 
 
-void Task_10ms_init(void){
+void Serivice_task_init(void){
 	//setup timer
-	TIM_DeInit(TIM2);
+	TIM_DeInit(SERVICE_TASK_TIM);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	
 
-	//Init TIM2
-	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
+	//Init SERVICE_TASK_TIM
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure; 	//cppcheck-suppress  naming-varname - HAL library
 	TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock / MHz_to_Hz - 1);	//Prescale timer clock to 1MHz - 1us period
-	TIM_TimeBaseStructure.TIM_Period = 10*1000-1;	//10ms = 10000us
+	TIM_TimeBaseStructure.TIM_Period = (10 * 1000) - 1;	//10ms = 10000us
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(SERVICE_TASK_TIM, &TIM_TimeBaseStructure);
 
-	TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-	TIM_ClearFlag(TIM2,TIM_FLAG_Update);
-	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);
+	TIM_ClearITPendingBit(SERVICE_TASK_TIM, TIM_IT_Update);
+	TIM_ClearFlag(SERVICE_TASK_TIM, TIM_FLAG_Update);
+	TIM_ITConfig(SERVICE_TASK_TIM, TIM_IT_Update,ENABLE);
 
-	TIM_SetCounter(TIM2, 0);
-	TIM_Cmd(TIM2, ENABLE);
+	TIM_SetCounter(SERVICE_TASK_TIM, 0);
+	TIM_Cmd(SERVICE_TASK_TIM, ENABLE);
 }
 
+void TIM1_UP_IRQHandler(void);
+void TIM2_IRQHandler(void);
 
-volatile bool TC1_ISR_Enabled = false;
+volatile bool motion_task_isr_enabled = false;
+
 //enable motor fast loop interrupt
-void enableTCInterrupts(void)
+void Motion_task_enable(void)
 {
-	TC1_ISR_Enabled = true;
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
-	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
-}
-
-//enable motor fast loop interrupt conditional
-void enableTCInterruptsCond(bool previously_enabled)
-{
-	if(previously_enabled){
-		enableTCInterrupts();
-	}
+	motion_task_isr_enabled = true;
+	TIM_ClearITPendingBit(MOTION_TASK_TIM, TIM_IT_Update);
+	TIM_ITConfig(MOTION_TASK_TIM, TIM_IT_Update, ENABLE);
 }
 
 //disable motor fast loop interrupt
-void disableTCInterrupts(void)
+void Motion_task_disable(void)
 {
-	TC1_ISR_Enabled = false;
-	TIM_ITConfig(TIM1, TIM_IT_Update, DISABLE);
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+	motion_task_isr_enabled = false;
+	TIM_ITConfig(MOTION_TASK_TIM, TIM_IT_Update, DISABLE);
+	TIM_ClearITPendingBit(MOTION_TASK_TIM, TIM_IT_Update);
 }
 
+volatile bool motion_task_overrun;
+volatile uint32_t motion_task_overrun_count;
+volatile uint16_t motion_task_execution_us;
 
-volatile bool Task_Motor_overrun;
-volatile uint32_t Task_Motor_overrun_count;
-volatile uint16_t Task_Motor_execution_us;
-
-volatile bool Task_10ms_overrun;
-volatile uint32_t Task_10ms_overrun_count;
-volatile uint16_t Task_10ms_execution_us;
+volatile bool service_task_overrun;
+volatile uint32_t service_task_overrun_count;
+volatile uint16_t service_task_execution_us;
 
 void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
 {
-	if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET)
+	if(TIM_GetITStatus(MOTION_TASK_TIM, TIM_IT_Update) != RESET)
 	{	
-		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+		TIM_ClearITPendingBit(MOTION_TASK_TIM, TIM_IT_Update);
 
 		// ! Call the task here !
-		Task_motor();
+		Motion_task();
 		
 		//Task diagnostic
-		Task_Motor_execution_us = TIM_GetCounter(TIM1); //get current timer value in uS thanks to the prescaler
-		if(TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
+		motion_task_execution_us = TIM_GetCounter(MOTION_TASK_TIM); //get current timer value in uS thanks to the prescaler
+		if(TIM_GetITStatus(MOTION_TASK_TIM, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
 		{
-			Task_Motor_overrun = true;
-			Task_Motor_execution_us += TIM1->ARR; //assume that timer rolled over and add the full period to the current value
-			Task_Motor_overrun_count++;
-			TIM_ClearITPendingBit(TIM1, TIM_IT_Update); //don't allow to reenter this task if it overruns. Being highest priority it would block everything.
+			motion_task_overrun = true;
+			motion_task_execution_us += MOTION_TASK_TIM->ARR; //assume that timer rolled over and add the full period to the current value
+			motion_task_overrun_count++;
+			TIM_ClearITPendingBit(MOTION_TASK_TIM, TIM_IT_Update); //don't allow to reenter this task if it overruns. Being highest priority it would block everything.
 		}else{
-			Task_Motor_overrun = false;
+			motion_task_overrun = false;
 		}
-		WORK_LED(Task_Motor_overrun); //show the error LED
+		WORK_LED(motion_task_overrun); //show the error LED
 	}
 }
 
-
-
 void TIM2_IRQHandler(void) //TIM2 used for task triggering
 {
-	if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+	if(TIM_GetITStatus(SERVICE_TASK_TIM, TIM_IT_Update) != RESET)
 	{
-		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+		TIM_ClearITPendingBit(SERVICE_TASK_TIM, TIM_IT_Update);
 		
-
 		// ! Call the task here !
-		Task_10ms();
+		Service_task();
 		
 		//Task diagnostic
-		Task_10ms_execution_us = TIM_GetCounter(TIM2); //get current timer value in uS thanks to the prescaler
-		if(TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
+		service_task_execution_us = TIM_GetCounter(SERVICE_TASK_TIM); //get current timer value in uS thanks to the prescaler
+		if(TIM_GetITStatus(SERVICE_TASK_TIM, TIM_IT_Update) != RESET) //if timer reset during execution, we have an overrun
 		{
-			Task_10ms_overrun = true;
-			Task_10ms_execution_us += TIM2->ARR; //assume that timer rolled over and add the full period to the current value
-			Task_10ms_overrun_count++;
+			service_task_overrun = true;
+			service_task_execution_us += SERVICE_TASK_TIM->ARR; //assume that timer rolled over and add the full period to the current value
+			service_task_overrun_count++;
 		}else
 		{
-			Task_10ms_overrun = false;
+			service_task_overrun = false;
 		}
 
 	}
