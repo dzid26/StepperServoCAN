@@ -174,11 +174,14 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	uint16_t maxError;
 	int32_t microSteps = 0;
 	uint8_t passes = 0;
-	bool feedback = enableFeedback;
 	disableTCInterrupts();
 
 	A4950_enable(true);
-	enableFeedback = false;
+	speed_slow = 0; //TODO: create a function that disables feedback processing
+	closeLoop = 0;
+	control = 0;
+	Iq_ma = 0;
+	currentLocation = 0;
 
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);
@@ -199,8 +202,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	StepperCtrl_setLocationFromEncoder();
 	A4950_move(0, 0); //release motor
 	Encoder_begin(); //Reset filters and perform sensor tests
-	enableFeedback = feedback;
-	
+
 	enableTCInterruptsCond(StepperCtrl_Enabled);
 
 	return maxError;
@@ -471,7 +473,6 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 
 void StepperCtrl_feedbackMode(uint8_t mode)
 {
-	disableTCInterrupts();
 	switch (mode) //TODO add more modes
 	{
 	case STEPCTRL_OFF:
@@ -516,9 +517,6 @@ void StepperCtrl_feedbackMode(uint8_t mode)
 		A4950_enable(false);
 		break;
 	}
-	enableTCInterruptsCond(StepperCtrl_Enabled);
-
-	
 }
 
 
