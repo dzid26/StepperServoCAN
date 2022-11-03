@@ -451,6 +451,8 @@ volatile uint32_t motion_task_count=0;		// cppcheck-suppress  misra-c2012-8.4
 
 void Background_process(void){
 	display_process();
+
+	chip_temp = GetChipTemp();
 }
 
 //fast motor control task
