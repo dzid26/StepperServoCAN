@@ -24,8 +24,8 @@
 #include "board.h"
 #include "spi.h"
 
-#define SPI_RX_ON  SPI_BiDirectionalLineConfig(SPI1, SPI_Direction_Rx)
-#define SPI_RX_OFF   SPI_BiDirectionalLineConfig(SPI1, SPI_Direction_Tx)
+#define SPI_RX_ON  SPI_BiDirectionalLineConfig(TLE5012B_SPI, SPI_Direction_Rx)
+#define SPI_RX_OFF   SPI_BiDirectionalLineConfig(TLE5012B_SPI, SPI_Direction_Tx)
 
 // dummy variable used for receive. Each time this is sent, it is for the purposes of receiving using SPI transfer.
 #define DUMMY                   0xFFFF

@@ -74,13 +74,17 @@ static void INPUT_init(void)
 //Init TLE5012B				    
 static void TLE5012B_init(void)
 {
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+	if (TLE5012B_SPI_Periph == RCC_APB2Periph_SPI1){
+		RCC_APB2PeriphClockCmd(TLE5012B_SPI_Periph, ENABLE);
+	}else{
+		RCC_APB1PeriphClockCmd(TLE5012B_SPI_Periph, ENABLE);
+	}
 	
 	GPIO_InitTypeDef  GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | PIN_TLE5012B_DATA;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //SPI alternate function
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
 	
   	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_CS;
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; //software NSS gpio switching - non-alternate function
@@ -98,8 +102,8 @@ static void TLE5012B_init(void)
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	 //X8+X4+X3+X2+1  J1850 - sadly to use hardware CRC8, SPI_DataSize would need to be change to 8bit - not ideal
 	SPI_InitStructure.SPI_CRCPolynomial = 0x1D;
-	SPI_Init (SPI1,&SPI_InitStructure);	
-	SPI_Cmd (SPI1,ENABLE);
+	SPI_Init (TLE5012B_SPI, &SPI_InitStructure);	
+	SPI_Cmd (TLE5012B_SPI, ENABLE);
 }
 
 

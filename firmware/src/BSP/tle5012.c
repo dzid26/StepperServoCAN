@@ -47,16 +47,16 @@ uint16_t TLE5012_ReadValue(uint16_t Command)
   uint16_t data;
   
   TLE012_CS_L;
-  SPI_Cmd(SPI1, ENABLE);
-  SPI_Write(SPI1, Command); //command write, read to just clear the buffer
+  SPI_Cmd(TLE5012B_SPI, ENABLE);
+  SPI_Write(TLE5012B_SPI, Command); //command write, read to just clear the buffer
   
   //delay_us(1); //tle5012 - twr_delay  - seems like it works without the delay
 
   SPI_RX_ON;
-  data = SPI_Read(SPI1);
-  safety = SPI_Read(SPI1);
+  data = SPI_Read(TLE5012B_SPI);
+  safety = SPI_Read(TLE5012B_SPI);
   TLE012_CS_H;
-  SPI_Cmd(SPI1, DISABLE);
+  SPI_Cmd(TLE5012B_SPI, DISABLE);
   SPI_RX_OFF;
   
   return data;
@@ -66,11 +66,13 @@ uint16_t TLE5012_ReadValue(uint16_t Command)
 void TLE5012_WriteValue(uint16_t Command,uint16_t RegValue)
 {
   TLE012_CS_L;
-  SPI_Cmd(SPI1, ENABLE);
-  SPI_Write(SPI1, Command);
-  SPI_Write(SPI1, RegValue);
+  SPI_Cmd(TLE5012B_SPI, ENABLE);
+  SPI_Write(TLE5012B_SPI, Command);
+  SPI_Write(TLE5012B_SPI, RegValue);
   TLE012_CS_H;
-  SPI_Cmd(SPI1, DISABLE);
+  SPI_Cmd(TLE5012B_SPI, DISABLE);
+  // delay_us(1);
+
 }
 
 bool TLE5012_WriteAndCheck(uint16_t Command,uint16_t RegValue)
@@ -94,7 +96,7 @@ uint16_t TLE5012_ReadState(void)
 uint16_t TLE5012_ReadAngle(void)
 {
   uint16_t raw_angle;
-  raw_angle=(TLE5012_ReadValue(READ_ANGLE_VALUE) & DELETE_BIT_15);
+  raw_angle=(TLE5012_ReadValue(READ_ANGLE_VALUE) & DELETE_BIT_15); //0-32767
   return raw_angle;
 }
 

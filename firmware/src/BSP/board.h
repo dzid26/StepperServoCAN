@@ -78,6 +78,8 @@
 #define PIN_A1333_MOSI   		GPIO_Pin_15
 
 //TLE5012B
+#define TLE5012B_SPI					SPI1
+#define TLE5012B_SPI_Periph RCC_APB2Periph_SPI1
 #define PIN_TLE5012B					GPIOA
 #define PIN_TLE5012B_CS					GPIO_Pin_4
 #define PIN_TLE5012B_SCK				GPIO_Pin_5
