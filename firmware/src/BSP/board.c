@@ -300,10 +300,24 @@ static void ChipTemp_init(){
 	/* Check the end of ADC1 calibration */
 	while(ADC_GetCalibrationStatus(ADC1));  
 	/* Start ADC1 Software Conversion */ 
+}
 
+float GetChipTemp()
+{
+	// ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1, ADC_SampleTime_239Cycles5);  
 	ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
-		while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET);
-
+	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET){
+		//wait until conversion is finished
+	}
+	uint16_t adc_raw = ADC_GetConversionValue(ADC1);
+	
+	float adc_volt = ((float)adc_raw+0.5f) * V_REF / (float)ADC_12bit;
+	
+	const float t0 = 35.0f;
+	const float adcVoltRef = 1.325f; //! calibrate at some t0
+	const float tempSlop = 4.3f/1000; //typically 4.3mV per C
+	float chip_temp = (adcVoltRef - adc_volt) / tempSlop + t0;
+	return chip_temp;
 }
 
 

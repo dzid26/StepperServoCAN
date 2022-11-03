@@ -27,6 +27,10 @@
 
 
 #define	VERSON	"Ver:1.0.3"
+#define ADC_12bit 4096
+//MCU power supply
+#define mV_REF 3300u
+#define V_REF (float)mV_REF/1000.0f
 
 //OLED
 #define PIN_OLED						GPIOB
@@ -94,8 +98,9 @@
 #define PIN_LED_WORK				GPIO_Pin_13
 
 void board_init(void);
-void POWER_LED(bool state);
-void WORK_LED(bool state);
+
+volatile float chip_temp;
+float GetChipTemp(void);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
 void Motion_task_init(uint16_t taskPeriod);

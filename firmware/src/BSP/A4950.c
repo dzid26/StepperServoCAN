@@ -20,7 +20,7 @@
  */
 #include "A4950.h"
 
-#define MCU_VOUT 3300u //milliVolts
+#define MCU_VOUT mV_REF
 
 #include "stepper_controller.h"
 extern volatile int32_t speed_slow;

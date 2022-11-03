@@ -29,22 +29,6 @@ volatile uint32_t can_err_tx_cnt = 0;
 volatile uint32_t can_err_rx_cnt = 0;
 volatile uint32_t can_overflow_cnt = 0;
 
-static int GetTemperature()
-{
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_55Cycles5);  
-  ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
-  while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET);
-  volatile float ADCVolt = ADC_GetConversionValue(ADC1)*3.3f/4096;
-  //todo add this calibration as a display feature
-  const float t0 = 35.0f;
-  const float ADCVoltRef = 1.325f; //! calibrate at some t0
-  const float TempSlop = 4.3f/1000; //typically 4.3mV per C
-  float fTemp = (ADCVoltRef - ADCVolt) / TempSlop + t0;
-  return (int)(fTemp);
-
-}
-
-
 void CAN_MsgsFiltersSetup()
 {
 	CAN_FilterInitTypeDef  CAN_FilterInitStructure;
@@ -79,7 +63,7 @@ uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t msg_id
 }
 
 struct Msg_steering_status_t ControlStatus;
-
+extern volatile float chip_temp;
 void CAN_TransmitMotorStatus(uint32_t frame)
 {
   //populate message structure:
@@ -87,7 +71,7 @@ void CAN_TransmitMotorStatus(uint32_t frame)
   ControlStatus.steering_angle = Msg_steering_status_steering_angle_encode(StepperCtrl_getAngleFromEncoder());
   ControlStatus.steering_speed = Msg_steering_status_steering_speed_encode(StepperCtrl_getSpeedRev());
   ControlStatus.steering_torque = Msg_steering_status_steering_torque_encode(StepperCtrl_getControlOutput());
-  ControlStatus.temperature = Msg_steering_status_temperature_encode(GetTemperature());
+  ControlStatus.temperature = Msg_steering_status_temperature_encode((int16_t) chip_temp);
   uint16_t states = StepperCtrl_getStatuses();
   ControlStatus.control_status = states & 0xFF;
   ControlStatus.debug_states = (states >> 8)  & 0xFF;
