@@ -27,6 +27,9 @@ static void CLOCK_init(void)
 	//SystemInit() with clocks settings is run from startup_stm32f103xb.S
 	SystemCoreClockUpdate();
 
+	//ADC clock
+	RCC->CFGR |= (RCC_CFGR_ADCPRE & RCC_CFGR_ADCPRE_DIV6);
+
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
@@ -249,9 +252,10 @@ static void CAN_begin(){
 }
 
 
-static void ChipTemp_init(){
+static void Analog_init(){
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
 
+	ADC_DeInit(ADC1);
 	ADC_InitTypeDef ADC_InitStructure;
 	/* ADC1 configuration ------------------------------------------------------*/
 	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;	 
@@ -259,11 +263,12 @@ static void ChipTemp_init(){
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;	 
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
-	ADC_InitStructure.ADC_NbrOfChannel = 1;
+	ADC_InitStructure.ADC_NbrOfChannel = 2;
 	ADC_Init(ADC1, &ADC_InitStructure);
 
-	/* ADC1 regular channe16 configuration */ 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);  
+	ADC_DiscModeCmd(ADC1, ENABLE);
+	ADC_DiscModeChannelCountConfig(ADC1, 1);
+
 	/* Enable the temperature sensor and vref internal channel */ 
 	ADC_TempSensorVrefintCmd(ENABLE);    
 	/* Enable ADC1 */
@@ -277,10 +282,19 @@ static void ChipTemp_init(){
 	/* Check the end of ADC1 calibration */
 	while(ADC_GetCalibrationStatus(ADC1));  
 	/* Start ADC1 Software Conversion */ 
+
+	GPIO_InitTypeDef  GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+    GPIO_InitStructure.GPIO_Pin = PIN_VMOT;
+	GPIO_Init(GPIO_VMOT, &GPIO_InitStructure);
+
+	/* ADC1 regular channe16 configuration */ 
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 2, ADC_SampleTime_13Cycles5);
 }
 
-float GetChipTemp()
-{
+static volatile float chip_temp_adc;
+void ChipTemp_adc_update(){
 	// ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1, ADC_SampleTime_239Cycles5);  
 	ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
 	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET){
@@ -293,17 +307,36 @@ float GetChipTemp()
 	const float t0 = 35.0f;
 	const float adcVoltRef = 1.325f; //! calibrate at some t0
 	const float tempSlop = 4.3f/1000; //typically 4.3mV per C
-	float chip_temp = (adcVoltRef - adc_volt) / tempSlop + t0;
-	return chip_temp;
+	chip_temp_adc = (adcVoltRef - adc_volt) / tempSlop + t0;
 }
 
+float GetChipTemp(){
+	return chip_temp_adc;
+}
+
+static volatile float vmot_adc;
+void Vmot_adc_update(){
+	// ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 1, ADC_SampleTime_13Cycles5);  
+	ADC_SoftwareStartConvCmd(ADC_VMOT, ENABLE);
+	while (ADC_GetFlagStatus(ADC_VMOT, ADC_FLAG_EOC)!=SET){
+	//wait until conversion is finished
+	}
+	uint16_t adc_raw = ADC_GetConversionValue(ADC_VMOT);
+
+	float adc_volt = ((float)adc_raw+0.5f) * V_REF / (float)ADC_12bit;
+	vmot_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VMOT, R2_VDIV_VMOT);
+}
+
+float GetMotorVoltage(){
+	return vmot_adc;
+}
 
 void board_init(void)
 {
 	CLOCK_init();
 	NVIC_init(); 
 	A4950_init();
-	ChipTemp_init();
+	Analog_init();
 	TLE5012B_init();
 	SWITCH_init();
 	LED_init();

@@ -63,7 +63,6 @@ uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t msg_id
 }
 
 struct Msg_steering_status_t ControlStatus;
-extern volatile float chip_temp;
 void CAN_TransmitMotorStatus(uint32_t frame)
 {
   //populate message structure:
@@ -71,7 +70,7 @@ void CAN_TransmitMotorStatus(uint32_t frame)
   ControlStatus.steering_angle = Msg_steering_status_steering_angle_encode(StepperCtrl_getAngleFromEncoder());
   ControlStatus.steering_speed = Msg_steering_status_steering_speed_encode(StepperCtrl_getSpeedRev());
   ControlStatus.steering_torque = Msg_steering_status_steering_torque_encode(StepperCtrl_getControlOutput());
-  ControlStatus.temperature = Msg_steering_status_temperature_encode((int16_t) chip_temp);
+  ControlStatus.temperature = Msg_steering_status_temperature_encode(GetChipTemp());
   uint16_t states = StepperCtrl_getStatuses();
   ControlStatus.control_status = states & 0xFF;
   ControlStatus.debug_states = (states >> 8)  & 0xFF;

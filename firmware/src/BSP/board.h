@@ -26,6 +26,7 @@
 #include "A4950.h"
 
 
+#define VOLT_DIV_RATIO(R1, R2) (((float) R2 / ((float)R1 + (float)R2)))
 #define ADC_12bit 4096
 //MCU power supply
 #define mV_REF 3300u
@@ -67,6 +68,15 @@
 #define	VREF_TIM			TIM3
 #define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
 
+//DClink
+//DClink v_mot adc
+#define GPIO_VMOT GPIOB
+#define PIN_VMOT GPIO_Pin_1
+#define ADC_CH_VMOT ADC_Channel_9
+#define ADC_VMOT ADC1
+#define R1_VDIV_VMOT 10 //kohm
+#define R2_VDIV_VMOT 1  //kohm
+
 //A1333
 #define PIN_A1333     			GPIOB
 #define PIN_A1333_CS    		GPIO_Pin_12
@@ -103,8 +113,12 @@ bool Fcn_button_state(void);
 
 void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
-volatile float chip_temp;
-float GetChipTemp(void);
+
+void Vmot_adc_update(void);
+void ChipTemp_adc_update(void);
+
+float GetChipTemp();
+float GetMotorVoltage(void); //V_mot
 
 #define MHz_to_Hz	(uint32_t)(1000000)
 void Motion_task_init(uint16_t taskPeriod);

@@ -401,11 +401,8 @@ stepCtrlError_t StepperCtrl_begin(void)
 	if (NVM->motorParams.parametersValid == valid)
 	{
 		//lets read the motor voltage
-		if (0/*GetMotorVoltage()<5*/)
+		if (GetMotorVoltage() < 8.0f)
 		{
-			//if we have less than 5 volts the motor is not powered
-//			uint32_t x;
-//			x=(uint32_t)(GetMotorVoltage()*1000.0);
 			return STEPCTRL_NO_POWER;
 		}
 	}else

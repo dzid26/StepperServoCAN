@@ -446,9 +446,7 @@ void Begin_process(void)
 volatile uint32_t motion_task_counter=0;	// cppcheck-suppress  misra-c2012-8.4
 volatile uint32_t motion_task_count=0;		// cppcheck-suppress  misra-c2012-8.4
 
-extern volatile float chip_temp;
 void Background_process(void){
-	chip_temp = GetChipTemp();
 }
 
 //fast motor control task
@@ -463,6 +461,9 @@ void Motion_task(void){
 //10ms task for communication and diagnostic
 void Service_task(void){
 	motion_task_counter++;
+
+	ChipTemp_adc_update();
+	Vmot_adc_update();
 
 	//transmit CAN every 10ms
 	CAN_TransmitMotorStatus(motion_task_counter);
