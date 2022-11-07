@@ -65,11 +65,11 @@ static void NVIC_init(void)
 //Init TLE5012B				    
 static void TLE5012B_init(void)
 {
-	if (TLE5012B_SPI_Periph == RCC_APB2Periph_SPI1){
-		RCC_APB2PeriphClockCmd(TLE5012B_SPI_Periph, ENABLE);
-	}else{
-		RCC_APB1PeriphClockCmd(TLE5012B_SPI_Periph, ENABLE);
-	}
+	if (TLE5012B_SPI == SPI2){
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+	}else if (TLE5012B_SPI == SPI1){
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+	}else{}
 	
 	GPIO_InitTypeDef  GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | PIN_TLE5012B_DATA;

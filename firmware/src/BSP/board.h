@@ -87,7 +87,6 @@
 //TLE5012B
 #ifdef ServoCAN
 #define TLE5012B_SPI					SPI2
-#define TLE5012B_SPI_Periph RCC_APB1Periph_SPI2
 #define PIN_TLE5012B					GPIOB
 #define PIN_TLE5012B_CS					GPIO_Pin_12
 #define PIN_TLE5012B_SCK				GPIO_Pin_13
