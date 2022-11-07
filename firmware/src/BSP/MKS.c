@@ -395,9 +395,8 @@ void Begin_process(void)
 	display_begin(); //display init
 	Serivice_task_init(); //task init
 
-	display_show("BTT", "S42Bv2", VERSON, "");
-	delay_ms(800);
-	
+	display_show("StepperServoCAN", "initialization..", "", "");
+	delay_ms(1);
 	Set_Error_LED(true);
 	stepCtrlError = STEPCTRL_NO_CAL;
 	while(STEPCTRL_NO_ERROR != stepCtrlError)

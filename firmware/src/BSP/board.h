@@ -26,7 +26,6 @@
 #include "A4950.h"
 
 
-#define	VERSON	"Ver:1.0.3"
 #define ADC_12bit 4096
 //MCU power supply
 #define mV_REF 3300u

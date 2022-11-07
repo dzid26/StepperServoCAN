@@ -19,9 +19,16 @@
  *
  */
 
+extern void initialise_monitor_handles(void); //semihosting
+
 #include "MKS.h"
+
 int main (void)
-{
+{	
+	#ifdef DEBUG
+	initialise_monitor_handles();
+	#endif
+	
 	Begin_process();
 	while(1)
 	{
