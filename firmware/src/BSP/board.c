@@ -27,9 +27,9 @@ static void CLOCK_init(void)
 	//SystemInit() with clocks settings is run from startup_stm32f103xb.S
 	SystemCoreClockUpdate();
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 	//CAN, INPUTS, SWITCH, TLE5012B_SPI
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	//VREF12, VREF34, OLED S42B
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);	//LED
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 }
 
 //Init NVIC
@@ -41,10 +41,6 @@ static void NVIC_init(void)
 	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0; //��Ӧ���ȼ�
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn; //��ռ���ȼ�0(dir����)
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_Init(&NVIC_InitStructure);
 	
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn; //��ռ���ȼ�Ϊ1(����ѭ��)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
@@ -61,14 +57,6 @@ static void NVIC_init(void)
 	NVIC_Init(&NVIC_InitStructure);
 
 	NVIC_Init(&NVIC_InitStructure);
-}
-
-//Init IO
-static void INPUT_init(void)
-{	
-	GPIOA->CRL &= 0xfffff000;	//clean STEP(PA0) DIR(PA1) ENABLE(PA2) control bit
-	GPIOA->CRL |= 0x00000888;	//config STEP(PA0) DIR(PA1) ENABLE(PA2) input mode	
-	GPIOA->ODR |= 0x00000007;	//default STEP(PA0) DIR(PA1) ENABLE(PA2) pullup
 }
 
 //Init TLE5012B				    
@@ -98,27 +86,12 @@ static void TLE5012B_init(void)
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	 //X8+X4+X3+X2+1  J1850 - sadly to use hardware CRC8, SPI_DataSize would need to be change to 8bit - not ideal
 	SPI_InitStructure.SPI_CRCPolynomial = 0x1D;
 	SPI_Init (TLE5012B_SPI, &SPI_InitStructure);	
 	SPI_Cmd (TLE5012B_SPI, ENABLE);
-}
-
-
-//Init SSD1306				    
-static void OLED_init(void)
-{	
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Pin = PIN_OLED_CS|PIN_OLED_D0|PIN_OLED_DC|PIN_OLED_D1;
-    GPIO_Init(PIN_OLED, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = PIN_OLED_RST;
-	GPIO_Init(PIN_OLED_R, &GPIO_InitStructure);
-
-
 }
 
 //Init switch IO
@@ -128,10 +101,12 @@ static void SWITCH_init(void)
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
  	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Pin = PIN_DIP2|PIN_DIP3|PIN_DIP4|PIN_SW4_MENU|PIN_SW3_ENTER;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = PIN_DIP1 | PIN_SW1_NEXT|PIN_SW4_EXIT;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = PIN_FCN_KEY;
+    GPIO_Init(PIN_SW, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = PIN_JP1 | PIN_JP2 | PIN_JP3;
+	GPIO_Init(GPIO_JP, &GPIO_InitStructure);
+
 }
 
 //Init A4950
@@ -211,8 +186,10 @@ static void LED_init(void)
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
  	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_InitStructure.GPIO_Pin = PIN_LED_WORK;
-    GPIO_Init(PIN_LED, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = PIN_LED_RED;
+    GPIO_Init(GPIO_LED_RED, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = PIN_LED_BLUE;
+    GPIO_Init(GPIO_LED_BLUE, &GPIO_InitStructure);
 }
 static void CAN_begin(){
 
@@ -325,32 +302,35 @@ void board_init(void)
 {
 	CLOCK_init();
 	NVIC_init(); 
-	INPUT_init();
 	A4950_init();
 	ChipTemp_init();
 	TLE5012B_init();
-	OLED_init();
 	SWITCH_init();
 	LED_init();
 	CAN_begin();
 }
 
-//red led
-//state = true  light up
-//state = false dim
-void POWER_LED(bool state)
+bool Fcn_button_state(void)
 {
-	//power led not controllable
+	if (GPIO_ReadInputDataBit(PIN_SW, PIN_FCN_KEY) == Bit_RESET){
+		return true; //low is pressed
+	}
+	return false;
 }
 
-//blue led
-//state(error) = light up
-//state(error) = dim
-void WORK_LED(bool state)
+//Set LED state
+//true - on, false - off
+void Set_Func_LED(bool state)
 {
-	GPIO_WriteBit(PIN_LED, PIN_LED_WORK, (BitAction)(state));
+	GPIO_WriteBit(GPIO_LED_BLUE, PIN_LED_BLUE, (BitAction)(state));
 }
 
+//Set LED state
+//true - on, false - off
+void Set_Error_LED(bool state)
+{
+	GPIO_WriteBit(GPIO_LED_RED, PIN_LED_RED, (BitAction)(state));
+}
 
 #define MOTION_TASK_TIM TIM1
 #define SERVICE_TASK_TIM  TIM2
@@ -446,7 +426,7 @@ void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
 		}else{
 			motion_task_overrun = false;
 		}
-		WORK_LED(motion_task_overrun); //show the error LED
+		Set_Error_LED(motion_task_overrun); //show the error LED
 	}
 }
 

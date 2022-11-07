@@ -125,7 +125,6 @@ options_t currentOptions[] = {
 		{"1800"},
 		{"1900"},
 		{"2000"},
-#ifndef S42Bv2
 		{"2100"},
 		{"2200"},
 		{"2300"},
@@ -139,7 +138,6 @@ options_t currentOptions[] = {
 		{"3100"},
 		{"3200"},
 		{"3300"},
-#endif
 		{""},
 };
 
@@ -161,13 +159,11 @@ options_t currentHoldOptions[] = {
 		{"1300"},
 		{"1400"},
 		{"1500"},
-#ifndef S42Bv2
 		{"1600"},
 		{"1700"},
 		{"1800"},
 		{"1900"},
 		{"2000"},
-#endif
 		{""},
 };
 
@@ -396,14 +392,13 @@ void Begin_process(void)
 
 	validateAndInitNVMParams(); //systemParams init
 
-	oled_begin();
 	display_begin(); //display init
 	Serivice_task_init(); //task init
 
 	display_show("BTT", "S42Bv2", VERSON, "");
 	delay_ms(800);
 	
-	WORK_LED(true);
+	Set_Error_LED(true);
 	stepCtrlError = STEPCTRL_NO_CAL;
 	while(STEPCTRL_NO_ERROR != stepCtrlError)
 	{
@@ -436,22 +431,24 @@ void Begin_process(void)
 			while(CalibrationTable_calValid() != true)
 			{
 				display_process();
+				if(Fcn_button_state() == true){
+					StepperCtrl_calibrateEncoder(true);
+				}
 			}
 		}
 	}
 	display_setMenu(MenuMain);
 	StepperCtrl_enable(true);
 
-	WORK_LED(false);
+	Set_Error_LED(false);
 }
 
 //rolling counters for debugging
 volatile uint32_t motion_task_counter=0;	// cppcheck-suppress  misra-c2012-8.4
 volatile uint32_t motion_task_count=0;		// cppcheck-suppress  misra-c2012-8.4
 
+extern volatile float chip_temp;
 void Background_process(void){
-	display_process();
-
 	chip_temp = GetChipTemp();
 }
 
@@ -459,9 +456,9 @@ void Background_process(void){
 void Motion_task(void){
 	motion_task_count++;
 
-	bool closeloop_error = false;
-	closeloop_error = StepperCtrl_processMotion(); //handle the control loop
-	// WORK_LED(closeloop_error);
+	bool closeloop_delta = false;
+	closeloop_delta = StepperCtrl_processMotion(); //handle the control loop
+	Set_Func_LED(closeloop_delta);
 }
 
 //10ms task for communication and diagnostic

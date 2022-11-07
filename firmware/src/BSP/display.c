@@ -50,11 +50,10 @@ void display_begin(void)
 //4 line
 void display_show(char* line1, char* line2, char* line3, char* line4)
 {
-	oled_clearLine(line1, line2, line3, line4);
-	oled_drawStr(0,0,line1);
-	oled_drawStr(0,2,line2);
-	oled_drawStr(0,4,line3);
-	oled_drawStr(0,6,line4);
+	puts(line1);
+	puts(line2);
+    puts(line3);
+	puts(line4);
 }
 
 //set Menu Bar (MenuMain/MenuCal)
@@ -175,7 +174,7 @@ void display_updateMenu(void)
 		}
 	}
 	//(buttonState & 0x01)==0
-	if (GPIO_ReadInputDataBit(PIN_SW_GPIOA, PIN_SW1_NEXT) == 0 && (buttonState & 0x01) == 0)
+	if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP1) == 0 && (buttonState & 0x01) == 0)
 	{
 		buttonState |= 0x01;
 
@@ -199,7 +198,7 @@ void display_updateMenu(void)
 
 	}
 
-	if (GPIO_ReadInputDataBit(PIN_SW_GPIOA, PIN_SW1_NEXT))
+	if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP1))
 	{
 		buttonState &= (~0x01);
 	}
@@ -222,13 +221,13 @@ void display_process(void)
 			display_updateMenu();
 		}
 
-	if (GPIO_ReadInputDataBit(PIN_SW, PIN_SW4_EXIT) == 0 && (buttonState & 0x04) == 0)	//exit
+	if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP3) == 0 && (buttonState & 0x04) == 0)	//exit
 	{
 		buttonState |= 0x04;
 		menuActive = (bool)(!menuActive);
 	}
 
-	if (GPIO_ReadInputDataBit(PIN_SW, PIN_SW4_EXIT))
+	if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP3))
 	{
 		buttonState &= (~0x04);
 	}

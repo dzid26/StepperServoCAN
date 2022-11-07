@@ -43,16 +43,14 @@
 
 
 //SW
-#define	PIN_SW                      GPIOB
-#define	PIN_SW4_EXIT				GPIO_Pin_0	//exit
-#define	PIN_SW4_MENU				GPIO_Pin_0	//exit
-#define	PIN_SW3_ENTER				GPIO_Pin_1	//enter
-#define	PIN_DIP2					GPIO_Pin_3
-#define	PIN_DIP3					GPIO_Pin_11
-#define	PIN_DIP4					GPIO_Pin_10
-#define	PIN_SW_GPIOA                GPIOA
-#define	PIN_SW1_NEXT				GPIO_Pin_3	//next
-#define	PIN_DIP1					GPIO_Pin_15
+#define	PIN_SW                     GPIOC
+#define	PIN_FCN_KEY 				GPIO_Pin_15
+#define	PIN_SW3_ENTER				PIN_FCN_KEY
+
+#define	GPIO_JP                     GPIOA
+#define	PIN_JP1					GPIO_Pin_3
+#define	PIN_JP2					GPIO_Pin_4
+#define	PIN_JP3					GPIO_Pin_5
 
 
 //A4950
@@ -60,11 +58,7 @@
 #define PIN_A4950_VREF12    GPIO_Pin_5	//TIM3_CH2
 #define PIN_A4950_VREF34    GPIO_Pin_4	//TIM3_CH1
 
-#ifdef S42Bv2
-#define RS_A4950            (uint16_t) 200 //mOhm
-#elif S57Bv2
 #define RS_A4950            (uint16_t) 100 //mOhm
-#endif
 
 #define PIN_A4950_IN1   	GPIO_Pin_6
 #define PIN_A4950_IN2   	GPIO_Pin_7
@@ -82,23 +76,34 @@
 #define PIN_A1333_MOSI   		GPIO_Pin_15
 
 //TLE5012B
+#ifdef ServoCAN
+#define TLE5012B_SPI					SPI2
+#define TLE5012B_SPI_Periph RCC_APB1Periph_SPI2
+#define PIN_TLE5012B					GPIOB
+#define PIN_TLE5012B_CS					GPIO_Pin_12
+#define PIN_TLE5012B_SCK				GPIO_Pin_13
+#define PIN_TLE5012B_DATA    			GPIO_Pin_15
+#else
 #define TLE5012B_SPI					SPI1
 #define TLE5012B_SPI_Periph RCC_APB2Periph_SPI1
 #define PIN_TLE5012B					GPIOA
 #define PIN_TLE5012B_CS					GPIO_Pin_4
 #define PIN_TLE5012B_SCK				GPIO_Pin_5
 #define PIN_TLE5012B_DATA    			GPIO_Pin_7
+#endif
 
 //LED
-#define PIN_RED							GPIOA
-#define	PIN_LED_RED					GPIO_Pin_3
-#define PIN_BLUE						GPIOC
-#define PIN_LED_BLUE				GPIO_Pin_13
-#define PIN_LED						    GPIOC
-#define PIN_LED_WORK				GPIO_Pin_13
+#define GPIO_LED_RED				GPIOC
+#define	PIN_LED_RED					GPIO_Pin_13
+#define GPIO_LED_BLUE				GPIOB
+#define PIN_LED_BLUE				GPIO_Pin_0
 
 void board_init(void);
 
+bool Fcn_button_state(void);
+
+void Set_Error_LED(bool state);
+void Set_Func_LED(bool state);
 volatile float chip_temp;
 float GetChipTemp(void);
 
