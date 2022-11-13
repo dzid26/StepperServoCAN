@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 from scipy import optimize
+import re
 
 ## Firmware stores sensor calibration in a following structure with fields written one after another
 # typedef struct {
@@ -57,7 +58,7 @@ class CalibrationRead(object):
         f = open("src\BSP\calibration.h", "r")
         for line in f:
             if "#define"  in line and "CALIBRATION_TABLE_SIZE" in line:
-                self.cal_size = int(line.split("(",1)[1].split(")",1)[0])  #parse cal size value between brackets
+                self.cal_size = int(re.search(r'\d+', line).group())  #parse cal size from calibration.h
                 return
         print("Didn't find cal table size in c-code. The output might be wrong")
 

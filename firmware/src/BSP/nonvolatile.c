@@ -25,39 +25,50 @@
 extern volatile MotorParams_t motorParams;
 extern volatile SystemParams_t systemParams;
 
-volatile uint32_t NVM_address = FLASH_PAGE30_ADDR;
+volatile uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
 
 //NVM_address
 void nonvolatile_begin(void)
 {
 	uint32_t i = ((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); //(1024/62) = 16(0~15)
 	
-	NVM_address = FLASH_PAGE30_ADDR;
+	NVM_address = PARAMETERS_FLASH_ADDR;
 	
 	for(i=((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); i > 0; i--)
 	{
-		if( Flash_readHalfWord( (FLASH_PAGE30_ADDR + (i * NONVOLATILE_STEPS)) ) != invalid )
+		if( Flash_readHalfWord( (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS)) ) != invalid )
 		{
-			NVM_address = (FLASH_PAGE30_ADDR + (i * NONVOLATILE_STEPS));
+			NVM_address = (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS));
 			return;
 		}
 	}
 }
 
-bool nvmWriteCalTable(void *ptrData)
+void nvmWriteCalTable(void *ptrData)
 {
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable(); 
 	
-	Flash_ProgramPage(FLASH_PAGE31_ADDR, ptrData, (sizeof(FlashCalData_t)/2));
+	Flash_ProgramPage(CALIBRATION_FLASH_ADDR, ptrData, (sizeof(FlashCalData_t)/2U));
 	
 	if (state) {
 		Motion_task_enable();
 	}
-	return true;
 }
 
-bool nvmWriteConfParms(nvm_t* ptrNVM)
+void nvmWriteFastCalTable(void *ptrData, uint16_t page)
+{
+	bool state = motion_task_isr_enabled;
+	Motion_task_disable(); 
+	
+	Flash_ProgramPage(FASTCALIBRATION_FLASH_ADDR + ((uint32_t)FLASH_PAGE_SIZE * page), ptrData, FLASH_ROW_SIZE);
+	
+	if (state) {
+		Motion_task_enable();
+	}
+}
+
+void nvmWriteConfParms(nvm_t* ptrNVM)
 {		
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
@@ -65,29 +76,29 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	ptrNVM->motorParams.parametersValid  = valid;
 	ptrNVM->SystemParams.parametersValid = valid;
 	
-	if(Flash_readHalfWord(NVM_address) != invalid && ((NVM_address + NONVOLATILE_STEPS) < FLASH_PAGE31_ADDR))
+	if(Flash_readHalfWord(NVM_address) != invalid && ((NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
 	{
 		NVM_address += NONVOLATILE_STEPS;
 		
-		while( Flash_checknvmFlash(NVM_address, sizeof(nvm_t)/2) == false )
+		while( Flash_checknvmFlash(NVM_address, sizeof(nvm_t)/2U) == false )
 		{																													 
-			if( (NVM_address + NONVOLATILE_STEPS) < FLASH_PAGE31_ADDR )
+			if( (NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
 			{
 				NVM_address += NONVOLATILE_STEPS;
 			}
 			else
 			{
-				NVM_address = FLASH_PAGE30_ADDR;
-				Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2));
-				return true;
+				NVM_address = PARAMETERS_FLASH_ADDR;
+				Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+				return;
 			}
 		}
-		Flash_ProgramSize(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2));
+		Flash_ProgramSize(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
 	else 
 	{
-		NVM_address = FLASH_PAGE30_ADDR;
-		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2));
+		NVM_address = PARAMETERS_FLASH_ADDR;
+		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
 	
 	motorParams = NVM->motorParams; //update motorParams
@@ -96,5 +107,5 @@ bool nvmWriteConfParms(nvm_t* ptrNVM)
 	if (state) {
 		Motion_task_enable();	
 	}
-	return true;
+	return;
 }

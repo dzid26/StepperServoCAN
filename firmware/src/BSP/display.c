@@ -261,7 +261,7 @@ void display_updateLCD(void)
 	
 	int32_t err = loopError;
 	int32_t x, y, z;
-	err = (err * 360 * 100) >> 16;
+	err = (err * 360 * 100) /ANGLE_STEPS;
 	z = err / 100;
 	y = abs(err - (z * 100));
 	sprintf(str[1],"%01ld.%02ld err", z,y);

@@ -26,29 +26,17 @@
  *	ptrData:
  *	size: uint16_t size
 */
-void Flash_ProgramPage(uint32_t flashAddr, uint16_t* ptrData, uint16_t size)
-{
-	uint32_t i;
-	
+
+void Flash_ProgramPage(uint32_t flashAddr, uint16_t *ptrData, uint16_t size)
+{	
 	FLASH_Unlock();
 	
 	FLASH_ErasePage(flashAddr);
-	
-	for(i=0; i < size; i++)
-	{
-		if(FLASH_WaitForLastOperation(FLASH_WAIT_TIMEOUT) != FLASH_COMPLETE)
-		{
-			FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
-		}
-		FLASH_ProgramHalfWord(flashAddr, (*ptrData));
-		flashAddr += 2;
-		ptrData += 1;
-	}
-	
-	FLASH_Lock();
+	Flash_ProgramSize(flashAddr, ptrData, size);
 }
 
-//not clean��write uint16_t data
+
+//write uint16_t data
 /*
  *	flashAddr:
  *	ptrData:
@@ -67,7 +55,7 @@ void Flash_ProgramSize(uint32_t flashAddr, uint16_t* ptrData, uint16_t size)
 			FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
 		}	
 		FLASH_ProgramHalfWord(flashAddr, (*ptrData));
-		flashAddr += 2;
+		flashAddr += 2U;
 		ptrData += 1;
 	}
 	

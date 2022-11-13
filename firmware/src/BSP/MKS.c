@@ -26,7 +26,6 @@
 #include "can.h"
 
 volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
-extern volatile uint32_t NVM_address;
 volatile bool runCalibration = false;
 
 nvm_t nvmParams = {0};
@@ -467,7 +466,7 @@ void RunCalibration(void){
 		(void) printf("Confirm calibration start..\n");
 		do{	//wait for the user
 			Set_Func_LED(true);
-		}while(!Fcn_button_state() && !getchar());
+		}while(!Fcn_button_state() && getchar());
 		Set_Func_LED(false);
 
 		//print angle using fixed point
@@ -501,8 +500,7 @@ void Background_process(void){
 void Motion_task(void){
 	motion_task_count++;
 
-	bool closeloop_delta = false;
-	closeloop_delta = StepperCtrl_processMotion(); //handle the control loop
+	(void) StepperCtrl_processMotion(); //handle the control loop
 }
 
 //10ms task for communication and diagnostic

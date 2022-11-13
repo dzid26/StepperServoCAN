@@ -27,16 +27,15 @@
 #include <stddef.h>
 #include "stm32f10x_flash.h"
 
-#define FLASH_WAIT_TIMEOUT			100000
-#define FLASH_PAGE_SIZE   			(1024)
-#define FLASH_ROW_SIZE   			  (512)
+#define FLASH_WAIT_TIMEOUT			100000U
+#define FLASH_PAGE_SIZE   			1024U
+#define FLASH_ROW_SIZE   			512U
 
-#define	FLASH_PAGE21_ADDR				0x08005400
-#define	FLASH_PAGE30_ADDR				0x08007800
-#define	FLASH_PAGE31_ADDR				0x08007C00
-#define FLASH_PAGE32_ADDR				0x08008000
-#define FLASH_checkSum_ADDR			    0x08007FFC
-#define FLASH_chipID_ADDR				0x080054F0
+#define	FLASH_PAGE30_ADDR				0x08007800U //Params
+#define	FLASH_PAGE31_ADDR				0x08007C00U //CalTable
+#define FLASH_PAGE32_ADDR				0x08008000U //FastCal
+#define FLASH_checkSum_ADDR			    0x08007FFCU
+#define FLASH_chipID_ADDR				0x080054F0U
 
 #define	valid									(uint16_t)0x0001
 #define invalid								(uint16_t)0xffff

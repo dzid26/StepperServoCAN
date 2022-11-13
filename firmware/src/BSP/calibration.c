@@ -25,6 +25,10 @@
 
 extern volatile int64_t currentLocation;
 
+static void CalibrationTable_createFastCal(void);
+static void CalibrationTable_loadFromFlash(void);
+static void CalibrationTable_updateFastCal(void);
+
 volatile CalData_t CalData[CALIBRATION_TABLE_SIZE];
 volatile bool	fastCalVaild = false;
 
@@ -57,7 +61,6 @@ bool CalibrationTable_calValid(void)
 	{
 		CalibrationTable_saveToFlash();
 	}
-	
 	return true;
 }
 
@@ -178,12 +181,11 @@ uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x)
 
 void CalibrationTable_saveToFlash(void)
 {
-	uint16_t i;	
 	uint16_t min, max;
 	FlashCalData_t data;
 	
 	max = min = CalData[0].value;
-	for (i=0; i < CALIBRATION_TABLE_SIZE; i++ )
+	for (uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++ )
 	{
 		if(CalData[i].value < min)	{min = CalData[i].value;}
 		if(CalData[i].value > max)	{max = CalData[i].value;}
@@ -200,23 +202,27 @@ void CalibrationTable_saveToFlash(void)
 	CalibrationTable_createFastCal(); //FastCalTable
 }
 
-void CalibrationTable_createFastCal(void)
+//FastCal writes 32kB to the end flash starting at page32
+static void CalibrationTable_createFastCal(void)
 {
-	uint32_t i;
-	uint32_t j;
+	uint16_t i=0;
 	uint16_t checkSum = 0;
 	uint16_t data[FLASH_ROW_SIZE]; //1K
+	uint8_t page=0;
 
-	for (i=0,j=0; i < ANGLE_WRAP; i+=2)
+	const uint8_t step = 2U; //we have only 32kB and 32768 uint16 angles to store
+	while(i < CALIBRATION_STEPS/step) 
 	{
 		uint16_t x = 0;
-		x = CalibrationTable_reverseLookup(i); //setting fast calibration
-		data[j] = x;
-		j++;
-		if (j >= FLASH_ROW_SIZE) //1k bytes = 512 uint16_t
+		x = CalibrationTable_reverseLookup(i*step); //calculating fast calibration lookup every other angle int
+		//CalibrationTable_fastReverseLookup() accounts for storing every other angle
+		data[i % FLASH_ROW_SIZE] = x;
+		
+		i++;
+		if ((i % FLASH_ROW_SIZE)==0U) //1k bytes = 512 uint16_t
 		{
-			Flash_ProgramPage( (FLASH_PAGE32_ADDR + (uint32_t)((i+2) - FLASH_PAGE_SIZE)), data, FLASH_ROW_SIZE );
-			j=0;
+			nvmWriteFastCalTable(&data, page);
+			page++;
 		}
 		checkSum += x;
 	}
@@ -225,7 +231,7 @@ void CalibrationTable_createFastCal(void)
 	fastCalVaild = true;
 }
 
-void CalibrationTable_loadFromFlash(void)
+static void CalibrationTable_loadFromFlash(void)
 {
 	uint16_t i;
 
@@ -255,7 +261,7 @@ void CalibrationTable_init(void)
 	}
 }
 
-void CalibrationTable_updateFastCal(void)
+static void CalibrationTable_updateFastCal(void)
 {
 	uint16_t i;
 	uint16_t checkSum = 0;

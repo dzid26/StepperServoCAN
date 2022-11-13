@@ -25,13 +25,13 @@
 #include <stdbool.h>
 #include "flash.h"
 
-#define	CALIBRATION_TABLE_SIZE	(400)  // 400 will work good for calibrating 1.8deg stepper every half step and 0.9deg stepper every full step 
+#define	CALIBRATION_TABLE_SIZE			400U  // 400 will work good for calibrating 1.8deg stepper every half step and 0.9deg stepper every full step 
 #define CALIBRATION_WRAP 				((int32_t)16384)
-#define CALIBRATION_STEPS 			((uint32_t)32768)	
+#define CALIBRATION_STEPS 				((uint32_t)32768U)
 
 #define ANGLE_WRAP 							((int32_t)32768)
-#define ANGLE_STEPS 						((uint32_t)65536) 
-#define ANGLE_MAX 							((uint16_t)65535)
+#define ANGLE_STEPS 						((uint32_t)65536U) 
+#define ANGLE_MAX 							((uint16_t)65535U)
 
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
@@ -51,7 +51,6 @@ typedef struct {
   int16_t error; 	 //error assuming it is constantly updated
 } CalData_t;
 
-uint16_t CalibrationTable_getTableIndex(uint16_t value);
 bool CalibrationTable_updateTableValue(uint16_t index, uint16_t value);
 void CalibrationTable_saveToFlash(void);
 bool CalibrationTable_calValid(void);
@@ -62,10 +61,7 @@ uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
 int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
 uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 void CalibrationTable_saveToFlash(void);
-void CalibrationTable_createFastCal(void);
-void CalibrationTable_loadFromFlash(void);
 void CalibrationTable_init(void);
-void CalibrationTable_updateFastCal(void);
 uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 
 #endif
