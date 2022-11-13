@@ -57,7 +57,7 @@ volatile int32_t loopError = 0;
 
 uint16_t ReadEncoderAngle(void){ 
 	//Expects 15bits - 32767 is 360deg
-	return TLE5012_ReadAngle();
+	return TLE5012_ReadAngle(); //0-32767
 }
 
 bool Encoder_begin(void){
@@ -191,7 +191,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
 	//! first calibration pass to the right
 	maxError = CalibrationMove(updateFlash, 1, &microSteps, &passes, calZeroOffset); //run clockwise
 	//! second calibration to the left - reduces influence of magnetic hysteresis
-	delay_ms(500);  	//give some time before motor starts to move the other direction
+	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(updateFlash) {	//second pass anticlockwise when calibrating
 		calZeroOffset=0; //on the second run, the calTab values are alligned with the sensor, so no offset
 		maxError = CalibrationMove(updateFlash, -1, &microSteps, &passes, calZeroOffset); 
