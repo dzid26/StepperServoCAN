@@ -45,6 +45,8 @@ Many other parameters are not used and are slated for removal.
 - Next the display will prompt to calibrate the motor. Press `Enter` to start calibration. The motor will be calibrated and values stored. Press `Enter` again to exit calibration mode.
 - Actuator parameters need to be specified for CANbus signal units to be converted from actuator output domain to the motor domain. Change gearbox and final gear ratios in `firmware/actuator_config.h` file: `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`. Rebuild firmware and upload to the board.
 - Depending on mounting orientation and gearing the motor rotation direction might be reversed. If this is the case, reverse the motor direction by navigating on display menu to `Rotation` and changing the parameter. This corresponds to `SystemParams.dirRotation` in the code.
+- Extract of angle calibration curve from flash:
+- ![CalibrationPlot](https://user-images.githubusercontent.com/841061/201538086-d977bde9-2bf5-4cec-ac3b-eec80bb5fbd9.png)
 ### CAN interface
 Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)
 
