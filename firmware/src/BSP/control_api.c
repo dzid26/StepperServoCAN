@@ -25,9 +25,12 @@
 	Todo: if needed, create snapshot of all variables before read so all are synced
 */
 #include "control_api.h"
-
+#include "board.h"
+#include "stm32f10x.h"
 #include "stepper_controller.h"
 #include "actuator_config.h"
+#include "nonvolatile.h"
+#include "encoder.h"
 
 #define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
 

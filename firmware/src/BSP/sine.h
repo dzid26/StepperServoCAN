@@ -32,20 +32,4 @@ int16_t sine(uint16_t angle);
 int16_t cosine(uint16_t angle);
 int32_t fastAbs(int32_t v);
 
-
-#define max(a,b)             \
-({                           \
-    __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    (_a > _b) ? _a : _b;       \
-})
-
-#define min(a,b)             \
-({                           \
-    __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    (_a < _b) ? _a : _b;       \
-})
-
-
 #endif

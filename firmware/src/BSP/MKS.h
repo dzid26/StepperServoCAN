@@ -23,8 +23,9 @@
 #define __MKS_H
 
 #include "display.h"
-#include "stepper_controller.h"
-#include "stdlib.h"
+
+extern menuItem_t MenuCal[];
+extern menuItem_t MenuMain[];
 
 int menuCalibrate(int argc, char *argv[]);
 int menuTestCal(int argc, char *argv[]);
@@ -37,10 +38,5 @@ int enablePin(int argc, char *argv[]);
 int changeDir(int argc, char *argv[]);
 
 void validateAndInitNVMParams(void);
-void Begin_process(void);
-
-void Motion_task(void);
-void Background_process(void);
-void Service_task(void);
 
 #endif

@@ -29,10 +29,6 @@
 #define CALIBRATION_WRAP 				((int32_t)16384)
 #define CALIBRATION_STEPS 				((uint32_t)32768U)
 
-#define ANGLE_WRAP 							((int32_t)32768)
-#define ANGLE_STEPS 						((uint32_t)65536U) 
-#define ANGLE_MAX 							((uint16_t)65535U)
-
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
 
@@ -51,17 +47,14 @@ typedef struct {
   int16_t error; 	 //error assuming it is constantly updated
 } CalData_t;
 
-bool CalibrationTable_updateTableValue(uint16_t index, uint16_t value);
-void CalibrationTable_saveToFlash(void);
+void StepperCtrl_setLocationFromEncoder(void);
+uint16_t StepperCtrl_calibrateEncoder(bool update);
+float StepperCtrl_measureStepSize(void);
 bool CalibrationTable_calValid(void);
 uint16_t CalibrationTable_fastReverseLookup(uint16_t fastEncoderAngle);
-uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle);
-uint16_t interp(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
-uint16_t interp2(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
 int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
 uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 void CalibrationTable_saveToFlash(void);
 void CalibrationTable_init(void);
-uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 
 #endif

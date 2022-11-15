@@ -20,10 +20,16 @@
  */
 #include "A4950.h"
 
-#define MCU_VOUT mV_REF
-
 #include "stepper_controller.h"
-extern volatile int32_t speed_slow;
+#include "nonvolatile.h"
+#include "board.h"
+#include "sine.h"
+#include "encoder.h"
+
+#define MCU_VOUT mV_REF
+#define I_RS_A4950_div     (uint16_t) (1000/10) //mOhm to Ohm and 10x multiplier
+#define I_RS_A4950_rat     (uint16_t) (RS_A4950/I_RS_A4950_div) //mOhm to Ohm and 10x multiplier
+
 
 // phase lead due to DAC low pass filter C=uF, R=1k; phase = -atan(2pi*f*R*C)  
 // generatePhaseLeadTable.py
@@ -49,9 +55,6 @@ static const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 	232, 232, 232, 233, 233, 233, 233, 233, 233, 233, 233, 233, 233,
 	234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 235, 235,
 	235, 235, 235};
-
-
-extern volatile MotorParams_t motorParams;
 
 volatile bool A4950_Enabled = false;
 
@@ -129,6 +132,15 @@ void A4950_enable(bool enable)
 	}
 }
 
+
+#define min(a,b)             \
+({                           \
+    __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    (_a < _b) ? _a : _b;       \
+})
+
+
 // this is precise move and modulo of A4950_STEP_MICROSTEPS is a full step.
 // stepAngle is in A4950_STEP_MICROSTEPS units..
 // The A4950 has no idea where the motor is, so the calling function has to
@@ -137,10 +149,11 @@ void A4950_enable(bool enable)
 // Note you can only move up to +/-A4950_STEP_MICROSTEPS from where you
 // currently are.
 
-volatile uint16_t vrefY;
-volatile uint16_t vrefX;
-int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees
+void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees
 {
+	uint16_t vrefY;
+	uint16_t vrefX;
+
 	uint16_t elecAngleStep;
 	int16_t sin;
 	int16_t cos;
@@ -160,7 +173,7 @@ int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electr
 		setVREF(0,0); 	//turn current off
 		bridge1(3); 	//tri state bridge outputs
 		bridge2(3); 	//tri state bridge outputs
-		return 0;
+		return;
 	}
 
 	//calculate the sine and cosine of our elecAngleStep
@@ -187,6 +200,5 @@ int32_t A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electr
 	{
 		bridge2(motorParams.motorWiring ? 0u : 1u); 
 	}
-	return elecAngleStep;
 }
 

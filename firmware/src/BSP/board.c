@@ -19,7 +19,12 @@
  */
 
 #include "board.h"
+#include "main.h"
+#include "stm32f10x.h"
 #include "MKS.h"
+#include "can.h"
+#include "A4950.h"
+#include "sine.h"
 
 //Init clock
 static void CLOCK_init(void)
@@ -113,6 +118,7 @@ static void SWITCH_init(void)
 }
 
 //Init A4950
+#define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
 static void A4950_init(void)
 {	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);

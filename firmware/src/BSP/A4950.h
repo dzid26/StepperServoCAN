@@ -24,10 +24,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "sine.h"
-
-#define I_RS_A4950_div     (uint16_t) (1000/10) //mOhm to Ohm and 10x multiplier
-#define I_RS_A4950_rat     (uint16_t) (RS_A4950/I_RS_A4950_div) //mOhm to Ohm and 10x multiplier
 
 #define A4950_STEP_MICROSTEPS (uint16_t) 256
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
@@ -35,7 +31,9 @@
 #define VREF_SINE_RATIO	(1<<VREF_SCALER)
 
 void A4950_enable(bool enable);
-int32_t A4950_move(uint16_t stepAngle, uint16_t mA);
+void A4950_move(uint16_t stepAngle, uint16_t mA);
 void A4954_begin(void);
+
+extern volatile bool A4950_Enabled;
 
 #endif

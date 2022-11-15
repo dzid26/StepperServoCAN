@@ -21,14 +21,14 @@
  */
 
 #include "stepper_controller.h"
+#include "nonvolatile.h"
 #include "A4950.h"
+#include "board.h"
+#include "encoder.h"
+#include "math.h"
 
-extern volatile uint8_t DIR;
-extern volatile uint32_t NVM_address;
-extern nvm_t nvmParams;
+static void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
 
-volatile MotorParams_t motorParams;
-volatile SystemParams_t systemParams;
 volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
@@ -54,18 +54,7 @@ volatile int16_t Iq_ma;
 volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
 
-
-uint16_t ReadEncoderAngle(void){ 
-	//Expects 15bits - 32767 is 360deg
-	return TLE5012_ReadAngle(); //0-32767
-}
-
-bool Encoder_begin(void){
-	return TLE5012_begin();
-}
-
-
-void StepperCtrl_updateParamsFromNVM(void)
+static void StepperCtrl_updateParamsFromNVM(void)
 {
 	if(NVM->SystemParams.parametersValid == valid)
 	{
@@ -98,7 +87,6 @@ void StepperCtrl_updateParamsFromNVM(void)
 
 		systemParams = nvmParams.SystemParams;
 	}
-
 	//default the error pin to input, if it is an error pin the
 	// handler for this will change the pin to be an output.
 	// for bidirection error it has to handle input/output it's self as well.
@@ -113,7 +101,6 @@ void StepperCtrl_updateParamsFromNVM(void)
 
 		motorParams.currentHoldMa = 400;
 		motorParams.currentMa = 800;
-
 	}
 }
 
@@ -162,222 +149,6 @@ int32_t StepperCtrl_updateCurrentLocation(void)
 }
 
 
-//The encoder needs to be calibrated to the motor.
-// we will assume full step detents are correct,
-// ex 1.8 degree motor will have 200 steps for 360 degrees.
-// We also need to calibrate the phasing of the motor
-// to the A4950. This requires that the A4950 "step angle" of
-// zero is the first entry in the calibration table.
-uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
-{
-	
-	uint16_t maxError;
-	int32_t microSteps = 0;
-	uint8_t passes = 0;
-	bool state = motion_task_isr_enabled;
-	Motion_task_disable();
-
-	A4950_enable(true);
-	speed_slow = 0; //TODO: create a function that disables feedback processing
-	closeLoop = 0;
-	control = 0;
-	Iq_ma = 0;
-	currentLocation = 0;
-
-	A4950_move(0, motorParams.currentMa);
-	delay_ms(50);
-	uint16_t calZeroOffset=(StepperCtrl_sampleMeanEncoder(202)<<1) - (CalibrationTable_getCal(0)<<1);//returns (0-32767) scaled to (0-65535)
-	
-	//! first calibration pass to the right
-	maxError = CalibrationMove(updateFlash, 1, &microSteps, &passes, calZeroOffset); //run clockwise
-	//! second calibration to the left - reduces influence of magnetic hysteresis
-	delay_ms(1000);  	//give some time before motor starts to move the other direction
-	if(updateFlash) {	//second pass anticlockwise when calibrating
-		calZeroOffset=0; //on the second run, the calTab values are alligned with the sensor, so no offset
-		maxError = CalibrationMove(updateFlash, -1, &microSteps, &passes, calZeroOffset); 
-
-		CalibrationTable_saveToFlash(); //saves the calibration to flash
-		StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
-	}
-	//measure new starting point
-	StepperCtrl_setLocationFromEncoder();
-	A4950_move(0, 0); //release motor
-	Encoder_begin(); //Reset filters and perform sensor tests
-
-	if(state){
-		Motion_task_enable();
-	}
-
-	return maxError;
-}
-
-uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calZeroOffset){
-	
-	uint16_t maxError = 0;
-	
-	(*passes)++;
-	int16_t microStep = A4950_STEP_MICROSTEPS*motorParams.fullStepsPerRotation/CALIBRATION_TABLE_SIZE;
-	
-	const uint16_t intialMotion = CALIBRATION_TABLE_SIZE/2; //do half rotation preRun to start calibration with max hysteresis
-	for (uint16_t j = 0; j < intialMotion + CALIBRATION_TABLE_SIZE; j++) //Starting calibration 
-	{
-		static volatile uint16_t desiredAngle;
-		static volatile uint16_t sampled;
-
-		bool preRun = j < intialMotion;
-		delay_ms(1);
-		if (updateFlash && !preRun) 
-			delay_ms(100);
-
-		
-		desiredAngle = (uint16_t) DIVIDE_WITH_ROUND(*microSteps * (int32_t)(ANGLE_STEPS>>2) / A4950_STEP_MICROSTEPS, motorParams.fullStepsPerRotation>>2);
-		uint16_t cal = (CalibrationTable_getCal(desiredAngle)<<1) + calZeroOffset; //returns (0-32767) scaled to (0-65535)
-		
-		sampled = StepperCtrl_sampleMeanEncoder(202)<<1; //collect angle every half step for 1.8 stepper - returns (0-32767) scaled to (0-65535)
-		
-		int16_t dist = (int16_t)(sampled - cal);
-
-		
-		if (updateFlash && !preRun) {
-			uint16_t average = cal + (dist / (*passes)); //add half a distance to average
-			CalibrationTable_updateTableValue(( (dir<0) ? (intialMotion + CALIBRATION_TABLE_SIZE -j) : j)%CALIBRATION_TABLE_SIZE, average>>1);	// (0-65535) scaled to (0-32767)
-		}
-		//move one half step at a time, a full step move could cause a move backwards
-		
-		dist = fastAbs(dist>>1);
-		if(dist > maxError && !preRun)
-				{
-					maxError = dist;
-				}
-		if(microStep > A4950_STEP_MICROSTEPS)  //for 0.9deg stepper collect data only every full step
-		{
-			A4950_move(*microSteps + A4950_STEP_MICROSTEPS, motorParams.currentMa);
-			delay_ms(20);
-		}
-		*microSteps += microStep*dir;
-		A4950_move(*microSteps, motorParams.currentMa);
-	}
-	return maxError;
-}
-
-// when sampling the mean of encoder if we are on roll over
-// edge we can have an issue so we have this function
-// to do the mean correctly
-uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples)
-{
-	uint16_t i;
-	int32_t lastx = 0,x = 0;
-	int32_t min = 0,max = 0;
-	int64_t sum = 0;
-	int32_t mean = 0;
-
-	for(i=0; i < numSamples; i++)
-	{
-		lastx = x;
-		x = (int32_t)ReadEncoderAngle();
-		if(i == 0)
-		{
-			lastx = x;
-			min = x;
-			max = x;
-		}
-
-		//wrap
-		if (fastAbs(lastx - x) > CALIBRATION_WRAP) //2^15-1 = 32767(max)
-		{
-			if (lastx > x)
-			{
-				x = x + CALIBRATION_STEPS;
-			} else
-			{
-				x = x - CALIBRATION_STEPS;
-			}
-		}
-
-		if (x > max)
-		{
-			max = x;
-		}
-		if (x < min)
-		{
-			min = x;
-		}
-
-		sum = sum + (x);
-	}
-
-	mean = (int32_t)(sum - min - max) / (numSamples - 2); //remove the min and the max.
-
-	//mean 0~32767
-	if(mean >= CALIBRATION_STEPS)
-	{
-		mean = (mean - (int32_t)CALIBRATION_STEPS);
-	}
-	if(mean < 0)
-	{
-		mean = (mean + (int32_t)CALIBRATION_STEPS);
-	}
-
-	return ((uint16_t)mean); //(0-32767)
-}
-
-uint16_t StepperCtrl_getEncoderAngle(void)
-{
-	uint16_t EncoderAngle;
-
-	EncoderAngle = CalibrationTable_fastReverseLookup(ReadEncoderAngle()); //0-65535
-
-	return EncoderAngle;
-}
-
-// return is angle in degreesx100 ie 360.0 is returned as 36000
-float StepperCtrl_measureStepSize(void)
-{
-	int32_t angle1,angle2,x;
-	bool feedback = enableFeedback;
-	enableFeedback = false;
-	A4950_enable(true);
-
-	/////////////////////////////////////////
-	//// Measure the full step size /////
-	/// Note we assume machine can take one step without issue///
-
-	A4950_move(0,motorParams.currentMa); //this puts stepper motor at stepAngle of zero
-	delay_ms(200);
-
-	angle1 = StepperCtrl_sampleMeanEncoder(102); //angle1
-	A4950_move(A4950_STEP_MICROSTEPS/2,motorParams.currentMa); //move one half step 'forward'
-	delay_ms(100);
-	A4950_move(A4950_STEP_MICROSTEPS,motorParams.currentMa); //move one half step 'forward'
-	delay_ms(200);
-	angle2 = StepperCtrl_sampleMeanEncoder(102); //angle2
-
-	if ( fastAbs(angle2 - angle1) > CALIBRATION_WRAP )
-	{
-		//we crossed the wrap around
-		if (angle1 > angle2)
-		{
-			angle1 = angle1 + (int32_t)CALIBRATION_STEPS;
-		}else
-		{
-			angle2 = angle2 + (int32_t)CALIBRATION_STEPS;
-		}
-	}
-
-	// if x is ~180 we have a 1.8 degree step motor, if it is ~90 we have 0.9 degree step
-	x = (int32_t)(((int64_t)(angle2 - angle1) * 36000) / (int32_t)CALIBRATION_STEPS);
-
-	//move back
-	A4950_move(A4950_STEP_MICROSTEPS/2,motorParams.currentMa);
-	delay_ms(100);
-	A4950_move(0,motorParams.currentMa);
-
-	enableFeedback = feedback;
-	A4950_enable(feedback);
-
-	return ((float)x)/100.0;
-}
-
 stepCtrlError_t StepperCtrl_begin(void)
 {
 	float x=9999;
@@ -396,7 +167,6 @@ stepCtrlError_t StepperCtrl_begin(void)
 	//cal table init
 	CalibrationTable_init();
 
-//	A4950_begin();
 
 	if (NVM->motorParams.parametersValid == valid)
 	{
@@ -462,6 +232,12 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 	if(StepperCtrl_Enabled == true && enable == false)
 	{
 		Motion_task_disable();
+		//reset globals:
+		speed_slow = 0;
+		closeLoop = 0;
+		control = 0;
+		Iq_ma = 0;
+		currentLocation = 0;
 	}
 	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
 	{
@@ -532,7 +308,7 @@ bool StepperCtrl_processMotion(void)
 	int32_t error;
 	static int32_t desiredLoc_slow = 0;
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
-	commandedLoc = desiredLocation; //StepperCtrl_compensateBacklash(desiredLocation, currentLoc, control);
+	commandedLoc = desiredLocation;
 
 	loopError = commandedLoc - currentLoc;
 	desiredLoc_slow = (commandedLoc + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc; 
@@ -547,6 +323,13 @@ bool StepperCtrl_processMotion(void)
 	lastLoc = currentLoc;
 	return no_error;
 }
+
+#define max(a,b)             \
+({                           \
+    __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    (_a > _b) ? _a : _b;       \
+})
 
 //this was written to do the PID loop not modeling a DC servo
 // but rather using features of stepper motor.
@@ -698,7 +481,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 }
 
 
-void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude) 
+static void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude) 
 {
 	uint16_t absoluteAngle; //0-65535 -> 0-360
 	uint16_t absoluteMicrosteps;

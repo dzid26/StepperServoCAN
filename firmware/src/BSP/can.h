@@ -19,17 +19,14 @@
 #ifndef CAN_H
 #define CAN_H
 
-/* Includes ------------------------------------------------------------------*/
-#include "board.h"
+#include "stm32f10x_can.h"
 
 extern CAN_TypeDef hcan;
 
 void CAN_TransmitMotorStatus(uint32_t frame);
 void CAN_MsgsFiltersSetup(void);
-void CheckTxStatus(uint8_t TransmitMailbox);
-void CAN_InterpretMesssages(CanRxMsg message);
 bool Check_Control_CAN_rx_validate_tick(void);
 
-#define CHECK_RX_FAIL_LIM 5
+extern volatile uint32_t can_err_rx_cnt;
 
 #endif // CAN_H

@@ -22,11 +22,8 @@
 #ifndef __STEPPER_CONTROLLER_H
 #define __STEPPER_CONTROLLER_H
 
-#include "delay.h"
-#include "nonvolatile.h"
-#include "calibration.h"
-#include "tle5012.h"
-#include "math.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 typedef enum {
 	STEPCTRL_NO_ERROR=0,
@@ -59,8 +56,9 @@ typedef struct { //closeloop position controller
 	int32_t Kd;
 } PID_t;
 
-#define DEGREES_TO_ANGLERAW(x) ( ((float)(x) / 360.0f * ANGLE_STEPS) )
-#define ANGLERAW_T0_DEGREES(x) ( ((float)(x) * 360.0f / ANGLE_STEPS) )
+extern volatile PID_t sPID; //simple control loop PID parameters
+extern volatile PID_t pPID; //positional current based PID control parameters
+extern volatile PID_t vPID; //velocity PID control parameters
 
 //scales PID parameters from Flash (floating point) to int32_t used in control 
 #define CTRL_PID_SCALING 			(int16_t)(8096)
@@ -68,10 +66,6 @@ typedef struct { //closeloop position controller
 #define S_to_uS   	(uint32_t)(1000000)
 #define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop. 35uS puts theoretical limit of ~125rev/s on the motor which is plenty.  Adjust to reduce harmonics. 
 #define SAMPLING_HZ		(uint32_t)(S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
-
-//api - nvram mirror
-extern volatile MotorParams_t motorParams;
-extern volatile SystemParams_t systemParams;
 
 //api - control states
 extern volatile bool StepperCtrl_Enabled;
@@ -92,20 +86,13 @@ extern volatile int_fast16_t control;
 extern volatile int32_t speed_slow;
 extern volatile int32_t loopError;
 
-void StepperCtrl_setLocationFromEncoder(void);
 int32_t StepperCtrl_updateCurrentLocation(void);
-uint16_t StepperCtrl_calibrateEncoder(bool update);
 uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calLocOffset);
-uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
-uint16_t StepperCtrl_getEncoderAngle(void);
-void StepperCtrl_updateParamsFromNVM(void);
-float StepperCtrl_measureStepSize(void);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
 void StepperCtrl_setMotionMode(uint8_t mode);
 bool StepperCtrl_processMotion(void);
 bool StepperCtrl_simpleFeedback(int32_t error);
-void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
 
 
 #endif

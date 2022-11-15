@@ -21,12 +21,13 @@
  */
 
 #include "display.h"
+#include "nonvolatile.h"
+#include "board.h"
+#include "stepper_controller.h"
+#include "encoder.h"
+#include <string.h>
+#include <math.h>
 
-extern volatile SystemParams_t systemParams;
-extern volatile int32_t zeroAngleOffset;
-extern volatile int32_t loopError;
-extern volatile int32_t speed_slow;
-extern volatile int32_t desiredLocation;
 
 menuItem_t*		ptrMenu;				//Menu Bar
 uint8_t 			menuIndex;			//Menu bar index
@@ -46,6 +47,36 @@ void display_begin(void)
 	ptrOptions = NULL;
 	optionIndex = 0;
 }
+
+void display_updateScreen(void)
+{
+	char str[4][25] = {0};
+
+	int16_t speed_slow_rpm = speed_slow * (60u>>2) / (int16_t) (ANGLE_STEPS>>2);
+	sprintf(str[0],"%3d rpm", (speed_slow_rpm <= 1 && speed_slow_rpm >= -1) ? 0 : speed_slow_rpm); 
+	
+	int32_t err = loopError;
+	int32_t x, y, z;
+	err = (err * 360 * 100) /ANGLE_STEPS;
+	z = err / 100;
+	y = fabs(err - (z * 100));
+	sprintf(str[1],"%01ld.%02ld err", z,y);
+
+	int64_t deg;
+	deg = desiredLocation;
+	deg = (deg * 225) / (ANGLE_STEPS >> 4);	//deg = (deg * 360 * 10) / (int32_t)ANGLE_STEPS;
+
+	if (fabs(deg) > 9999)
+	{
+		deg = deg / 1000;
+	}
+
+	x = deg / 10;
+	y = fabs(deg - (x * 10));
+
+	display_show(str[0], str[1], str[2], str[3]);
+}
+
 
 //4 line
 void display_show(char* line1, char* line2, char* line3, char* line4)
@@ -214,7 +245,7 @@ void display_process(void)
 {
 		if (false == menuActive || ptrMenu == NULL)
 		{
-			display_updateLCD();
+			display_updateScreen();
 		}
 		else
 		{
@@ -231,52 +262,4 @@ void display_process(void)
 	{
 		buttonState &= (~0x04);
 	}
-}
-
-void display_updateLCD(void)
-{
-	char str[4][25] = {0};
-
-// sprintf(str[0], "Increment PID");
-//	switch(systemParams.controllerMode)
-//	{
-//		case CTRL_SIMPLE:
-//			sprintf(str[0], "Simple PID");
-//			break;
-
-//		case CTRL_POS_PID:
-//			sprintf(str[0], "Position PID");
-//			break;
-
-//		case CTRL_POS_VELOCITY_PID:
-//			sprintf(str[0], "Velocity PID");
-//			break;
-
-//		default:
-//			sprintf(str[0], "Error %u",systemParams.controllerMode);
-//			break;
-//	}
-	int16_t speed_slow_rpm = speed_slow * (60u>>2) / (int16_t) (ANGLE_STEPS>>2);
-	sprintf(str[0],"%3d rpm", (speed_slow_rpm <= 1 && speed_slow_rpm >= -1) ? 0 : speed_slow_rpm); 
-	
-	int32_t err = loopError;
-	int32_t x, y, z;
-	err = (err * 360 * 100) /ANGLE_STEPS;
-	z = err / 100;
-	y = abs(err - (z * 100));
-	sprintf(str[1],"%01ld.%02ld err", z,y);
-
-	int64_t deg;
-	deg = desiredLocation - zeroAngleOffset;
-	deg = (deg * 225) / (ANGLE_STEPS >> 4);	//deg = (deg * 360 * 10) / (int32_t)ANGLE_STEPS;
-
-	if (abs(deg) > 9999)
-	{
-		deg = deg / 1000;
-	}
-
-	x = deg / 10;
-	y = abs(deg - (x * 10));
-
-	display_show(str[0], str[1], str[2], str[3]);
 }

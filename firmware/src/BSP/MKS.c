@@ -21,16 +21,17 @@
  */
 
 #include "MKS.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "actuator_config.h"
 #include "control_api.h"
 #include "can.h"
-
-volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
-volatile bool runCalibration = false;
-
-nvm_t nvmParams = {0};
-
-void RunCalibration(void);
+#include "board.h"
+#include "calibration.h"
+#include "nonvolatile.h"
+#include "display.h"
+#include "encoder.h"
 
 static void displayError(uint16_t error){
 	int32_t x,y;
@@ -38,7 +39,7 @@ static void displayError(uint16_t error){
 	x = (36000 * (int32_t)error) / ANGLE_STEPS;
 	y = x / 100;
 	x = x - (y * 100);
-	x = fastAbs(x);
+	x = (x < 0) ? 0 : x;
 	sprintf(str, "%ld.%02ld deg",y,x);
 	display_show("Max cal error", str, " -> Press Enter", "to continue");
 
@@ -341,7 +342,7 @@ int changeDir(int argc, char *argv[])
 	return NVM->SystemParams.dirRotation;
 }
 
-menuItem_t MenuMain[] = {	//���˵�
+menuItem_t MenuMain[] = {
 		{"Calibrate", menuCalibrate, NULL},
 		{"Test Cal", menuTestCal, NULL},
 		{"Max mA", motorCurrent, currentOptions},
@@ -353,189 +354,7 @@ menuItem_t MenuMain[] = {	//���˵�
 		{ "", NULL, NULL}
 };
 
-menuItem_t MenuCal[] = {	//Calibrate�˵�
+menuItem_t MenuCal[] = {
 		{"Calibrate", menuCalibrate, NULL},
 		{ "", NULL, NULL}
 };
-
-//check the NVM and set to defaults if there is any
-void validateAndInitNVMParams(void)
-{
-	if (NVM->SystemParams.parametersValid != valid) //SystemParams invalid
-	{
-		nvmParams.sPID.Kp = .1;  nvmParams.sPID.Ki = .008;  nvmParams.sPID.Kd = 0.2;
-		nvmParams.pPID.Kp = 1.0;  nvmParams.pPID.Ki = 0.0; 	  nvmParams.pPID.Kd = 0.0;
-		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
-
-		nvmParams.SystemParams.microsteps = 256; //unused
-		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;  //unused
-		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
-		nvmParams.SystemParams.errorLimit = (int32_t)DEGREES_TO_ANGLERAW(1.8);  //unused
-		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
-
-		if(NVM->motorParams.parametersValid == valid)
-		{
-			nvmParams.motorParams = NVM->motorParams;
-			nvmWriteConfParms(&nvmParams);
-		}
-	}
-	//the motor parameters are check in the stepper_controller code
-	// as that there we can auto set much of them.
-}
-
-void Begin_process(void)
-{
-	
-	update_actuator_parameters();
-
-	board_init();	//set up the pins correctly on the board.
-
-	nonvolatile_begin(); //����NVM_address
-
-	validateAndInitNVMParams(); //systemParams init
-
-	display_begin(); //display init
-	Serivice_task_init(); //task init
-
-	display_show("StepperServoCAN", "initialization..", "", "");
-	delay_ms(1);
-	Set_Error_LED(true);
-	stepCtrlError = STEPCTRL_NO_CAL;
-	while(STEPCTRL_NO_ERROR != stepCtrlError)
-	{
-		//start controller before accepting step inputs
-		stepCtrlError = StepperCtrl_begin();
-
-		//start up encoder
-		if (STEPCTRL_NO_ENCODER == stepCtrlError)
-		{
-			display_show("Encoder", " Error!", "REBOOT", "");
-			while(1);	//����
-		}
-
-		if(STEPCTRL_NO_POWER == stepCtrlError)
-		{
-			display_show("Waiting", "MOTOR", "POWER", "");
-			while(STEPCTRL_NO_POWER == stepCtrlError)
-			{
-				stepCtrlError = StepperCtrl_begin(); //start controller before accepting step inputs
-			}
-		}
-
-		if(STEPCTRL_NO_CAL == stepCtrlError)
-		{
-			display_show("   NOT ", "Calibrated", " ", "");
-			delay_ms(2200);
-			display_setMenu(MenuCal);
-			display_forceMenuActive();
-			display_process();
-			
-			RunCalibration();
-		}
-	}
-	display_setMenu(MenuMain);
-	printf("Initialization successful\n");
-	Set_Error_LED(false);
-
-	printf("Setting angle to zero and starting motion task\n");
-	StepperCtrl_enable(true);
-	
-}
-
-//rolling counters for debugging
-volatile uint32_t motion_task_counter=0;	// cppcheck-suppress  misra-c2012-8.4
-volatile uint32_t motion_task_count=0;		// cppcheck-suppress  misra-c2012-8.4
-
-
-void RunCalibration(void){
-	bool state = motion_task_isr_enabled;
-	Motion_task_disable();
-	Set_Error_LED(true);
-
-	bool err1 = false;
-	bool err2 = false;
-
-	do{
-		//print errors on after failed calibration
-		if(err1){
-			(void) printf("Calibration not set\n");
-		}else if (err2){
-			(void) printf("Large deviation. Reposition the magnet\n");
-		}
-		
-		(void) printf("Confirm calibration start..\n");
-		do{	//wait for the user
-			Set_Func_LED(true);
-		}while(!Fcn_button_state() && getchar());
-		Set_Func_LED(false);
-
-		//print angle using fixed point
-		uint16_t max_error100 = (uint16_t) (ANGLERAW_T0_DEGREES(StepperCtrl_calibrateEncoder(true))*100.0f);
-		uint16_t max_error = max_error100/100u;
-		(void) printf("Max deviation was %01u.%02u deg\n", max_error, (max_error*100u)-max_error100);
-
-		//assert errors
-		err1 = !CalibrationTable_calValid();
-		err2 = max_error > DEGREES_TO_ANGLERAW(1);
-	}while(err1 || err2);
-
-	(void) printf("Calibration ok\n");
-
-	if(state){
-		Motion_task_enable();
-	}
-}
-
-
-
-void Background_process(void){
-
-	if(runCalibration){
-		RunCalibration();
-		runCalibration = false;
-	}
-}
-
-//fast motor control task
-void Motion_task(void){
-	motion_task_count++;
-
-	(void) StepperCtrl_processMotion(); //handle the control loop
-}
-
-//10ms task for communication and diagnostic
-void Service_task(void){
-	motion_task_counter++;
-
-	ChipTemp_adc_update();
-	Vmot_adc_update();
-
-	//transmit CAN every 10ms
-	CAN_TransmitMotorStatus(motion_task_counter);
-
-	//go to Soft Off if motor is actively controlled but control signal is not received
-	bool comm_error = false;
-	if(enableFeedback){
-		comm_error = (Check_Control_CAN_rx_validate_tick() == false);
-	}
-	if(comm_error)
-	{	//once SOFT_TORQUE_OFF is set, the motor will not be controlled until STEPCTRL_OFF is requested
-		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
-	}
-
-	//Function button and LED processing
-	static uint16_t fcn_button_count = 0; //centiseconds
-	const uint16_t fcn1_button_delay = 300U;//hold 3s to trigger re-calibration
-	if(Fcn_button_state()){
-		fcn_button_count++;
-		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
-	}
-	if(fcn_button_count == (fcn1_button_delay-10U))	{Set_Func_LED(true);} 	//short
-	if(	fcn_button_count == fcn1_button_delay)		{Set_Func_LED(false);}	//blink
-	if((fcn_button_count >= fcn1_button_delay)  && (!Fcn_button_state())){ 	//wait for button release
-		runCalibration = true; 		//request calibration - it will run in Background_process()
-	}
-	if(!Fcn_button_state()){
-		fcn_button_count=0;
-	}
-}

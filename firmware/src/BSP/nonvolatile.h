@@ -25,9 +25,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "calibration.h"
-
-extern volatile uint32_t NVM_address;
-
 typedef enum {
 	CW_ROTATION = 0,
 	CCW_ROTATION = 1,
@@ -91,6 +88,14 @@ typedef struct {
 #define nvmFastCal 						((FastCal_t *)FASTCALIBRATION_FLASH_ADDR)
 
 #define NONVOLATILE_STEPS				((uint32_t)62)		//sizeof(nvm_t) = 60
+
+
+// nvram mirror
+extern volatile uint32_t NVM_address;
+
+extern nvm_t nvmParams;
+extern volatile SystemParams_t systemParams;
+extern volatile MotorParams_t motorParams;
 
 void nonvolatile_begin(void);
 void nvmWriteCalTable(void *ptrData);

@@ -18,26 +18,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+ 
+#ifndef __ENCODER_H
+#define __ENCODER_H
 
-#ifndef __DISPLAY_H
-#define __DISPLAY_H
+#include "tle5012.h"
+#include <stdint.h>
 
-#include "stdio.h"
+#define ANGLE_STEPS 						((uint32_t)65536U) 
+#define ANGLE_MAX 							((uint16_t)65535U)
+#define ANGLE_WRAP 							((int32_t)32768)
 
-typedef struct{
-	char str[15];
-}options_t;
+#define DEGREES_TO_ANGLERAW(x) ( ((float)(x) / 360.0f * (float)ANGLE_STEPS) )
+#define ANGLERAW_T0_DEGREES(x) ( ((float)(x) * 360.0f / (float)ANGLE_STEPS) )
 
-typedef struct{
-	char str[15];
-	int (*func)(int argc, char *argv[]);
-	options_t *ptrOptions;
-}menuItem_t;
+uint16_t StepperCtrl_getEncoderAngle(void);
+uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
+bool Encoder_begin(void);
 
-void display_begin(void);
-void display_show(char* line1, char* line2, char* line3, char* line4);
-void display_setMenu(menuItem_t *pMenu);
-void display_forceMenuActive(void);
-void display_process(void);
 
 #endif

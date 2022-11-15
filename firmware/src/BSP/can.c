@@ -22,12 +22,13 @@
 #include "can.h"
 #include "control_api.h"
 #include "Msg.h"
+#include "board.h"
 
-volatile uint32_t can_rx_cnt = 0;
-volatile uint32_t can_tx_cnt = 0;
-volatile uint32_t can_err_tx_cnt = 0;
-volatile uint32_t can_err_rx_cnt = 0;
-volatile uint32_t can_overflow_cnt = 0;
+static volatile uint32_t can_rx_cnt = 0;      // cppcheck-suppress  misra-c2012-8.9
+       volatile uint32_t can_err_rx_cnt = 0;
+static volatile uint32_t can_tx_cnt = 0;      // cppcheck-suppress  misra-c2012-8.9
+static volatile uint32_t can_err_tx_cnt = 0;  // cppcheck-suppress  misra-c2012-8.9
+static volatile uint32_t can_overflow_cnt = 0;// cppcheck-suppress  misra-c2012-8.9
 
 void CAN_MsgsFiltersSetup()
 {
@@ -39,7 +40,7 @@ void CAN_MsgsFiltersSetup()
 	CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdList;
   //IdList mode - fields below can store list of 4 receiving IDs.  STID requires << 5 
 	CAN_FilterInitStructure.CAN_FilterIdHigh=MSG_STEERING_COMMAND_FRAME_ID<<5; 
-	CAN_FilterInitStructure.CAN_FilterIdLow=0x0000<<5;
+	CAN_FilterInitStructure.CAN_FilterIdLow=0x700<<5; //debuging message
 	CAN_FilterInitStructure.CAN_FilterMaskIdHigh=0x0000 <<5;
 	CAN_FilterInitStructure.CAN_FilterMaskIdLow=0x0000 <<5;  
   //End CAN_FilterMode_IdList
@@ -51,7 +52,7 @@ void CAN_MsgsFiltersSetup()
 
 // Return checksum is lower byte of added lower and upper 
 // bytes of 16bit sum of data values and message id
-uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t msg_id){
+static uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t msg_id){
   uint16_t checksum = msg_id;
   for(uint8_t i = 0; i < len; i++){
     checksum += data[i];
@@ -62,64 +63,16 @@ uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t msg_id
   return (uint8_t) checksum;
 }
 
-struct Msg_steering_status_t ControlStatus;
-void CAN_TransmitMotorStatus(uint32_t frame)
-{
-  //populate message structure:
-  ControlStatus.counter = frame & 0xF;
-  ControlStatus.steering_angle = Msg_steering_status_steering_angle_encode(StepperCtrl_getAngleFromEncoder());
-  ControlStatus.steering_speed = Msg_steering_status_steering_speed_encode(StepperCtrl_getSpeedRev());
-  ControlStatus.steering_torque = Msg_steering_status_steering_torque_encode(StepperCtrl_getControlOutput());
-  ControlStatus.temperature = Msg_steering_status_temperature_encode(GetChipTemp());
-  uint16_t states = StepperCtrl_getStatuses();
-  ControlStatus.control_status = states & 0xFF;
-  ControlStatus.debug_states = (states >> 8)  & 0xFF;
-  
-  //calculate checksum:
-  uint8_t DataTemp[8];
-  Msg_steering_status_pack(DataTemp, &ControlStatus, sizeof(DataTemp));
-  ControlStatus.checksum = Msg_calc_checksum_8bit(DataTemp, MSG_STEERING_STATUS_LENGTH, MSG_STEERING_STATUS_FRAME_ID);
-
-  //pack and transmit
-  CanTxMsg TxMessage;
-  uint8_t TransmitMailbox;
-  TxMessage.RTR=CAN_RTR_DATA;
-  TxMessage.IDE=CAN_ID_STD;
-
-  Msg_steering_status_pack((&TxMessage)->Data, &ControlStatus, sizeof(TxMessage.Data));
-  TxMessage.StdId=MSG_STEERING_STATUS_FRAME_ID;
-  TxMessage.DLC=MSG_STEERING_STATUS_LENGTH;
-  TransmitMailbox=CAN_Transmit(CAN1, &TxMessage);
-
-  // TxMessage.StdId=0xC4; //todo remove debug
-  // extern int16_t pTerm_glob;
-  // extern int16_t iTerm_glob;
-  // extern int16_t dTerm_glob;
-  // TxMessage.DLC=8;
-  // TxMessage.Data[0] = (StepperCtrl_getAngleFromEncoder() / RAW_POSITION_TO_MOTOR) & 0xFF;
-  // TxMessage.Data[1] = (StepperCtrl_getAngleFromEncoder() / RAW_POSITION_TO_MOTOR) >> 8;
-  // TxMessage.Data[3] =  StepperCtrl_getSpeedRev() & 0xFF;
-  // TxMessage.Data[4] =  StepperCtrl_getSpeedRev() >> 8;
-  
-  // TxMessage.Data[5] = (pTerm_glob / RAW_TORQUE_TO_mA) & 0xFF;
-  // TxMessage.Data[6] = (iTerm_glob / RAW_TORQUE_TO_mA) & 0xFF;
-  // TxMessage.Data[7] = (dTerm_glob / RAW_TORQUE_TO_mA) & 0xFF;
-  // TransmitMailbox=CAN_Transmit(CAN1, &TxMessage);
-  
-  CheckTxStatus(TransmitMailbox);
-
-}
-
-void CheckTxStatus(uint8_t TransmitMailbox){
+static void CheckTxStatus(uint8_t transmitMailbox){
 	uint8_t i = 0;
 	uint8_t status = CAN_TxStatus_Failed;
   // wait until CAN transmission is OK
   i = 0;
   while((status != CANTXOK))               
   {
-    status = CAN_TransmitStatus(CAN1, TransmitMailbox);
+    status = CAN_TransmitStatus(CAN1, transmitMailbox);
     i++;
-    if (status == CAN_TxStatus_Failed || (i == 0xFF)){
+    if ((status == CAN_TxStatus_Failed) || (i == 0xFFU)){
       can_err_tx_cnt++;
       status = CAN_GetLastErrorCode(CAN1);
       return;
@@ -129,9 +82,41 @@ void CheckTxStatus(uint8_t TransmitMailbox){
 }
 
 
+void CAN_TransmitMotorStatus(uint32_t frame){
+  static struct Msg_steering_status_t controlStatus;
+  //populate message structure:
+  controlStatus.counter = frame & 0xFU;
+  controlStatus.steering_angle = Msg_steering_status_steering_angle_encode(StepperCtrl_getAngleFromEncoder());
+  controlStatus.steering_speed = Msg_steering_status_steering_speed_encode(StepperCtrl_getSpeedRev());
+  controlStatus.steering_torque = Msg_steering_status_steering_torque_encode(StepperCtrl_getControlOutput());
+  controlStatus.temperature = Msg_steering_status_temperature_encode(GetChipTemp());
+  uint16_t states = StepperCtrl_getStatuses();
+  controlStatus.control_status = states & 0xFFU;
+  controlStatus.debug_states = (states >> 8U)  & 0xFFU;
+  
+  //calculate checksum:
+  uint8_t dataTemp[8];
+  Msg_steering_status_pack(dataTemp, &controlStatus, sizeof(dataTemp));
+  controlStatus.checksum = Msg_calc_checksum_8bit(dataTemp, MSG_STEERING_STATUS_LENGTH, MSG_STEERING_STATUS_FRAME_ID);
+
+  //pack and transmit
+  CanTxMsg txMessage;
+  uint8_t _transmitMailbox;
+  txMessage.RTR=CAN_RTR_DATA;
+  txMessage.IDE=CAN_ID_STD;
+
+  Msg_steering_status_pack((&txMessage)->Data, &controlStatus, sizeof(txMessage.Data));
+  txMessage.StdId=MSG_STEERING_STATUS_FRAME_ID;
+  txMessage.DLC=MSG_STEERING_STATUS_LENGTH;
+  _transmitMailbox=CAN_Transmit(CAN1, &txMessage);
+  
+  CheckTxStatus(_transmitMailbox);
+
+}
+
 static volatile uint16_t can_control_cmd_cnt = 0;
 struct Msg_steering_command_t ControlCmds;
-void CAN_InterpretMesssages(CanRxMsg message) { 
+static void CAN_InterpretMesssages(CanRxMsg message) { 
   switch (message.StdId){
   	case MSG_STEERING_COMMAND_FRAME_ID: {      
       Msg_steering_command_unpack(&ControlCmds, message.Data, sizeof(message.Data));
@@ -180,6 +165,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 
 }
 
+#define CHECK_RX_FAIL_LIM 5
 bool Check_Control_CAN_rx_validate_tick(void) //call from 10ms task
 {
   static uint16_t can_control_cmds_cnt_prev = 0;
