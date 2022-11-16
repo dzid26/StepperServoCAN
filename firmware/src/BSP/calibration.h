@@ -26,20 +26,17 @@
 #include "flash.h"
 
 #define	CALIBRATION_TABLE_SIZE			400U  // 400 will work good for calibrating 1.8deg stepper every half step and 0.9deg stepper every full step 
-#define CALIBRATION_WRAP 				((int32_t)16384)
-#define CALIBRATION_STEPS 				((uint32_t)32768U)
+#define FAST_CAL_TABLE_SIZE 			16384U
 
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
 
 //Here are some useful macros
-#define DIVIDE_WITH_ROUND(x,y)  ( ( (x) + ((y) >> 1) ) / (y) )	//DIVIDE_WITH_ROUND(x,y) = (x/y)+0.5
+#define DIVIDE_WITH_ROUND(x,y)  ( ( (x) + ((y) >> 1U) ) / (y) )	// [(x/y)+0.5]
 
 typedef struct {
 	uint16_t FlashCalData[CALIBRATION_TABLE_SIZE];
 	uint16_t status;
-	uint16_t MIN;
-	uint16_t MAX;
 } FlashCalData_t;
 
 typedef struct {
@@ -51,7 +48,7 @@ void StepperCtrl_setLocationFromEncoder(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
 float StepperCtrl_measureStepSize(void);
 bool CalibrationTable_calValid(void);
-uint16_t CalibrationTable_fastReverseLookup(uint16_t fastEncoderAngle);
+uint16_t GetCorrectedAngle(uint16_t fastEncoderAngle);
 int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
 uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 void CalibrationTable_saveToFlash(void);

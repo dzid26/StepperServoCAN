@@ -114,8 +114,8 @@ void StepperCtrl_setLocationFromEncoder(void)
 		uint16_t x,a;
 
 		//set our angles based on previous cal data
-		x = StepperCtrl_sampleMeanEncoder(102);
-		a = CalibrationTable_fastReverseLookup(x); //start angle
+		x = OverSampleEncoderAngle(200U);
+		a = GetCorrectedAngle(x); //start angle
 
 		currentLocation = (int32_t)a; //save position
 	}
@@ -130,7 +130,7 @@ int32_t StepperCtrl_updateCurrentLocation(void)
 {
 	int32_t a,x;
 
-	a = (int32_t)StepperCtrl_getEncoderAngle();
+	a = (int32_t)GetCorrectedAngle(ReadEncoderAngle());
 
 	x = a - (currentLocation & (int32_t) ANGLE_MAX);
 
@@ -178,7 +178,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 	}else
 	{
 		x = StepperCtrl_measureStepSize();
-		if (fabs(x) < 0.5)
+		if (fabs(x) < 0.5f)
 		{
 			return STEPCTRL_NO_POWER; //Motor may not have power
 		}
@@ -196,7 +196,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 			x = StepperCtrl_measureStepSize();
 		}
 
-		if (x < 0)
+		if (x < 0.0f)
 		{
 			motorParams.motorWiring = !motorParams.motorWiring;
 		}

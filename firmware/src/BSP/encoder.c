@@ -22,82 +22,42 @@
 #include "encoder.h"
 #include "calibration.h"
 
-uint16_t ReadEncoderAngle(void){ 
-	//Expects 15bits - 32767 is 360deg
-	return TLE5012_ReadAngle(); //(0-32767)
-}
-
 bool Encoder_begin(void){
 	return TLE5012_begin();
 }
 
-
-uint16_t StepperCtrl_getEncoderAngle(void)
-{
-	uint16_t EncoderAngle;//(0-32767)
-
-	EncoderAngle = CalibrationTable_fastReverseLookup(ReadEncoderAngle());
-
-	return EncoderAngle;  //0-65535
+uint16_t ReadEncoderAngle(void){ 
+	//TLE5012 is 15bits - 32767 corresponds to 360deg
+	return (uint16_t)(TLE5012_ReadAngle()<<1U); //Scale (0-32767) -> (0-65535)
 }
 
-// when sampling the mean of encoder if we are on roll over
-// edge we can have an issue so we have this function
-// to do the mean correctly
-uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples)
-{
-	uint16_t i;
-	int32_t lastx = 0,x = 0;
-	int32_t min = 0,max = 0;
-	int64_t sum = 0;
-	int32_t mean = 0;
+//Get oversampled encoder angle
+uint16_t OverSampleEncoderAngle(uint16_t numSamples){
+	uint32_t min = 0,max = 0;
+	//recursive mean algorithm
+	uint32_t mean = 0;
+	for(int16_t k=1; k <= (int16_t)numSamples; k++){//multiple lines to satisfy MISRA
+		uint32_t x = ReadEncoderAngle()<<16U; 		//bump all values into uint32 range for accuracy when dividing by k
+		uint32_t delta = x - mean; 					//utlizes uint32 wrap around to automatically handle values roll over
+		int32_t delta_weighted = (int32_t)delta/k; 	//cast to signed to handle division properly
+		mean = mean + (uint32_t)delta_weighted;		//go back to unsigned to handle wrap around
 
-	for(i=0; i < numSamples; i++)
-	{
-		lastx = x;
-		x = (int32_t)ReadEncoderAngle();
-		if(i == 0)
-		{
-			lastx = x;
+		
+		if(k == 1){
 			min = x;
 			max = x;
 		}
 
-		//wrap
-		if (fastAbs(lastx - x) > CALIBRATION_WRAP) //2^15-1 = 32767(max)
-		{
-			if (lastx > x)
-			{
-				x = x + CALIBRATION_STEPS;
-			} else
-			{
-				x = x - CALIBRATION_STEPS;
-			}
-		}
-
-		if (x > max)
-		{
+		if (((int32_t)(x-max))>0){//utlizes uint32 wrap around to automatically handle values roll over
 			max = x;
 		}
-		if (x < min)
-		{
+		if (((int32_t)(x-min))<0){//utlizes uint32 wrap around to automatically handle values roll over
 			min = x;
 		}
-
-		sum = sum + x;
 	}
-
-	mean = (int32_t)(sum - min - max) / (numSamples - 2); //remove the min and the max.
-
-	//mean 0~32767
-	if(mean >= CALIBRATION_STEPS)
-	{
-		mean = (mean - (int32_t)CALIBRATION_STEPS);
-	}
-	if(mean < 0)
-	{
-		mean = (mean + (int32_t)CALIBRATION_STEPS);
-	}
-
-	return ((uint16_t)mean); //(0-32767)
+	
+	mean = mean - (uint32_t)((int32_t)(max - mean)/(int16_t)numSamples);
+	mean = mean - (uint32_t)((int32_t)(min - mean)/(int16_t)(numSamples-1U));
+	
+	return mean>>16U; //(0-65535)
 }

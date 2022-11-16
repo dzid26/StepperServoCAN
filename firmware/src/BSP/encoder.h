@@ -32,8 +32,8 @@
 #define DEGREES_TO_ANGLERAW(x) ( ((float)(x) / 360.0f * (float)ANGLE_STEPS) )
 #define ANGLERAW_T0_DEGREES(x) ( ((float)(x) * 360.0f / (float)ANGLE_STEPS) )
 
-uint16_t StepperCtrl_getEncoderAngle(void);
-uint16_t StepperCtrl_sampleMeanEncoder(uint16_t numSamples);
+uint16_t ReadEncoderAngle(void);
+uint16_t OverSampleEncoderAngle(uint16_t numSamples);
 bool Encoder_begin(void);
 
 

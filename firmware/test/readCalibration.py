@@ -27,10 +27,8 @@ import re
 # typedef struct {
 # 	uint16_t FlashCalData[CALIBRATION_TABLE_SIZE];
 # 	uint16_t status;
-# 	uint16_t MIN;
-# 	uint16_t MAX;
 # } FlashCalData_t;
-CALIBRATION_STEPS = 32768
+ANGLE_STEPS = 65536
 
 class CalibrationRead(object):
     def __init__(self):
@@ -41,8 +39,6 @@ class CalibrationRead(object):
         self.struct = self._create_struct_format(self.cal_size) 
         self.values =np.array([])
         self.status= []
-        self.MIN = []
-        self.MAX = []
 
         self.wrap_idx = 0
 
@@ -50,7 +46,7 @@ class CalibrationRead(object):
     def _create_struct_format(_calsize):
         struct = '<' #ARM has little endian
         struct += str(_calsize) + 'H'  #cal array
-        struct += "HHH" #status, min and max
+        struct += "HHH" #status
         return struct
 
     def _update_cal_table_size(self):
@@ -72,18 +68,14 @@ class CalibrationRead(object):
             values_raw = struct.unpack(self.struct, dump.read(struct.calcsize(self.struct)))
         self.values = np.array(values_raw[0:self.cal_size])
         self.status = values_raw[-3]
-        self.MIN = values_raw[-2]
-        self.MAX = values_raw[-1]
         self.wrap_idx = self.values.argmin()
 
     def print_cals(self):
         print("400 measured values:")
         print(self.values)
-        print("Status: {0:1}, Min: {1:1}, Max :{2:1}"
+        print("Status: {0:1}"
             .format(
-                self.status,
-                self.MIN,
-                self.MAX
+                self.status
             )
         )
     
