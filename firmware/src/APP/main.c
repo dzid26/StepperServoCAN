@@ -48,14 +48,15 @@ static void RunCalibration(void){
 		//print errors on after failed calibration
 		if(err1){
 			(void) printf("Calibration not set\n");
-		}else if (err2){
+		}
+		if (err2){
 			(void) printf("Large deviation. Reposition the magnet\n");
 		}
 		
-		(void) printf("Confirm new calibration start..\n");
+		(void) printf("\nConfirm start of new calibration..\n");
 		do{	//wait for the user
 			Set_Func_LED(true);
-		}while(!Fcn_button_state() && getchar());
+		}while(!Fcn_button_state() && getchar()==EOF);
 		Set_Func_LED(false);
 
 		//print angle using fixed point
@@ -92,11 +93,11 @@ static void Begin_process(void)
 	Serivice_task_init(); //task init
 
 	display_show("StepperServoCAN", "initialization..", "", "");
-	delay_ms(1);
-	Set_Error_LED(true);
+	delay_ms(10);
 	stepCtrlError = STEPCTRL_NO_CAL;
 	while(STEPCTRL_NO_ERROR != stepCtrlError)
 	{
+		Set_Error_LED(true);
 		//start controller before accepting step inputs
 		stepCtrlError = StepperCtrl_begin();
 
@@ -104,29 +105,33 @@ static void Begin_process(void)
 		if (STEPCTRL_NO_ENCODER == stepCtrlError)
 		{
 			display_show("Encoder", " Error!", "REBOOT", "");
-			while(1);	//����
-		}
-
-		if(STEPCTRL_NO_POWER == stepCtrlError)
+			//slow red blink - encoder initialization fail - power down the board
+			Set_Error_LED(false);
+			delay_ms(1000);
+			Set_Error_LED(true);
+			delay_ms(1000);
+			stepCtrlError = StepperCtrl_begin();
+		}else if(STEPCTRL_NO_POWER == stepCtrlError)
 		{
 			display_show("Waiting", "MOTOR", "POWER", "");
-			while(STEPCTRL_NO_POWER == stepCtrlError)
-			{
-				stepCtrlError = StepperCtrl_begin(); //start controller before accepting step inputs
-			}
-		}
-
-		if(STEPCTRL_NO_CAL == stepCtrlError)
+			//interrupted red led (as if it is retrying) - waiting for power
+			delay_ms(1000);
+			Set_Error_LED(false);
+		}else if(STEPCTRL_NO_CAL == stepCtrlError)
 		{
 			display_show("   NOT ", "Calibrated", " ", "");
 			delay_ms(2200);
 			display_process();
 			RunCalibration();
+		}else{
+			Set_Error_LED(false);
 		}
 	}
+	Set_Error_LED(false);
+
 	display_setMenu(MenuMain);
 	printf("Initialization successful\n");
-	Set_Error_LED(false);
+	
 
 	printf("Starting motion task\n");
 	StepperCtrl_enable(true);
@@ -173,13 +178,13 @@ void Service_task(void){
 
 	//Function button and LED processing
 	static uint16_t fcn_button_count = 0; //centiseconds
-	const uint16_t fcn1_button_delay = 300U;//hold 3s to trigger re-calibration
-	if(Fcn_button_state()){
+	const uint16_t fcn1_button_delay = 200U;//hold 2s to trigger re-calibration
+	if(Fcn_button_state() && (stepCtrlError == STEPCTRL_NO_ERROR)){//look for button long press
 		fcn_button_count++;
 		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
-	if(fcn_button_count == (fcn1_button_delay-10U))	{Set_Func_LED(true);} 	//short
-	if(	fcn_button_count == fcn1_button_delay)		{Set_Func_LED(false);}	//blink
+	if(fcn_button_count == (fcn1_button_delay-10U))	{Set_Func_LED(true);} 	//short LED blink
+	if(	fcn_button_count == fcn1_button_delay)		{Set_Func_LED(false);}
 	if((fcn_button_count >= fcn1_button_delay)  && (!Fcn_button_state())){ 	//wait for button release
 		runCalibration = true; 		//request calibration - it will run in Background_process()
 	}
