@@ -487,7 +487,7 @@ static void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude)
 	uint16_t absoluteMicrosteps;
 
 	absoluteAngle = (uint16_t) (((uint32_t) (currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
-	absoluteMicrosteps = DIVIDE_WITH_ROUND((uint32_t) absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS, ANGLE_STEPS); //2^2=8 which is a common denominator of 200 and 256
+	absoluteMicrosteps = absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
 
 	A4950_move(absoluteMicrosteps, magnitude);
 }

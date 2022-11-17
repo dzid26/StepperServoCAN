@@ -31,9 +31,6 @@
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
 
-//Here are some useful macros
-#define DIVIDE_WITH_ROUND(x,y)  ( ( (x) + ((y) >> 1U) ) / (y) )	// [(x/y)+0.5]
-
 typedef struct {
 	uint16_t FlashCalData[CALIBRATION_TABLE_SIZE];
 	uint16_t status;
@@ -50,7 +47,6 @@ float StepperCtrl_measureStepSize(void);
 bool CalibrationTable_calValid(void);
 uint16_t GetCorrectedAngle(uint16_t fastEncoderAngle);
 int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
-uint16_t CalibrationTable_getCal(uint16_t actualAngle);
 void CalibrationTable_saveToFlash(void);
 void CalibrationTable_init(void);
 

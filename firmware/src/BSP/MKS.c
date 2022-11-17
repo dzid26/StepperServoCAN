@@ -57,7 +57,7 @@ int menuCalibrate(int argc, char *argv[])
 {
 	uint16_t error;
 	display_show("", "Calibrating...", "", "");
-	error = StepperCtrl_calibrateEncoder(true);
+	error = StepperCtrl_calibrateEncoder(false);
 	displayError(error);
 	return 1;
 }
@@ -66,7 +66,7 @@ int menuTestCal(int argc, char *argv[])
 {
 	uint16_t error;
 	display_show("", "Testing Cal...", "", "");
-	error = StepperCtrl_calibrateEncoder(false);
+	error = StepperCtrl_calibrateEncoder(true);
 	displayError(error);
 	return 1;
 }

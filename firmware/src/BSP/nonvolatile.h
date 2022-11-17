@@ -68,7 +68,7 @@ typedef struct {
 } SystemParams_t; //sizeof(SystemParams_t)=18
 
 typedef struct {
-	__attribute__((__aligned__(2))) uint16_t angle[16384];
+	__attribute__((__aligned__(2))) uint16_t angle[FAST_CAL_TABLE_SIZE];
 }FastCal_t;
 
 typedef struct {

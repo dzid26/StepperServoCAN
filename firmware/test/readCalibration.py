@@ -89,28 +89,31 @@ class CalibrationRead(object):
         return Y
         
     def plotcals(self):
-        x = np.linspace(0, 360 - 1/self.cal_size*360, self.cal_size)  
-        y = (self.values - self.values[self.wrap_idx]) / CALIBRATION_STEPS * 360  #normalize the values to start at 0, instead of tiny angle
+        interp_gran = int(32768/2)
+        x = np.linspace(0, 360 - 1/self.cal_size*360, self.cal_size)
+        x_interp = np.linspace(0, 360 - 1/self.cal_size*360, interp_gran)
+        y = (self.values - self.values[self.wrap_idx]) / ANGLE_STEPS * 360  #normalize the values to start at 0, instead of tiny angle
 
         y_monot = np.r_[y[self.wrap_idx:], y[0:self.wrap_idx]]
-        error = (y_monot-x)
-        wrap_point = x[self.wrap_idx]
-        start_point_monot = self.cal_size-self.wrap_idx
+        y_monot = np.interp(x_interp, np.linspace(0, 359, self.cal_size), y_monot)
+        error = (y_monot-x_interp)
+
+        start_point_monot = int((self.cal_size-self.wrap_idx)/self.cal_size*interp_gran)
         
         plt.figure(1)
         ax1 = plt.subplot(2,1,1)
-        ax1.plot(x,x, x,y_monot, 'r', x[start_point_monot], y_monot[start_point_monot], '.r', markersize=9, )
+        ax1.plot(x,x, x_interp,y_monot, 'r', x_interp[start_point_monot], y_monot[start_point_monot], '.r', markersize=9, )
         ax1.plot(x,y,'g')
         ax1.legend(("expected angle", "normalized angle", "rotation start point",  "raw angle")); plt.title("Recorded angles")
         
-        error_filter2 = signal.wiener(signal.medfilt(error, 5), 5)
-        params, params_covariance = optimize.curve_fit(self.fit_func, x, error, p0=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        error_filter2 = signal.wiener(signal.medfilt(error, 201), 201)
+        params, params_covariance = optimize.curve_fit(self.fit_func, x_interp, error, p0=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         print(params)
 
         ax2 = plt.subplot(2,1,2, sharex=ax1)
-        ax2.plot(x, error, 'r', x[start_point_monot], error[start_point_monot], '.c',  linewidth=1, markersize=16)
-        ax2.plot(x, error_filter2,'k')
-        ax2.plot(x, self.fit_func(x, *params),'b');  #fitted complex function
+        ax2.plot(x_interp, error, 'r', x_interp[start_point_monot], error[start_point_monot], '.c',  linewidth=1, markersize=16)
+        ax2.plot(x_interp, error_filter2,'k')
+        ax2.plot(x_interp, self.fit_func(x_interp, *params),'b');  #fitted complex function
         # ax2.plot(x, error - self.fit_func(x, *params),'g')
         ax2.legend(("calibration data", "rotation start point", "filtered data", "5x cos harmonics fitted", "remaining error after fitting"))
         plt.title("Angle errors")

@@ -60,7 +60,7 @@ static void RunCalibration(void){
 		Set_Func_LED(false);
 
 		//print angle using fixed point
-		uint16_t max_error100 = (uint16_t) (ANGLERAW_T0_DEGREES(StepperCtrl_calibrateEncoder(true))*100.0f);
+		uint16_t max_error100 = (uint16_t) (ANGLERAW_T0_DEGREES(StepperCtrl_calibrateEncoder(false))*100.0f);
 		uint16_t max_error = max_error100/100u;
 		(void) printf("Max deviation was %01u.%02u deg\n", max_error, (max_error*100u)-max_error100);
 

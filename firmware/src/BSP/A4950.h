@@ -25,7 +25,7 @@
 #include <stdbool.h>
 
 
-#define A4950_STEP_MICROSTEPS (uint16_t) 256
+#define A4950_STEP_MICROSTEPS (uint16_t) 256U //Full step electrical angle
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
 #define VREF_SCALER	6
 #define VREF_SINE_RATIO	(1<<VREF_SCALER)

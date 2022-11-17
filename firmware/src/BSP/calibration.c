@@ -33,19 +33,18 @@ static void CalibrationTable_createFastCal(void);
 static void CalibrationTable_loadFromFlash(void);
 static void CalibrationTable_updateFastCal(void);
 
-static volatile CalData_t CalData[CALIBRATION_TABLE_SIZE];
+static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 static volatile bool	fastCalVaild = false;
 
 
-static bool CalibrationTable_updateTableValue(uint16_t index, uint16_t value){
-	CalData[index].value =	value;
-	CalData[index].error = ANGLE_STEPS / CALIBRATION_TABLE_SIZE;
-	return true;
+static void CalibrationTable_updateTableValue(uint16_t index, uint16_t value){
+	calData[index].value =	value;
+	calData[index].error = ANGLE_STEPS / CALIBRATION_TABLE_SIZE;
 }
 
 bool CalibrationTable_calValid(void){
 	for (uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++){
-		if (CalData[i].error == CALIBRATION_ERROR_NOT_SET){
+		if (calData[i].error == CALIBRATION_ERROR_NOT_SET){
 			return false;
 		}
 	}
@@ -66,7 +65,7 @@ static uint16_t interp(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint1
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
-	y = y1 + DIVIDE_WITH_ROUND(dx2 * dy, dx); //(y-y1)=k(x-x1), k=(y2-y1)/(x2-x1)
+	y = y1 + (dx2 * dy / dx);
 	return y;
 }
 
@@ -74,8 +73,8 @@ static uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle){
 	uint16_t x = encoderAngle;//(0-65535)
 	for(uint16_t idx1 = 0; idx1 < CALIBRATION_TABLE_SIZE; idx1++){
 		uint16_t idx2 = (idx1 + 1U)%CALIBRATION_TABLE_SIZE;
-		uint16_t x1 = CalData[idx1].value;//(0-65535)
-		uint16_t x2 = CalData[idx2].value;//(0-65535)
+		uint16_t x1 = calData[idx1].value;//(0-65535)
+		uint16_t x2 = calData[idx2].value;//(0-65535)
 
 		//finding matching location
 		uint16_t x1_x = x - x1;  //Utilize wrap around effect of subtraction to deal of with x2<x1 on calibration table wrap
@@ -107,7 +106,7 @@ uint16_t GetCorrectedAngle(uint16_t encoderAngle){ //(0-65535)
 void CalibrationTable_saveToFlash(void){
 	FlashCalData_t data;
 	for (uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++ ){
-		data.FlashCalData[i] = CalData[i].value;
+		data.FlashCalData[i] = calData[i].value;
 	}
 	data.status = valid;
 	
@@ -122,9 +121,6 @@ static void CalibrationTable_createFastCal(void){
 	uint16_t data[FLASH_ROW_SIZE]; //1K
 	uint8_t page=0;
 	
-
-	uint16_t norm_offset = CalibrationTable_reverseLookup(0);
-
 	uint16_t angle=0;
 	for(uint16_t i=0; i < FAST_CAL_TABLE_SIZE; i++){
 		uint16_t x = CalibrationTable_reverseLookup(angle); //calculating fast calibration lookup every other angle int
@@ -145,8 +141,8 @@ static void CalibrationTable_createFastCal(void){
 //Reading Calibration from Flash
 static void CalibrationTable_loadFromFlash(void){
 	for(uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++){
-		CalData[i].value = nvmFlashCalData->FlashCalData[i]; // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
-		CalData[i].error = CALIBRATION_MIN_ERROR;
+		calData[i].value = nvmFlashCalData->FlashCalData[i]; // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
+		calData[i].error = CALIBRATION_MIN_ERROR;
 	}
 }
 
@@ -157,8 +153,8 @@ void CalibrationTable_init(void){
 		
 	}else{
 		for(uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++){
-			CalData[i].value = 0;
-			CalData[i].error = CALIBRATION_ERROR_NOT_SET;
+			calData[i].value = 0;
+			calData[i].error = CALIBRATION_ERROR_NOT_SET;
 		}
 	}
 }
@@ -183,15 +179,15 @@ static void CalibrationTable_updateFastCal(void){
 }
 
 //We want to linearly interpolate between calibration table angle
-uint16_t CalibrationTable_getCal(uint16_t actualAngle){ //actualAngle - (0-65535)
+static uint16_t CalibrationTable_getCal(uint16_t actualAngle){ //actualAngle - (0-65535)
 	uint16_t index;
 	index = (uint16_t) (((uint32_t)actualAngle * CALIBRATION_TABLE_SIZE) / ANGLE_STEPS);
 	uint16_t x1 = (uint16_t) (((uint32_t)index * ANGLE_STEPS) / CALIBRATION_TABLE_SIZE);
-	uint16_t y1 = CalData[index].value;
+	uint16_t y1 = calData[index].value;
 	
 	index = (index+1U) % CALIBRATION_TABLE_SIZE;
 	uint16_t x2 = (uint16_t) (((uint32_t)index * ANGLE_STEPS) / CALIBRATION_TABLE_SIZE);
-	uint16_t y2 = CalData[index].value;
+	uint16_t y2 = calData[index].value;
 	
 	uint16_t value = interp(x1, y1, x2, y2, actualAngle);
 
@@ -236,81 +232,83 @@ float StepperCtrl_measureStepSize(void){
 // We also need to calibrate the phasing of the motor
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
-static uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calZeroOffset){
-	
+static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
+	static uint32_t electAngle;//electric angle
+
 	uint16_t maxError = 0;
 	uint16_t stepCurrent = motorParams.currentMa;
-	
-	(*passes)++;
-	int16_t microStep = A4950_STEP_MICROSTEPS*motorParams.fullStepsPerRotation/CALIBRATION_TABLE_SIZE;
-	
-	const uint16_t preRunSteps = CALIBRATION_TABLE_SIZE/2; //do half rotation preRun to start calibration with max hysteresis
-	for (uint16_t j = 0; j < preRunSteps + CALIBRATION_TABLE_SIZE; j++) //Starting calibration 
+	uint8_t dir = (uint8_t)(pass_no % 2U);//forward during first pass, backward during second pass
+		
+	const uint16_t preRunSteps = motorParams.fullStepsPerRotation/2U; //do half rotation preRun to start calibration with max hysteresis
+	const uint16_t passSteps = preRunSteps + CALIBRATION_TABLE_SIZE;
+	for (uint16_t step = 0; step < passSteps; step++) //Starting calibration 
 	{
-		static volatile uint16_t desiredAngle;
-		static volatile uint16_t sampled;
-
-		bool preRun = (j < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
-		delay_ms(1);
-		if (updateFlash && !preRun) 
-			delay_ms(100);
-
+		bool preRun = (step < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
 		
-		desiredAngle = (uint16_t) DIVIDE_WITH_ROUND(*microSteps * (int32_t)(ANGLE_STEPS>>2) / A4950_STEP_MICROSTEPS, motorParams.fullStepsPerRotation>>2);
-		uint16_t cal = (CalibrationTable_getCal(desiredAngle)<<1) + calZeroOffset; //returns (0-32767) scaled to (0-65535)
-		
-		sampled = OverSampleEncoderAngle(200U); //collect angle every half step for 1.8 stepper
-		
-		int16_t dist = (int16_t)(sampled - cal);
-
-		
-		if (updateFlash && !preRun) {
-			uint16_t average = cal + (dist / (*passes)); //add half a distance to average
-			CalibrationTable_updateTableValue(( (dir<0) ? (preRunSteps + CALIBRATION_TABLE_SIZE -j) : j)%CALIBRATION_TABLE_SIZE, average);
+		uint16_t averageMeasurment; //average between passes
+		if (!preRun) {
+			delay_ms(60);
+			uint16_t sampled = OverSampleEncoderAngle(200U); //collect angle every half step for 1.8 stepper
+			uint16_t expectedAngle = (uint16_t)(ANGLE_STEPS * electAngle / A4950_STEP_MICROSTEPS / motorParams.fullStepsPerRotation);//convert to shaft angle
+			uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535)
+			int16_t delta = sampled - cal; //utlizes wrap around
+			
+			if(pass_no == 0U){//if first pass. This condition is not needed, but adds clarity
+				averageMeasurment = sampled; //add half a distance to average
+			}else{
+				int16_t delta_weighted = (delta / (int16_t)pass_no);//cast to signed temporarily to perform division
+				averageMeasurment = cal + (uint16_t)delta_weighted; //add half a distance to average
+			}
+			//store max error during second pass
+			uint16_t dist_abs = (uint16_t) fastAbs(delta);
+			maxError = (dist_abs > maxError) ? dist_abs : maxError;
 		}
-		//move one half step at a time, a full step move could cause a move backwards
-	
-		dist = (int16_t) fastAbs(dist);
-		if(dist > maxError && !preRun)
-				{
-					maxError = dist;
-				}
-		if(microStep > A4950_STEP_MICROSTEPS)  //for 0.9deg stepper collect data only every full step
-		{
-			A4950_move(*microSteps + A4950_STEP_MICROSTEPS, stepCurrent);
-			delay_ms(20);
+		if(!verifyOnly && !preRun){
+			uint16_t calIdx;
+			if(dir==0U){
+				calIdx = step;
+			}else{
+				calIdx = passSteps - step; //index from the end on the way back
+			}
+			CalibrationTable_updateTableValue(calIdx % CALIBRATION_TABLE_SIZE, averageMeasurment);
 		}
-		*microSteps += microStep*dir;
-		A4950_move(*microSteps, stepCurrent);
+		//move half step at a time (even for 400 step motor). A full step move could cause a move backwards for uncalibrated controller
+		uint8_t stepSize = (uint8_t) (CALIBRATION_TABLE_SIZE/motorParams.fullStepsPerRotation);
+		for(uint16_t i = 0; i<stepSize; i++){
+			if(dir==0U){
+				electAngle += (uint32_t)A4950_STEP_MICROSTEPS/stepSize/2U; //it's ok if it overflows
+			}else{
+				electAngle -= (uint32_t)A4950_STEP_MICROSTEPS/stepSize/2U;
+			}
+			A4950_move((uint16_t)electAngle, stepCurrent);
+			delay_ms(1);
+		}
+	}
+	if (dir == 1U){ //reset static var after coming back
+		electAngle = 0;
 	}
 	return maxError;
 }
 
-uint16_t StepperCtrl_calibrateEncoder(bool updateFlash)
-{
+
+uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	uint16_t maxError;
-	int32_t microSteps = 0;
-	uint8_t passes = 0;
 
 	A4950_enable(true);
 	currentLocation = 0;
 
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);
-	uint16_t calZeroOffset=OverSampleEncoderAngle(200U) - CalibrationTable_getCal(0);//0-65535
-	
-	//! first calibration pass to the right
-	maxError = CalibrationMove(updateFlash, 1, &microSteps, &passes, calZeroOffset); //run clockwise
-	//! second calibration to the left - reduces influence of magnetic hysteresis
+	//first calibration pass forward
+	maxError = CalibrationMove(0U, verifyOnly);
+	//second calibration pass backward - reduces influence of magnetic hysteresis
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
-	if(updateFlash) {	//second pass anticlockwise when calibrating
-		calZeroOffset=0; //on the second run, the calTab values are alligned with the sensor, so no offset
-		maxError = CalibrationMove(updateFlash, -1, &microSteps, &passes, calZeroOffset); 
-
+	if(!verifyOnly){
+		maxError = CalibrationMove(1U, verifyOnly);
 		CalibrationTable_saveToFlash(); //saves the calibration to flash
 	}
 	//measure new starting point
-	A4950_move(0, 0); //release motor
+	A4950_move(0, 0); //release motor - 0mA
 
 	return maxError;
 }
