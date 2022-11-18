@@ -34,7 +34,7 @@ class CalibrationRead(object):
     def __init__(self):
         self.cal_size = 400
         self._update_cal_table_size()
-        self.address = 0x08007C00  #FLASH_PAGE31_ADDR
+        self.address = 0x0800FC00  #FLASH_PAGE63_ADDR
 
         self.struct = self._create_struct_format(self.cal_size) 
         self.values =np.array([])
@@ -98,13 +98,13 @@ class CalibrationRead(object):
         y_monot = np.interp(x_interp, np.linspace(0, 359, self.cal_size), y_monot)
         error = (y_monot-x_interp)
 
-        start_point_monot = int((self.cal_size-self.wrap_idx)/self.cal_size*interp_gran)
+        start_point_monot = int((self.cal_size-self.wrap_idx)/self.cal_size*interp_gran)-1
         
         plt.figure(1)
         ax1 = plt.subplot(2,1,1)
-        ax1.plot(x,x, x_interp,y_monot, 'r', x_interp[start_point_monot], y_monot[start_point_monot], '.r', markersize=9, )
+        ax1.plot(x,x, x_interp[start_point_monot], y_monot[start_point_monot], '.r', markersize=9)
         ax1.plot(x,y,'g')
-        ax1.legend(("expected angle", "normalized angle", "rotation start point",  "raw angle")); plt.title("Recorded angles")
+        ax1.legend(("expected angle", "rotation start point",  "raw angle")); plt.title("Recorded angles")
         
         error_filter2 = signal.wiener(signal.medfilt(error, 201), 201)
         params, params_covariance = optimize.curve_fit(self.fit_func, x_interp, error, p0=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])

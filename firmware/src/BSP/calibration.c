@@ -27,15 +27,7 @@
 #include "delay.h"
 #include "actuator_config.h"
 
-extern volatile int32_t currentLocation;
-
-static void CalibrationTable_createFastCal(void);
-static void CalibrationTable_loadFromFlash(void);
-static void CalibrationTable_updateFastCal(void);
-
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
-static volatile bool	fastCalVaild = false;
-
 
 static void CalibrationTable_updateTableValue(uint16_t index, uint16_t value){
 	calData[index].value =	value;
@@ -65,41 +57,41 @@ static uint16_t interp(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint1
 	dx = x2 - x1;
 	dy = y2 - y1;
 	dx2 = x - x1;
-	y = y1 + (dx2 * dy / dx);
+	y = y1 + (uint16_t)((uint32_t)dx2 * dy / dx);
 	return y;
 }
-
 static uint16_t CalibrationTable_reverseLookup(uint16_t encoderAngle){
-	uint16_t x = encoderAngle;//(0-65535)
-	for(uint16_t idx1 = 0; idx1 < CALIBRATION_TABLE_SIZE; idx1++){
-		uint16_t idx2 = (idx1 + 1U)%CALIBRATION_TABLE_SIZE;
+	//guess matching index based on monotonicity and roughly regular spacing of the angle sensor
+	uint16_t idx1 = (uint16_t)((uint32_t)(uint16_t)(encoderAngle - calData[0].value) * CALIBRATION_TABLE_SIZE / ANGLE_STEPS);
+	//search precise match around guessed location
+	//at SAMPLING_PERIOD_uS==40, CPU can handle about 50 loops
+	uint16_t x = encoderAngle;
+	for(uint16_t i = 0; i < 20U; i++){//todo - make this a define
+		//compare the valeus
 		uint16_t x1 = calData[idx1].value;//(0-65535)
-		uint16_t x2 = calData[idx2].value;//(0-65535)
-
-		//finding matching location
-		uint16_t x1_x = x - x1;  //Utilize wrap around effect of subtraction to deal of with x2<x1 on calibration table wrap
-		uint16_t x_x2 = x2 - x;
-		if (((int16_t)x1_x >= 0) && ((int16_t)x_x2 > 0)){ //search angle within the range.
-			//x1=a1  y1=b1=i*(65536/200)+0.5   x2=a2  y2=b2=(i+1)*(65536/200)+0.5   x=encoderAngle
-			uint16_t y1 = (uint16_t)((uint32_t) idx1 * ANGLE_STEPS / CALIBRATION_TABLE_SIZE);
-			uint16_t y2 = (uint16_t)((uint32_t) idx2 * ANGLE_STEPS / CALIBRATION_TABLE_SIZE);
-			uint16_t y = interp(x1,y1,x2,y2,x); //y=y1+k(x-x1), k=(y2-y1)/(x2-x1)
-			return y;//(0-65535)
+		uint16_t x_x1 = x - x1;  //Utilize wrap around effect of subtraction to deal of with x2<x1 on calibration table wrap
+		if (((int16_t)x_x1 >= 0)){//} && (x_x1 < (2U * (uint16_t)(ANGLE_STEPS / CALIBRATION_TABLE_SIZE)))){
+			uint16_t idx2 = (idx1 + 1U)%CALIBRATION_TABLE_SIZE;
+			uint16_t x2 = calData[idx2].value;//(0-65535)
+			uint16_t x2_x = x2 - x;
+			if((int16_t)x2_x > 0){ //match has been found
+				//x1=a1  y1=b1=i*(65536/200)+0.5   x2=a2  y2=b2=(i+1)*(65536/200)+0.5   x=encoderAngle
+				uint16_t y1 = (uint16_t)((uint32_t) idx1 * ANGLE_STEPS / CALIBRATION_TABLE_SIZE);
+				uint16_t y2 = (uint16_t)((uint32_t) idx2 * ANGLE_STEPS / CALIBRATION_TABLE_SIZE);
+				uint16_t y = interp(x1,y1,x2,y2,x); //y=y1+k(x-x1), k=(y2-y1)/(x2-x1)
+				return y;//(0-65535)
+			}else{//actual match is further to the right
+				idx1=(idx1+1U)%CALIBRATION_TABLE_SIZE;
+			}
+		}else{//actual match is further to the left
+			idx1=(idx1-1U)%CALIBRATION_TABLE_SIZE;
 		}
 	}
-	return 0;	//we did some thing wrong
+	return calData[idx1].value;	//calibration likely not linear - bail out with last best guess
 }
 
-static const uint16_t fastcal_angle_step = (uint16_t)(ANGLE_STEPS/FAST_CAL_TABLE_SIZE); //effectively stores 2^14 angles, which can be further interpolated to 15bit at runtime
 uint16_t GetCorrectedAngle(uint16_t encoderAngle){ //(0-65535)
-	uint16_t fastLook;
-	if (fastCalVaild == true){	//assume calibration is good
-		uint16_t fastLookIdx = encoderAngle / fastcal_angle_step; //fast lookup doesn't store all angles
-		uint16_t angleRemainder = encoderAngle - (fastLookIdx * fastcal_angle_step);//improve accuracy by adding remaining bits to fast lookup
-		fastLook = nvmFastCal->angle[fastLookIdx] + angleRemainder; // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
-	}else{
-		fastLook =  CalibrationTable_reverseLookup(encoderAngle);
-	}
+	uint16_t fastLook = CalibrationTable_reverseLookup(encoderAngle);
 	return fastLook;//0-65535
 }
 
@@ -111,31 +103,6 @@ void CalibrationTable_saveToFlash(void){
 	data.status = valid;
 	
 	nvmWriteCalTable(&data); //CalTable
-
-	CalibrationTable_createFastCal(); //FastCalTable
-}
-
-//FastCal writes 32kB to the end flash starting at page32
-static void CalibrationTable_createFastCal(void){
-	uint16_t checkSum = 0;
-	uint16_t data[FLASH_ROW_SIZE]; //1K
-	uint8_t page=0;
-	
-	uint16_t angle=0;
-	for(uint16_t i=0; i < FAST_CAL_TABLE_SIZE; i++){
-		uint16_t x = CalibrationTable_reverseLookup(angle); //calculating fast calibration lookup every other angle int
-		angle += fastcal_angle_step;
-		data[i % FLASH_ROW_SIZE] = x;
-		checkSum += x;
-		
-		if (((i+1U) % FLASH_ROW_SIZE)==0U){ //1k bytes = 512 uint16_t
-			nvmWriteFastCalTable(&data, page);
-			page++;
-		}
-	}
-	Flash_ProgramSize(FLASH_checkSum_ADDR, &checkSum, 1);	//checkSum
-	
-	fastCalVaild = true;
 }
 
 //Reading Calibration from Flash
@@ -149,32 +116,12 @@ static void CalibrationTable_loadFromFlash(void){
 void CalibrationTable_init(void){
 	if(valid == nvmFlashCalData->status){  // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
 		CalibrationTable_loadFromFlash();
-		CalibrationTable_updateFastCal();
 		
 	}else{
 		for(uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++){
 			calData[i].value = 0;
 			calData[i].error = CALIBRATION_ERROR_NOT_SET;
 		}
-	}
-}
-
-static void CalibrationTable_updateFastCal(void){
-	uint16_t checkSum = 0;
-	bool nonZero = false;
-	for(uint16_t i=0; i < FAST_CAL_TABLE_SIZE; i++)	{
-		checkSum += nvmFastCal->angle[i]; // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
-		if(checkSum != 0U)
-		{
-			nonZero = true;
-		}
-	}
-	
-	if((checkSum != Flash_readHalfWord(FLASH_checkSum_ADDR)) || (nonZero != true)){
-		CalibrationTable_saveToFlash();
-	}
-	else{
-		fastCalVaild = true;
 	}
 }
 
@@ -295,7 +242,6 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	uint16_t maxError;
 
 	A4950_enable(true);
-	currentLocation = 0;
 
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);

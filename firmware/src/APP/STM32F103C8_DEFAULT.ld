@@ -37,7 +37,7 @@ _Min_Stack_Size = 0x800;	/* required amount of stack */
 MEMORY
 {
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 20K
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 30k /* Out 64k, here limited to 30k by calibration starting at FLASH_PAGE30_ADDR. */
+  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 62k /* limited to 62k (out of 64k) due to nvram storage starting at FLASH_PAGE62_ADDR. */
 }
 
 /* Sections */

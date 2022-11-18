@@ -79,13 +79,11 @@ typedef struct {
 	PIDparams_t 		vPID; //velocity PID parameters
 } nvm_t;
 
-#define PARAMETERS_FLASH_ADDR  		FLASH_PAGE30_ADDR
-#define CALIBRATION_FLASH_ADDR  	FLASH_PAGE31_ADDR
-#define FASTCALIBRATION_FLASH_ADDR  FLASH_PAGE32_ADDR
+#define PARAMETERS_FLASH_ADDR  		FLASH_PAGE62_ADDR
+#define CALIBRATION_FLASH_ADDR  	FLASH_PAGE63_ADDR
 
 #define NVM										((nvm_t*)NVM_address)
 #define nvmFlashCalData				((FlashCalData_t*)CALIBRATION_FLASH_ADDR)
-#define nvmFastCal 						((FastCal_t *)FASTCALIBRATION_FLASH_ADDR)
 
 #define NONVOLATILE_STEPS				((uint32_t)62)		//sizeof(nvm_t) = 60
 
@@ -99,7 +97,6 @@ extern volatile MotorParams_t motorParams;
 
 void nonvolatile_begin(void);
 void nvmWriteCalTable(void *ptrData);
-void nvmWriteFastCalTable(void *ptrData, uint16_t offset);
 void nvmWriteConfParms(nvm_t* ptrNVM);
 
 #endif

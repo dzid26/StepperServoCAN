@@ -62,18 +62,6 @@ void nvmWriteCalTable(void *ptrData)
 	}
 }
 
-void nvmWriteFastCalTable(void *ptrData, uint16_t page)
-{
-	bool state = motion_task_isr_enabled;
-	Motion_task_disable(); 
-	
-	Flash_ProgramPage(FASTCALIBRATION_FLASH_ADDR + ((uint32_t)FLASH_PAGE_SIZE * page), ptrData, FLASH_ROW_SIZE);
-	
-	if (state) {
-		Motion_task_enable();
-	}
-}
-
 void nvmWriteConfParms(nvm_t* ptrNVM)
 {		
 	bool state = motion_task_isr_enabled;
