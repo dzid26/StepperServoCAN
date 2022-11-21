@@ -74,7 +74,9 @@ static void TLE5012B_init(void)
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
 	}else if (TLE5012B_SPI == SPI1){
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-	}else{}
+	}else{
+		//Unsupported
+	}
 	
 	GPIO_InitTypeDef  GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | PIN_TLE5012B_DATA;
@@ -85,8 +87,8 @@ static void TLE5012B_init(void)
   	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_CS;
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; //software NSS gpio switching - non-alternate function
  	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
+	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);//CS high - deselect device for now
 	
-  	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);
 	SPI_InitTypeDef SPI_InitStructure;	
 	SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
@@ -94,12 +96,12 @@ static void TLE5012B_init(void)
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
 	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; //4.5Mbit/s
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	 //X8+X4+X3+X2+1  J1850 - sadly to use hardware CRC8, SPI_DataSize would need to be change to 8bit - not ideal
 	SPI_InitStructure.SPI_CRCPolynomial = 0x1D;
-	SPI_Init (TLE5012B_SPI, &SPI_InitStructure);	
-	SPI_Cmd (TLE5012B_SPI, ENABLE);
+	SPI_Init (TLE5012B_SPI, &SPI_InitStructure);
+
 }
 
 //Init switch IO
@@ -108,7 +110,7 @@ static void SWITCH_init(void)
 	//dip switches
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStructure.GPIO_Pin = PIN_FCN_KEY;
     GPIO_Init(PIN_SW, &GPIO_InitStructure);
 
@@ -126,7 +128,7 @@ static void A4950_init(void)
 	//A4950 Input pins
 	GPIO_InitTypeDef  GPIO_InitStructure; 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
     GPIO_Init(PIN_A4950, &GPIO_InitStructure);
 

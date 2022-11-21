@@ -29,13 +29,16 @@ bool TLE5012_begin(void)
 {
   bool ok = true;
   
-  uint16_t state=TLE5012_ReadState();// read state register
-  if((state & 0x0080U) != 0U) {// Status Magnitude Out of Limit
-    ok = ok && false; // GMR-magnitude out of limit
+   uint16_t state=TLE5012_ReadState();// read state register
+  if(state == 0U){
+    (void) printf("\nTLE5012 SPI comm error, data: %d\n", state);
+    ok = false;
+  }else if((state & 0x0080U) != 0U) {// S_MAGOL - GMR Magnitude Out of Limit
+    (void) printf("\nMagnet too strong, data: %d\n", state);
+    ok = false;
   }
-  ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
+  ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804U);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
   //todo calculate CRC for crc_par register to remove S_FUSE error
-
   return ok;
 }
 
@@ -45,40 +48,39 @@ volatile uint16_t safety;
 uint16_t TLE5012_ReadValue(uint16_t Command)
 {
   uint16_t data;
-  
-  TLE012_CS_L;
+
+  TLE5012_ACTIVE;
+  SPI_RX_OFF;
   SPI_Cmd(TLE5012B_SPI, ENABLE);
-  SPI_Write(TLE5012B_SPI, Command); //command write, read to just clear the buffer
-  
-  //delay_us(1); //tle5012 - twr_delay  - seems like it works without the delay
+  SPI_Write(TLE5012B_SPI, Command|READ_FLAG); //command write. 
 
   SPI_RX_ON;
   data = SPI_Read(TLE5012B_SPI);
-  safety = SPI_Read(TLE5012B_SPI);
-  TLE012_CS_H;
-  SPI_Cmd(TLE5012B_SPI, DISABLE);
-  SPI_RX_OFF;
+  //wait one SPI clock cylce and then disable SPI just before last RX
+  delay_us(1); //this delay can be shorter, but since it is during next SPI word being received, it is not making any difference
+  SPI_Cmd(TLE5012B_SPI, DISABLE);//this will stop SCK right right after last word is read
+  safety = SPI_Read(TLE5012B_SPI);//read last word from the buffer
+  TLE5012_INACTIVE;
   
   return data;
 }
 
 //
-void TLE5012_WriteValue(uint16_t Command,uint16_t RegValue)
+void TLE5012_WriteValue(uint16_t Command, uint16_t RegValue)
 {
-  TLE012_CS_L;
+  TLE5012_ACTIVE;
+  SPI_RX_OFF;
   SPI_Cmd(TLE5012B_SPI, ENABLE);
   SPI_Write(TLE5012B_SPI, Command);
   SPI_Write(TLE5012B_SPI, RegValue);
-  TLE012_CS_H;
   SPI_Cmd(TLE5012B_SPI, DISABLE);
-  // delay_us(1);
-
+  TLE5012_INACTIVE;
 }
 
 bool TLE5012_WriteAndCheck(uint16_t Command,uint16_t RegValue)
 {
   TLE5012_WriteValue(Command,RegValue);
-  uint16_t data = TLE5012_ReadValue(Command+WRITE_READ_REG_OFFSET); //read registers are offset by 0x3000
+  uint16_t data = TLE5012_ReadValue(Command);
   if(data != RegValue)
   {
     return false;

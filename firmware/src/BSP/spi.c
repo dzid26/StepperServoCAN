@@ -45,7 +45,8 @@ uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t data)
 	return SPI_I2S_ReceiveData(SPIx);
 }
 
-//SPI write word - transmit only mode
+//SPI write single word - transmit only mode
+//if more words are to be sent, check busy flag only after last word
 void SPI_Write(SPI_TypeDef* SPIx, uint16_t data)
 {
 	uint_fast16_t timeout = 0;
@@ -69,7 +70,6 @@ void SPI_Write(SPI_TypeDef* SPIx, uint16_t data)
 			return;		
 		}
 	}
-	
 	return;
 }
 
