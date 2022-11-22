@@ -22,8 +22,8 @@
 #ifndef __ENCODER_H
 #define __ENCODER_H
 
-#include "tle5012.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 #define ANGLE_STEPS 						((uint32_t)65536U) 
 #define ANGLE_MAX 							((uint16_t)65535U)
@@ -32,9 +32,8 @@
 #define DEGREES_TO_ANGLERAW(x) ( ((float)(x) / 360.0f * (float)ANGLE_STEPS) )
 #define ANGLERAW_T0_DEGREES(x) ( ((float)(x) * 360.0f / (float)ANGLE_STEPS) )
 
+bool Encoder_begin(void);
 uint16_t ReadEncoderAngle(void);
 uint16_t OverSampleEncoderAngle(uint16_t numSamples);
-bool Encoder_begin(void);
-
 
 #endif

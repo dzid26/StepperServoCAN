@@ -114,7 +114,7 @@ void StepperCtrl_setLocationFromEncoder(void)
 		uint16_t x,a;
 
 		//set our angles based on previous cal data
-		x = OverSampleEncoderAngle(200U);
+		x = OverSampleEncoderAngle(100U);
 		a = GetCorrectedAngle(x); //start angle
 
 		currentLocation = (int32_t)a; //save position

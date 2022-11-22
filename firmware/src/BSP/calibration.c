@@ -195,7 +195,7 @@ static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
 		uint16_t averageMeasurment; //average between passes
 		if (!preRun) {
 			delay_ms(60);
-			uint16_t sampled = OverSampleEncoderAngle(200U); //collect angle every half step for 1.8 stepper
+			uint16_t sampled = OverSampleEncoderAngle(100U); //collect angle every half step for 1.8 stepper
 			uint16_t expectedAngle = (uint16_t)(ANGLE_STEPS * electAngle / A4950_STEP_MICROSTEPS / motorParams.fullStepsPerRotation);//convert to shaft angle
 			uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535)
 			int16_t delta = sampled - cal; //utlizes wrap around
