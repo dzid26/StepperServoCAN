@@ -16,8 +16,7 @@
 - The frmware is compatible with Bigtreetech S42Bv2 and S57Bv2 boards.
 - Dip switches, step, dir, enable pin, USART are currenlty NOT used in the firmware
 - Uses ST's old Standard Peripheral Library (src/lib) for registers configuration
-- Buttons order on the board is set as follows: 
-    `Next` -- `Menu` -- `Enter`
+- Buttons - Function (Fcn) and Reset (Rst)
 - CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh` 
 
 ### Build and upload
@@ -31,6 +30,14 @@
 - Upload firmware to the board by pressing Upload arrow at the status bar in VScode
 - Eeprom is not erased when flashing the firmware - any future calibration will not be lost.
 
+### LED idnicators
+BLUE LED (Function):
+ - short single blink after user long presses Fcn button indicating button can be released
+ - solid - waiting for user confirmation [of calibration] (either with Fcn button or Enter in Platformio OpenOCD debugger console)
+RED LED (Error):
+ - solid/dim/flickering - Motion task CPU overrun (shall not happen)
+ - slowly blinking every 1s- encoder initialization error
+ - solid with short interruption every 1s - waiting for power supply voltage to be above 8V (checks voltage every 1s)
 ### Configuration
 - In `firmware/src/BSP/actuator_config.c` set:
     - `rated_current` (single phase) and `rated_torque` from motor spec or measurment. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
@@ -40,12 +47,12 @@
 Many other parameters are not used and are slated for removal.
 
 ### Calibration and first run
-- On first start defualt parameters are loaded and then calibrated and stored in eeprom.
-- During first start two phases are briefly actuated and `motorParams.motorWiring` state is automatically determined based on angle sensor movement. (you will know if this parameter is incorrect, if phases will be audibly actuated in wrong order). This corresponds to 
-- Next the display will prompt to calibrate the motor. Press `Enter` to start calibration. The motor will be calibrated and values stored. Press `Enter` again to exit calibration mode.
-- Actuator parameters need to be specified for CANbus signal units to be converted from actuator output domain to the motor domain. Change gearbox and final gear ratios in `firmware/actuator_config.h` file: `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`. Rebuild firmware and upload to the board.
-- Depending on mounting orientation and gearing the motor rotation direction might be reversed. If this is the case, reverse the motor direction by navigating on display menu to `Rotation` and changing the parameter. This corresponds to `SystemParams.dirRotation` in the code.
-- Extract of angle calibration curve from flash:
+1. On first start defualt parameters are loaded to be later stored in Flash.
+2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
+3. Next the controller automatically waits (blue LED on) for the user to confirm sensor calibration. Press `Fcn` button to start calibration. The motor will be calibrated and values stored in Flash. Calibration can be repeated any time by long pressing `Fcn` button until first short blink of the blue LED. 
+4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affectes signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
+5. Depending on mounting orientation and gearing the motor rotation direction might be reversed. If this is the case, reverse the motor direction ~~by navigating on display menu to `Rotation` and changing the parameter.~~ This corresponds to `SystemParams.dirRotation` in the code.
+6. Ądditionally one can extract sensor calibration values (point 3) from the Flash using `readCalibration.py`:
 - ![CalibrationPlot](https://user-images.githubusercontent.com/841061/201538086-d977bde9-2bf5-4cec-ac3b-eec80bb5fbd9.png)
 ### CAN interface
 Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)

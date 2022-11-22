@@ -53,7 +53,7 @@ static void RunCalibration(void){
 			(void) printf("Large deviation. Reposition the magnet\n");
 		}
 		
-		(void) printf("\nConfirm start of new calibration..\n");
+		(void) printf("\n[Enter] to confirm start of the calibration..\n");
 		do{	//wait for the user
 			Set_Func_LED(true);
 		}while(!Fcn_button_state() && getchar()==EOF);
@@ -110,7 +110,6 @@ static void Begin_process(void)
 			delay_ms(1000);
 			Set_Error_LED(true);
 			delay_ms(1000);
-			stepCtrlError = StepperCtrl_begin();
 		}else if(STEPCTRL_NO_POWER == stepCtrlError)
 		{
 			display_show("Waiting", "MOTOR", "POWER", "");
