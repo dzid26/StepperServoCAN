@@ -171,6 +171,35 @@ float StepperCtrl_measureStepSize(void){
 	return deg_delta;
 }
 
+//normalize the calData starting point regardles of what angle calibration was started at
+static void CalibrationTable_normalizeStartIdx(void){
+	uint16_t tempData[CALIBRATION_TABLE_SIZE];
+	uint16_t wrapIdx=0;
+	uint16_t wrapFinds=0;
+
+	//find wrap point
+	const uint16_t calData_2AngleSteps = ANGLE_STEPS / CALIBRATION_TABLE_SIZE * 2U;
+	for (uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++ ){
+		tempData[i] = calData[i].value; //copy
+
+		//find wrap point
+		if((i>0U) && (calData[CALIBRATION_TABLE_SIZE-i].value < calData_2AngleSteps) \
+		&& (calData[CALIBRATION_TABLE_SIZE-i-1U].value > (ANGLE_MAX - calData_2AngleSteps))){
+			wrapIdx = i; //wrap point counted from the end
+			wrapFinds++; //should only find one wrap point, unless the calibration is erratic
+		}
+	}
+
+	if(wrapFinds == 1U){//there shouldn't be more than one wrap point
+		//electrical angle repeats every 4 full steps
+		uint16_t shiftBy = wrapIdx - (wrapIdx % (4U * CALIBRATION_TABLE_SIZE / motorParams.fullStepsPerRotation));
+		
+		//shift data
+		for (uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++ ){
+			calData[(i + shiftBy)%CALIBRATION_TABLE_SIZE].value = tempData[i];
+		}
+	}
+}
 
 
 //The encoder needs to be calibrated to the motor.
@@ -251,6 +280,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
 		maxError = CalibrationMove(1U, verifyOnly);
+		CalibrationTable_normalizeStartIdx(); //this step is optional, but makes the calibration table more readable
 		CalibrationTable_saveToFlash(); //saves the calibration to flash
 	}
 	//measure new starting point
