@@ -109,18 +109,10 @@ void StepperCtrl_setLocationFromEncoder(void)
 {
 	currentLocation = 0;
 
-	if (CalibrationTable_calValid())
-	{
-		uint16_t x,a;
-
-		//set our angles based on previous cal data
-		x = OverSampleEncoderAngle(100U);
-		a = GetCorrectedAngle(x); //start angle
-
-		currentLocation = (int32_t)a; //save position
+	if (CalibrationTable_calValid()){
+		currentLocation = (int32_t)GetCorrectedAngle(OverSampleEncoderAngle(100U)); //save position
 	}
-	zeroAngleOffset = StepperCtrl_updateCurrentLocation(); //zero the angle shown on LCD
-	desiredLocation = zeroAngleOffset;
+	desiredLocation = StepperCtrl_updateCurrentLocation(); //zero the angle shown on LCD
 }
 
 //estimate of the current location from encoder feedback
@@ -128,22 +120,10 @@ void StepperCtrl_setLocationFromEncoder(void)
 //bits is the number of full rotations.
 int32_t StepperCtrl_updateCurrentLocation(void)
 {
-	int32_t a,x;
-
-	a = (int32_t)GetCorrectedAngle(ReadEncoderAngle());
-
-	x = a - (currentLocation & (int32_t) ANGLE_MAX);
-
-	if ( x > ANGLE_WRAP )
-	{
-		currentLocation -= (int32_t) ANGLE_STEPS;
-	}
-	if ( x < -ANGLE_WRAP )
-	{
-		currentLocation += (int32_t)  ANGLE_STEPS;
-	}
-
-	currentLocation = (currentLocation & 0xFFFF0000) | a;
+	uint16_t angle = GetCorrectedAngle(ReadEncoderAngle());
+	//use unisgned wrap around math to get circular angle distance
+	uint16_t angleDelta = angle - (uint16_t)((int16_t)(currentLocation%(int32_t)ANGLE_STEPS));
+	currentLocation = currentLocation + (int16_t)angleDelta;
 
 	return currentLocation;
 }
@@ -151,7 +131,7 @@ int32_t StepperCtrl_updateCurrentLocation(void)
 
 stepCtrlError_t StepperCtrl_begin(void)
 {
-	float x=9999;
+	float x=9999.0f;
 	enableFeedback = false;
 	currentLocation = 0;
 

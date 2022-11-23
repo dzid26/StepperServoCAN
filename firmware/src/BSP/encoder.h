@@ -25,9 +25,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define ANGLE_STEPS 						((uint32_t)65536U) 
-#define ANGLE_MAX 							((uint16_t)65535U)
-#define ANGLE_WRAP 							((int32_t)32768)
+#define ANGLE_STEPS 						65536U
+#define ANGLE_MAX 							65535U
 
 #define DEGREES_TO_ANGLERAW(x) ( ((float)(x) / 360.0f * (float)ANGLE_STEPS) )
 #define ANGLERAW_T0_DEGREES(x) ( ((float)(x) * 360.0f / (float)ANGLE_STEPS) )
