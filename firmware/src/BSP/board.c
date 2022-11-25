@@ -46,61 +46,60 @@ static void NVIC_init(void)
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); 
 	NVIC_SetPriority(SysTick_IRQn,15); //Not used currently
 	
-	NVIC_InitTypeDef NVIC_InitStructure;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0; //��Ӧ���ȼ�
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitTypeDef nvic_initStructure;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
+	nvic_initStructure.NVIC_IRQChannelCmd = ENABLE;
 	
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn; //��ռ���ȼ�Ϊ1(����ѭ��)
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_Init(&NVIC_InitStructure);
+	nvic_initStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_Init(&nvic_initStructure);
 	
-	NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-	NVIC_Init(&NVIC_InitStructure);
+	nvic_initStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&nvic_initStructure);
 	
-	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn; //10ms loop
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_Init(&NVIC_InitStructure);
+	nvic_initStructure.NVIC_IRQChannel = TIM2_IRQn; //10ms loop
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 4;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_Init(&nvic_initStructure);
 
-	NVIC_Init(&NVIC_InitStructure);
+	NVIC_Init(&nvic_initStructure);
 }
 
 //Init TLE5012B				    
 static void TLE5012B_init(void)
 {
-	if (TLE5012B_SPI == SPI2){
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
-	}else if (TLE5012B_SPI == SPI1){
+	#if (TLE5012B_SPIx == 1)
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-	}else{
-		//Unsupported
-	}
+	#endif
+	#if (TLE5012B_SPIx == 2)
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+	#endif
+
+	GPIO_InitTypeDef  gpio_initStructure;
+	gpio_initStructure.GPIO_Pin = PIN_TLE5012B_SCK | PIN_TLE5012B_DATA;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //SPI alternate function
+	gpio_initStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_Init(PIN_TLE5012B, &gpio_initStructure);
 	
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_SCK | PIN_TLE5012B_DATA;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;  //SPI alternate function
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
-	
-  	GPIO_InitStructure.GPIO_Pin = PIN_TLE5012B_CS;
- 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; //software NSS gpio switching - non-alternate function
- 	GPIO_Init(PIN_TLE5012B, &GPIO_InitStructure);
+  	gpio_initStructure.GPIO_Pin = PIN_TLE5012B_CS;
+ 	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP; //software NSS gpio switching - non-alternate function
+ 	GPIO_Init(PIN_TLE5012B, &gpio_initStructure);
 	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);//CS high - deselect device for now
 	
-	SPI_InitTypeDef SPI_InitStructure;	
-	SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
-	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-	SPI_InitStructure.SPI_DataSize = SPI_DataSize_16b;
-	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
-	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; //4.5Mbit/s
-	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+	SPI_InitTypeDef spi_initStructure;	
+	spi_initStructure.SPI_Direction = SPI_Direction_1Line_Tx;
+	spi_initStructure.SPI_Mode = SPI_Mode_Master;
+	spi_initStructure.SPI_DataSize = SPI_DataSize_16b;
+	spi_initStructure.SPI_CPOL = SPI_CPOL_Low;
+	spi_initStructure.SPI_CPHA = SPI_CPHA_2Edge;
+	spi_initStructure.SPI_NSS = SPI_NSS_Soft;
+	spi_initStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; //4.5Mbit/s
+	spi_initStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	 //X8+X4+X3+X2+1  J1850 - sadly to use hardware CRC8, SPI_DataSize would need to be change to 8bit - not ideal
-	SPI_InitStructure.SPI_CRCPolynomial = 0x1D;
-	SPI_Init (TLE5012B_SPI, &SPI_InitStructure);
+	spi_initStructure.SPI_CRCPolynomial = 0x1D;
+	SPI_Init(TLE5012B_SPI, &spi_initStructure);
 
 }
 
@@ -108,14 +107,14 @@ static void TLE5012B_init(void)
 static void SWITCH_init(void)
 {
 	//dip switches
-	GPIO_InitTypeDef  GPIO_InitStructure; 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_InitStructure.GPIO_Pin = PIN_FCN_KEY;
-    GPIO_Init(PIN_SW, &GPIO_InitStructure);
+	GPIO_InitTypeDef  gpio_initStructure; 
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU;
+ 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    gpio_initStructure.GPIO_Pin = PIN_FCN_KEY;
+    GPIO_Init(PIN_SW, &gpio_initStructure);
 
-	GPIO_InitStructure.GPIO_Pin = PIN_JP1 | PIN_JP2 | PIN_JP3;
-	GPIO_Init(GPIO_JP, &GPIO_InitStructure);
+	gpio_initStructure.GPIO_Pin = PIN_JP1 | PIN_JP2 | PIN_JP3;
+	GPIO_Init(GPIO_JP, &gpio_initStructure);
 
 }
 
@@ -126,137 +125,111 @@ static void A4950_init(void)
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
 	//A4950 Input pins
-	GPIO_InitTypeDef  GPIO_InitStructure; 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_InitStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
-    GPIO_Init(PIN_A4950, &GPIO_InitStructure);
+	GPIO_InitTypeDef  gpio_initStructure; 
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+ 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    gpio_initStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
+    GPIO_Init(PIN_A4950, &gpio_initStructure);
 
 	//A4950 Vref pins
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); //has to be enabled before remap
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);	//Release pins for VREF34, DIP2, DIP1
 	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_InitStructure.GPIO_Pin = PIN_A4950_VREF12|PIN_A4950_VREF34;
-    GPIO_Init(PIN_A4950, &GPIO_InitStructure);
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+ 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+	gpio_initStructure.GPIO_Pin = PIN_A4950_VREF12|PIN_A4950_VREF34;
+    GPIO_Init(PIN_A4950, &gpio_initStructure);
 
 	//Remap to the upper pins
 
 	//Init TIM3
-	TIM_TimeBaseInitTypeDef  		TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Period = VREF_MAX;									
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(VREF_TIM, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInitTypeDef  		timeBaseStructure;
+	timeBaseStructure.TIM_Period = VREF_MAX;									
+	timeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
+	timeBaseStructure.TIM_ClockDivision = 0;
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(VREF_TIM, &timeBaseStructure);
 	
 	
-	TIM_OCInitTypeDef  	        TIM_OCInitStructure;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
- 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = 0;
-	TIM_OC1Init(VREF_TIM, &TIM_OCInitStructure);	//CH1
-	TIM_OC2Init(VREF_TIM, &TIM_OCInitStructure);	//CH2
+	TIM_OCInitTypeDef  	        tim_OCInitStructure;
+	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+ 	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	tim_OCInitStructure.TIM_Pulse = 0;
+	TIM_OC1Init(VREF_TIM, &tim_OCInitStructure);	//CH1
+	TIM_OC2Init(VREF_TIM, &tim_OCInitStructure);	//CH2
 	TIM_OC1PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
 	TIM_OC2PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
  
 	TIM_Cmd(VREF_TIM, ENABLE);
 }
 
-//Init A1333
-static void A1333_init (void)
-{	
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
-
-	//todo replace with std_periph functions:
-	GPIOB->CRH &= 0x0000ffff;	//clean CS SCK MOSI MISO control bit
-	GPIOB->CRH |= 0xb8b30000;	//config CS Universal push-pull output��SCK MOSI Multiplexed push-pull output��MISO pulldown input
-	GPIOB->ODR |= 0x0000f000;	//default CS SCK MOSI MISO output high
-
-	SPI_InitTypeDef SPI_InitStructure;
-	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-	SPI_InitStructure.SPI_DataSize = SPI_DataSize_16b;
-	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;													//CPOL=1
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;												//CPHA=1
-	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
-	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-	SPI_InitStructure.SPI_CRCPolynomial = 0x9; //X4+X+1
-	SPI_Init (SPI2,&SPI_InitStructure);	
-	SPI_Cmd (SPI2,ENABLE);
-
-	// SPI2->CR1 |= SPI_CR1_CRCEN;		//CRC enable - to be tested. Probably DMA would be also beneficial
-}
-
 static void LED_init(void)
 {
-	GPIO_InitTypeDef  GPIO_InitStructure; 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_InitStructure.GPIO_Pin = PIN_LED_RED;
-    GPIO_Init(GPIO_LED_RED, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = PIN_LED_BLUE;
-    GPIO_Init(GPIO_LED_BLUE, &GPIO_InitStructure);
+	GPIO_InitTypeDef  gpio_initStructure; 
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+ 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    gpio_initStructure.GPIO_Pin = PIN_LED_RED;
+    GPIO_Init(GPIO_LED_RED, &gpio_initStructure);
+    gpio_initStructure.GPIO_Pin = PIN_LED_BLUE;
+    GPIO_Init(GPIO_LED_BLUE, &gpio_initStructure);
 }
-static void CAN_begin(){
+static void CAN_begin(void){
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);	//CAN
 
 	/* Configure CAN RX pin */
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitTypeDef gpio_initStructure;
+	gpio_initStructure.GPIO_Pin = GPIO_Pin_11;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    gpio_initStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_Init(GPIOA, &gpio_initStructure);
 
 	/* Configure CAN TX pin */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	gpio_initStructure.GPIO_Pin = GPIO_Pin_12;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    gpio_initStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_Init(GPIOA, &gpio_initStructure);
 
 	/* Configure CAN RS pin */
 	// GPIO_Mode_IN_FLOATING for slew rate control
 	// GPIO_Mode_Out_PP for highest speed or standby mode
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	gpio_initStructure.GPIO_Pin = GPIO_Pin_2;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+	GPIO_Init(GPIOB, &gpio_initStructure);
 	
-	CAN_InitTypeDef        CAN_InitStructure;
+	CAN_InitTypeDef        can_initStructure;
 	/* CAN register init */
 	CAN_DeInit(CAN1);
-	CAN_StructInit(&CAN_InitStructure);
+	CAN_StructInit(&can_initStructure);
 
 	/* CAN cell init */
-	CAN_InitStructure.CAN_TTCM=DISABLE;
-	CAN_InitStructure.CAN_ABOM=ENABLE;
-	CAN_InitStructure.CAN_AWUM=DISABLE;
-	CAN_InitStructure.CAN_NART=DISABLE;
-	CAN_InitStructure.CAN_RFLM=DISABLE;
-	CAN_InitStructure.CAN_TXFP=DISABLE;
-	CAN_InitStructure.CAN_Mode=CAN_Mode_Normal;
+	can_initStructure.CAN_TTCM=DISABLE;
+	can_initStructure.CAN_ABOM=ENABLE;
+	can_initStructure.CAN_AWUM=DISABLE;
+	can_initStructure.CAN_NART=DISABLE;
+	can_initStructure.CAN_RFLM=DISABLE;
+	can_initStructure.CAN_TXFP=DISABLE;
+	can_initStructure.CAN_Mode=CAN_Mode_Normal;
 
 
 	/* Baudrate = 500kbps*/
 	if (SystemCoreClock == 72000000){
-		CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;
-		CAN_InitStructure.CAN_BS1=CAN_BS1_2tq;
-		CAN_InitStructure.CAN_BS2=CAN_BS2_3tq;
-		CAN_InitStructure.CAN_Prescaler=12;
+		can_initStructure.CAN_SJW=CAN_SJW_1tq;
+		can_initStructure.CAN_BS1=CAN_BS1_2tq;
+		can_initStructure.CAN_BS2=CAN_BS2_3tq;
+		can_initStructure.CAN_Prescaler=12;
 	}
 	if (SystemCoreClock == 64000000){
-		CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;
-		CAN_InitStructure.CAN_BS1=CAN_BS1_3tq;
-		CAN_InitStructure.CAN_BS2=CAN_BS2_4tq;
-		CAN_InitStructure.CAN_Prescaler=8;
+		can_initStructure.CAN_SJW=CAN_SJW_1tq;
+		can_initStructure.CAN_BS1=CAN_BS1_3tq;
+		can_initStructure.CAN_BS2=CAN_BS2_4tq;
+		can_initStructure.CAN_Prescaler=8;
 	}
 	
-	CAN_Init(CAN1, &CAN_InitStructure);
+	CAN_Init(CAN1, &can_initStructure);
 
 	//setup filters
 	CAN_MsgsFiltersSetup();
@@ -268,19 +241,19 @@ static void CAN_begin(){
 }
 
 
-static void Analog_init(){
+static void Analog_init(void){
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
 
 	ADC_DeInit(ADC1);
-	ADC_InitTypeDef ADC_InitStructure;
+	ADC_InitTypeDef adc_initStructure;
 	/* ADC1 configuration ------------------------------------------------------*/
-	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;	 
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;			  
-	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;	 
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
-	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
-	ADC_InitStructure.ADC_NbrOfChannel = 2;
-	ADC_Init(ADC1, &ADC_InitStructure);
+	adc_initStructure.ADC_Mode = ADC_Mode_Independent;	 
+	adc_initStructure.ADC_ScanConvMode = DISABLE;			  
+	adc_initStructure.ADC_ContinuousConvMode = DISABLE;	 
+	adc_initStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
+	adc_initStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
+	adc_initStructure.ADC_NbrOfChannel = 2;
+	ADC_Init(ADC1, &adc_initStructure);
 
 	ADC_DiscModeCmd(ADC1, ENABLE);
 	ADC_DiscModeChannelCountConfig(ADC1, 1);
@@ -292,17 +265,20 @@ static void Analog_init(){
 	/* Enable ADC1 reset calibaration register */ 
 	ADC_ResetCalibration(ADC1);
 	/* Check the end of ADC1 reset calibration register */
-	while(ADC_GetResetCalibrationStatus(ADC1));
+	while(ADC_GetResetCalibrationStatus(ADC1) == SET){
+		//wait for adc calibration reset
+	}
 	/* Start ADC1 calibaration */
 	ADC_StartCalibration(ADC1);
 	/* Check the end of ADC1 calibration */
-	while(ADC_GetCalibrationStatus(ADC1));  
-	/* Start ADC1 Software Conversion */ 
+	while(ADC_GetCalibrationStatus(ADC1) == SET){
+		//wait for adc calibration finish
+	}
 
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-    GPIO_InitStructure.GPIO_Pin = PIN_VMOT;
-	GPIO_Init(GPIO_VMOT, &GPIO_InitStructure);
+	GPIO_InitTypeDef  gpio_initStructure;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AIN;
+    gpio_initStructure.GPIO_Pin = PIN_VMOT;
+	GPIO_Init(GPIO_VMOT, &gpio_initStructure);
 
 	/* ADC1 regular channe16 configuration */ 
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);
@@ -311,7 +287,6 @@ static void Analog_init(){
 
 static volatile float chip_temp_adc;
 void ChipTemp_adc_update(){
-	// ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1, ADC_SampleTime_239Cycles5);  
 	ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
 	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET){
 		//wait until conversion is finished
@@ -322,8 +297,8 @@ void ChipTemp_adc_update(){
 	
 	const float t0 = 35.0f;
 	const float adcVoltRef = 1.325f; //! calibrate at some t0
-	const float tempSlop = 4.3f/1000; //typically 4.3mV per C
-	chip_temp_adc = (adcVoltRef - adc_volt) / tempSlop + t0;
+	const float tempSlop = 4.3f/1000.0f; //typically 4.3mV per C
+	chip_temp_adc = ((adcVoltRef - adc_volt) / tempSlop) + t0;
 }
 
 float GetChipTemp(){
@@ -332,7 +307,6 @@ float GetChipTemp(){
 
 static volatile float vmot_adc;
 void Vmot_adc_update(){
-	// ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 1, ADC_SampleTime_13Cycles5);  
 	ADC_SoftwareStartConvCmd(ADC_VMOT, ENABLE);
 	while (ADC_GetFlagStatus(ADC_VMOT, ADC_FLAG_EOC)!=SET){
 	//wait until conversion is finished
@@ -390,13 +364,13 @@ void Motion_task_init(uint16_t taskPeriod)
 	TIM_DeInit(MOTION_TASK_TIM);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	TIM_TimeBaseStructure.TIM_Prescaler = SystemCoreClock / MHz_to_Hz - 1U; //Prescale to 1MHz - 1uS
-	TIM_TimeBaseStructure.TIM_Period = taskPeriod - 1U;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(MOTION_TASK_TIM, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInitTypeDef timeBaseStructure;
+	timeBaseStructure.TIM_Prescaler = SystemCoreClock / MHz_to_Hz - 1U; //Prescale to 1MHz - 1uS
+	timeBaseStructure.TIM_Period = taskPeriod - 1U;
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	timeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
+	timeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInit(MOTION_TASK_TIM, &timeBaseStructure);
 
 	TIM_SetCounter(MOTION_TASK_TIM, 0);
 	TIM_Cmd(MOTION_TASK_TIM, ENABLE);
@@ -410,13 +384,13 @@ void Serivice_task_init(void){
 	
 
 	//Init SERVICE_TASK_TIM
-	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure; 	//cppcheck-suppress  naming-varname - HAL library
-	TIM_TimeBaseStructure.TIM_Prescaler = (SystemCoreClock / MHz_to_Hz - 1);	//Prescale timer clock to 1MHz - 1us period
-	TIM_TimeBaseStructure.TIM_Period = (10 * 1000) - 1;	//10ms = 10000us
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(SERVICE_TASK_TIM, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInitTypeDef  timeBaseStructure;
+	timeBaseStructure.TIM_Prescaler = (SystemCoreClock / MHz_to_Hz - 1);	//Prescale timer clock to 1MHz - 1us period
+	timeBaseStructure.TIM_Period = (10 * 1000) - 1;	//10ms = 10000us
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	timeBaseStructure.TIM_RepetitionCounter = 0; //has to be zero to not skip period ticks
+	timeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInit(SERVICE_TASK_TIM, &timeBaseStructure);
 
 	TIM_ClearITPendingBit(SERVICE_TASK_TIM, TIM_IT_Update);
 	TIM_ClearFlag(SERVICE_TASK_TIM, TIM_FLAG_Update);

@@ -84,20 +84,18 @@
 #define PIN_A1333_MOSI   		GPIO_Pin_15
 
 //TLE5012B
-#ifdef ServoCAN
-#define TLE5012B_SPI					SPI2
+#define TLE5012B_SPIx					2
 #define PIN_TLE5012B					GPIOB
 #define PIN_TLE5012B_CS					GPIO_Pin_12
 #define PIN_TLE5012B_SCK				GPIO_Pin_13
 #define PIN_TLE5012B_DATA    			GPIO_Pin_15
-#else
-#define TLE5012B_SPI					SPI1
-#define TLE5012B_SPI_Periph RCC_APB2Periph_SPI1
-#define PIN_TLE5012B					GPIOA
-#define PIN_TLE5012B_CS					GPIO_Pin_4
-#define PIN_TLE5012B_SCK				GPIO_Pin_5
-#define PIN_TLE5012B_DATA    			GPIO_Pin_7
+#if (TLE5012B_SPIx == 1)
+    #define TLE5012B_SPI				SPI1
 #endif
+#if (TLE5012B_SPIx == 2)
+    #define TLE5012B_SPI				SPI2
+#endif
+    
 
 //LED
 #define GPIO_LED_RED				GPIOC
