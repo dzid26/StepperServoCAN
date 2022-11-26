@@ -22,37 +22,37 @@
 #include "spi.h"
 
 //SPI Write and Read single word
-uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t data)
+uint16_t SPI_WriteAndRead(SPI_TypeDef* _SPIx, uint16_t data)
 {
 	uint_fast16_t timeout = 0;
-	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE)) == RESET)
+	while((SPI_I2S_GetFlagStatus(_SPIx, SPI_I2S_FLAG_TXE)) == RESET)
 	{
 		++timeout;  //normally this doesn't occur and timeout is 0
 		if(timeout >= 400U){
 			return 0;
 		}		
 	}
-	SPI_I2S_SendData(SPIx, data);
+	SPI_I2S_SendData(_SPIx, data);
 	
 	timeout = 0;
-	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
+	while((SPI_I2S_GetFlagStatus(_SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
 		{
 		++timeout;
 		if(timeout >= 400U){
 			return 0;
 		}
 	}
-	return SPI_I2S_ReceiveData(SPIx);
+	return SPI_I2S_ReceiveData(_SPIx);
 }
 
 //SPI write single word - transmit only mode
 //if more words are to be sent, check busy flag only after last word
-void SPI_Write(SPI_TypeDef* SPIx, uint16_t data)
+void SPI_Write(SPI_TypeDef* _SPIx, uint16_t data)
 {
 	uint_fast16_t timeout = 0;
-	SPI_I2S_SendData(SPIx, data);
+	SPI_I2S_SendData(_SPIx, data);
 
-	while(SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_TXE) == RESET)
+	while(SPI_I2S_GetFlagStatus(_SPIx, SPI_I2S_FLAG_TXE) == RESET)
 	{
 		++timeout;
 		if(timeout >= 400U)
@@ -62,7 +62,7 @@ void SPI_Write(SPI_TypeDef* SPIx, uint16_t data)
 	}
 	
 	timeout = 0;
-	while((SPIx->SR & SPI_I2S_FLAG_BSY) != RESET)
+	while((_SPIx->SR & SPI_I2S_FLAG_BSY) != RESET)
 	{
 		++timeout;
 		if(timeout >= 400U)
@@ -74,15 +74,15 @@ void SPI_Write(SPI_TypeDef* SPIx, uint16_t data)
 }
 
 //SPI Read word - receive only mode
-uint16_t SPI_Read(SPI_TypeDef* SPIx)
+uint16_t SPI_Read(SPI_TypeDef* _SPIx)
 {
 	uint_fast16_t timeout = 0;
-	while((SPI_I2S_GetFlagStatus(SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
+	while((SPI_I2S_GetFlagStatus(_SPIx, SPI_I2S_FLAG_RXNE)) == RESET)
 		{
 		++timeout;
 		if(timeout >= 400U){
 			return 0;
 		}
 	}
-	return SPI_I2S_ReceiveData(SPIx);
+	return SPI_I2S_ReceiveData(_SPIx);
 }

@@ -24,8 +24,8 @@
 
 #include "stm32f10x_spi.h"
 
-uint16_t SPI_WriteAndRead(SPI_TypeDef* SPIx, uint16_t Data);
-void SPI_Write(SPI_TypeDef* SPIx, uint16_t data);
-uint16_t SPI_Read(SPI_TypeDef* SPIx);
+uint16_t SPI_WriteAndRead(SPI_TypeDef* _SPIx, uint16_t Data);
+void SPI_Write(SPI_TypeDef* _SPIx, uint16_t data);
+uint16_t SPI_Read(SPI_TypeDef* _SPIx);
 
 #endif
