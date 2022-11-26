@@ -54,11 +54,13 @@ uint16_t TLE5012_ReadValue(uint16_t Command)
   SPI_Cmd(TLE5012B_SPI, ENABLE);
   SPI_Write(TLE5012B_SPI, Command|READ_FLAG); //command write. 
 
+	__disable_irq();
   SPI_RX_ON;
   data = SPI_Read(TLE5012B_SPI);
   //wait one SPI clock cylce and then disable SPI just before last RX
   delay_us(1); //this delay can be shorter, but since it is during next SPI word being received, it is not making any difference
   SPI_Cmd(TLE5012B_SPI, DISABLE);//this will stop SCK right right after last word is read
+	__enable_irq();
   safety = SPI_Read(TLE5012B_SPI);//read last word from the buffer
   TLE5012_INACTIVE;
   

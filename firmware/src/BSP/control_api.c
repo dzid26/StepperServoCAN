@@ -31,6 +31,7 @@
 #include "actuator_config.h"
 #include "nonvolatile.h"
 #include "encoder.h"
+#include "main.h"
 
 #define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
 
@@ -85,7 +86,7 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 
 void StepperCtrl_setControlMode(uint8_t mode){ 
 	__disable_irq();
-	if (stepCtrlError != STEPCTRL_NO_ERROR){
+	if ((stepCtrlError != STEPCTRL_NO_ERROR) || runCalibration){
 		__enable_irq();
 		return;
 	}

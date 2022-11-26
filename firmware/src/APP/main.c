@@ -35,10 +35,12 @@
 extern void initialise_monitor_handles(void); //semihosting
 
 
-static volatile bool runCalibration = false;
+volatile bool runCalibration = false;
 static void RunCalibration(void){
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
+	runCalibration = true; //set again depending who calls the function
+
 	Set_Error_LED(true);
 
 	bool err1 = false;
@@ -71,9 +73,11 @@ static void RunCalibration(void){
 
 	(void) printf("Calibration ok\n");
 
+
 	if(state){
 		Motion_task_enable();
 	}
+	runCalibration = false;
 }
 
 
