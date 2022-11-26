@@ -141,33 +141,31 @@ float StepperCtrl_getPositionError(void) {
 extern volatile bool A4950_Enabled;
 extern volatile uint32_t can_err_rx_cnt;
 
-uint16_t StepperCtrl_getStatuses(void) {
-	uint16_t ret1 = 0;
-	uint16_t ret2 = 0;
-
-	__disable_irq(); 
+uint16_t StepperCtrl_getStatuses(void){
+	uint8_t ret1 = 0;
+	uint8_t ret2 = 0;
+ 
 	// control loop status
-	ret1 |= ((StepperCtrl_Enabled & 0x01) << 0);
-	ret1 |= ((enableFeedback & 0x01) << 1);
-	ret1 |= ((enableSoftOff & 0x01) << 2);
-	ret1 |= ((enableCloseLoop & 0x01) << 4);
-	__enable_irq();
+	ret1 |= (StepperCtrl_Enabled ? 0x1U : 0x0U) << 0U;
+	ret1 |= (enableFeedback ? 0x1U : 0x0U) << 1U;
+	ret1 |= (enableSoftOff ? 0x1U : 0x0U) << 2U;
+	ret1 |= (enableCloseLoop ? 0x1U : 0x0U) << 3U;
 
 	//debug - other
-	ret2 |= ((A4950_Enabled & 0x01) << 0);
-	ret2 |= ((motion_task_isr_enabled & 0x01) << 1); //here should be always 0
+	ret2 |= (A4950_Enabled ? 0x1U : 0x0U) << 0U;
+	ret2 |= (motion_task_isr_enabled ? 0x1U : 0x0U) << 1U; //here should be always 0
 
 	// actuator parameters
-	ret2 |= ((motorParams.motorWiring & 0x01) << 2);
-	ret2 |= ((systemParams.dirRotation & 0x01) << 3);
-	ret2 |= ((systemParams.errorPinMode & 0x01) << 4);
+	ret2 |= (motorParams.motorWiring ? 0x1U : 0x0U) << 2U;
+	ret2 |= (systemParams.dirRotation ? 0x1U : 0x0U) << 3U;
+	ret2 |= (systemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
 
 	//CAN checksum 
-	ret2 |= (((can_err_rx_cnt > 0) & 0x01) << 5);
+	ret2 |= ((can_err_rx_cnt > 0U) ? 0x1U : 0x0U) << 5U;
 	
 	//task status
-	ret2 |= (((motion_task_overrun_count > 0) & 0x01) << 6);
-	ret2 |= (((service_task_overrun_count > 0) & 0x01) << 7);
+	ret2 |= ((motion_task_overrun_count > 0U) ? 0x1U : 0x0U) << 6U;
+	ret2 |= ((service_task_overrun_count > 0U) ? 0x1U : 0x0U) << 7U;
 	
-	return (ret2 << 8) | ret1 ;
+	return (uint16_t)((uint16_t)ret2 << 8U) | (uint16_t)ret1;
 }
