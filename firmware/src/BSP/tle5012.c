@@ -17,6 +17,9 @@
  */
 
 #include "tle5012.h"
+#include "delay.h"
+#include <stdio.h>
+
 /*
  * @brief  TLE5012B simple driver
   * @param  None
@@ -25,34 +28,17 @@
 */
 
 
-bool TLE5012_begin(void)
-{
-  bool ok = true;
-  
-   uint16_t state=TLE5012_ReadState();// read state register
-  if(state == 0U){
-    (void) printf("\nTLE5012 SPI comm error, data: %d\n", state);
-    ok = false;
-  }else if((state & 0x0080U) != 0U) {// S_MAGOL - GMR Magnitude Out of Limit
-    (void) printf("\nMagnet too strong, data: %d\n", state);
-    ok = false;
-  }
-  ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804U);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
-  //todo calculate CRC for crc_par register to remove S_FUSE error
-  return ok;
-}
-
 
 //
-volatile uint16_t safety;
-uint16_t TLE5012_ReadValue(uint16_t Command)
+static volatile uint16_t safety;
+static uint16_t TLE5012_ReadValue(uint16_t command)
 {
   uint16_t data;
 
   TLE5012_ACTIVE;
   SPI_RX_OFF;
   SPI_Cmd(TLE5012B_SPI, ENABLE);
-  SPI_Write(TLE5012B_SPI, Command|READ_FLAG); //command write. 
+  SPI_Write(TLE5012B_SPI, command|READ_FLAG); //command write. 
 
 	__disable_irq();
   SPI_RX_ON;
@@ -68,22 +54,22 @@ uint16_t TLE5012_ReadValue(uint16_t Command)
 }
 
 //
-void TLE5012_WriteValue(uint16_t Command, uint16_t RegValue)
+static void TLE5012_WriteValue(uint16_t command, uint16_t regValue)
 {
   TLE5012_ACTIVE;
   SPI_RX_OFF;
   SPI_Cmd(TLE5012B_SPI, ENABLE);
-  SPI_Write(TLE5012B_SPI, Command);
-  SPI_Write(TLE5012B_SPI, RegValue);
+  SPI_Write(TLE5012B_SPI, command);
+  SPI_Write(TLE5012B_SPI, regValue);
   SPI_Cmd(TLE5012B_SPI, DISABLE);
   TLE5012_INACTIVE;
 }
 
-bool TLE5012_WriteAndCheck(uint16_t Command,uint16_t RegValue)
+static bool TLE5012_WriteAndCheck(uint16_t command,uint16_t regValue)
 {
-  TLE5012_WriteValue(Command,RegValue);
-  uint16_t data = TLE5012_ReadValue(Command);
-  if(data != RegValue)
+  TLE5012_WriteValue(command,regValue);
+  uint16_t data = TLE5012_ReadValue(command);
+  if(data != regValue)
   {
     return false;
   }
@@ -91,7 +77,7 @@ bool TLE5012_WriteAndCheck(uint16_t Command,uint16_t RegValue)
 }
 
 //
-uint16_t TLE5012_ReadState(void)
+static uint16_t TLE5012_ReadState(void)
 {
   return (TLE5012_ReadValue(READ_STATUS));
 }
@@ -105,5 +91,21 @@ uint16_t TLE5012_ReadAngle(void)
 }
 
 
+bool TLE5012_begin(void)
+{
+  bool ok = true;
 
+  uint16_t state=TLE5012_ReadState();// read state register
+  if(state == 0U){
+    (void) printf("\nTLE5012 SPI comm error, data: %d\n", state);
+    ok = false;
+  }
+  if((state & 0x0080U) != 0U) {// S_MAGOL - GMR Magnitude Out of Limit
+    (void) printf("\nMagnet too strong, data: %d\n", state);
+    ok = false;
+  }
+  ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804U);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
+  //todo calculate CRC for crc_par register to remove S_FUSE error
+  return ok;
+}
 

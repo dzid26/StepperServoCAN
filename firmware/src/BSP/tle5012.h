@@ -50,10 +50,6 @@
 #define READ_FLAG   0x8000U
 
 bool TLE5012_begin(void);
-uint16_t TLE5012_ReadValue(uint16_t RegValue);
-void TLE5012_WriteValue(uint16_t RegAdd,uint16_t RegValue);
-bool TLE5012_WriteAndCheck(uint16_t RegAdd,uint16_t RegValue);
-uint16_t TLE5012_ReadState(void);
 uint16_t TLE5012_ReadAngle(void);
 
 
