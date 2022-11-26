@@ -47,9 +47,7 @@ void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
 		newLocation_int = (int32_t)newLocation;
 	}
 
-	__disable_irq();
 	desiredLocation = newLocation_int;
-	__enable_irq();
 }
 
 void StepperCtrl_setFeedForwardTorque(float actuator_torque){ 
@@ -63,9 +61,7 @@ void StepperCtrl_setFeedForwardTorque(float actuator_torque){
 	}else{
 		Iq_feedforward_int = (int_fast16_t)Iq_feedforward;
 	}
-	__disable_irq();
 	feedForward = Iq_feedforward_int;
-	__enable_irq();
 }
 
 void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error correction max torque
@@ -79,15 +75,11 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 	}else{
 		Iq_closeloopLim_int = (int_fast16_t)Iq_closeloopLim;
 	}
-	__disable_irq();
 	closeLoopMax = Iq_closeloopLim_int;
-	__enable_irq();
 }
 
 void StepperCtrl_setControlMode(uint8_t mode){ 
-	__disable_irq();
 	if ((stepCtrlError != STEPCTRL_NO_ERROR) || runCalibration){
-		__enable_irq();
 		return;
 	}
 	switch (mode){
@@ -103,15 +95,12 @@ void StepperCtrl_setControlMode(uint8_t mode){
 		default:
 			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
-	__enable_irq();
 }
 
 //returns internal position integer
 int32_t StepperCtrl_getAngleFromEncoderRaw(void) {
 	int32_t ret;
-	__disable_irq();
 	ret = currentLocation;
-	__enable_irq();
 	return ret;
 }
 
@@ -123,36 +112,28 @@ float StepperCtrl_getAngleFromEncoder(void) {
 //returns current close loop torque
 float StepperCtrl_getCloseLoop(void) {
 	int16_t ret;
-	__disable_irq();
 	ret = closeLoop;
-	__enable_irq();
 	return (float) DIR_SIGN(ret) * current_to_actuatorTq; //convert close loop control (mA) to actuator output torque
 }
 
 //returns current control actuator torque
 float StepperCtrl_getControlOutput(void) {
 	int16_t ret;
-	__disable_irq();
 	ret = control;
-	__enable_irq();
 	return DIR_SIGN(ret) * current_to_actuatorTq; //convert total control (mA) to actuator output torque
 }
 
 //returns current actuator speed in rev/s
 float StepperCtrl_getSpeedRev(void) { //revolutions/s
 	int32_t ret;
-	__disable_irq();
 	ret = speed_slow;
-	__enable_irq();
 	return (float) DIR_SIGN(ret) / ANGLE_STEPS / gearing_ratio; //convert speed angleraw/s to rev/s
 }
 
 //returns position error integer
 float StepperCtrl_getPositionError(void) {
-	int32_t ret;
-	__disable_irq(); 
+	int32_t ret; 
 	ret = loopError;
-	__enable_irq();
 	return ANGLERAW_T0_DEGREES(DIR_SIGN(ret)) / gearing_ratio; //convert error (steps) to rev/s
 }
 
