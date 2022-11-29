@@ -252,7 +252,7 @@ static void Analog_init(void){
 	adc_initStructure.ADC_ContinuousConvMode = DISABLE;	 
 	adc_initStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
 	adc_initStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
-	adc_initStructure.ADC_NbrOfChannel = 2;
+	adc_initStructure.ADC_NbrOfChannel = 4;
 	ADC_Init(ADC1, &adc_initStructure);
 
 	ADC_DiscModeCmd(ADC1, ENABLE);
@@ -279,22 +279,34 @@ static void Analog_init(void){
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_AIN;
     gpio_initStructure.GPIO_Pin = PIN_VMOT;
 	GPIO_Init(GPIO_VMOT, &gpio_initStructure);
+	
+    gpio_initStructure.GPIO_Pin = PIN_LSS_A|PIN_LSS_B;
+	GPIO_Init(GPIO_LSS, &gpio_initStructure);
 
 	/* ADC1 regular channe16 configuration */ 
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);
 	ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 2, ADC_SampleTime_13Cycles5);
+	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_A, 3, ADC_SampleTime_1Cycles5);
+	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_B, 4, ADC_SampleTime_1Cycles5);
+}
+
+static uint16_t Get_ADC_raw_nextRank(ADC_TypeDef* adcx){
+	ADC_SoftwareStartConvCmd(adcx, ENABLE);	
+	while (ADC_GetFlagStatus(adcx, ADC_FLAG_EOC)!=SET){
+		//wait until conversion is finished
+	}
+	uint16_t adc_raw = ADC_GetConversionValue(adcx);
+	return adc_raw;
+}
+
+static float covnert_ADC_raw_volt(uint16_t adc_raw){
+	float adc_volt = ((float)adc_raw+0.5f) * V_REF / (float)ADC_12bit;
+	return adc_volt;
 }
 
 static volatile float chip_temp_adc;
 void ChipTemp_adc_update(){
-	ADC_SoftwareStartConvCmd(ADC1, ENABLE);	
-	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)!=SET){
-		//wait until conversion is finished
-	}
-	uint16_t adc_raw = ADC_GetConversionValue(ADC1);
-	
-	float adc_volt = ((float)adc_raw+0.5f) * V_REF / (float)ADC_12bit;
-	
+	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC1));
 	const float t0 = 35.0f;
 	const float adcVoltRef = 1.325f; //! calibrate at some t0
 	const float tempSlop = 4.3f/1000.0f; //typically 4.3mV per C
@@ -306,19 +318,37 @@ float GetChipTemp(){
 }
 
 static volatile float vmot_adc;
-void Vmot_adc_update(){
-	ADC_SoftwareStartConvCmd(ADC_VMOT, ENABLE);
-	while (ADC_GetFlagStatus(ADC_VMOT, ADC_FLAG_EOC)!=SET){
-	//wait until conversion is finished
-	}
-	uint16_t adc_raw = ADC_GetConversionValue(ADC_VMOT);
-
-	float adc_volt = ((float)adc_raw+0.5f) * V_REF / (float)ADC_12bit;
+void Vmot_adc_update(void){
+	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_VMOT));
 	vmot_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VMOT, R2_VDIV_VMOT);
 }
 
 float GetMotorVoltage(){
 	return vmot_adc;
+}
+
+#define max(a,b)             \
+({                           \
+    __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    (_a > _b) ? _a : _b;     \
+})
+
+static volatile float lssA_adc;
+static volatile float lssB_adc;
+void LSS_adc_update(void){ //todo add filter
+	float adc_volt;
+	adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_LSS));
+	lssA_adc = max(adc_volt-LSS_OP_OFFSET, 0.0f) / 9.2f * 10.0f;
+	adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_LSS));
+	lssB_adc = max(adc_volt-LSS_OP_OFFSET, 0.0f) / 9.2f * 10.0f;
+}
+
+float Get_PhaseA_Current(void){
+	return lssA_adc;
+}
+float Get_PhaseB_Current(void){
+	return lssB_adc;
 }
 
 void board_init(void)

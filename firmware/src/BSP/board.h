@@ -67,14 +67,23 @@
 #define	VREF_TIM			TIM3
 #define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
 
+#define GPIO_LSS        GPIOA
+#define PIN_LSS_A       GPIO_Pin_0
+#define PIN_LSS_B       GPIO_Pin_1
+#define ADC_CH_LSS_A    ADC_Channel_0
+#define ADC_CH_LSS_B    ADC_Channel_1
+#define ADC_LSS         ADC1
+#define LSS_OP_OFFSET   0.080f //V
+
+
 //DClink
 //DClink v_mot adc
-#define GPIO_VMOT GPIOB
-#define PIN_VMOT GPIO_Pin_1
-#define ADC_CH_VMOT ADC_Channel_9
-#define ADC_VMOT ADC1
-#define R1_VDIV_VMOT 10 //kohm
-#define R2_VDIV_VMOT 1  //kohm
+#define GPIO_VMOT       GPIOB
+#define PIN_VMOT        GPIO_Pin_1
+#define ADC_CH_VMOT     ADC_Channel_9
+#define ADC_VMOT        ADC1
+#define R1_VDIV_VMOT    10 //kohm
+#define R2_VDIV_VMOT    1  //kohm
 
 //A1333
 #define PIN_A1333     			GPIOB
@@ -112,9 +121,12 @@ void Set_Func_LED(bool state);
 
 void Vmot_adc_update(void);
 void ChipTemp_adc_update(void);
+void LSS_adc_update(void);
 
-float GetChipTemp();
+float GetChipTemp(void);
 float GetMotorVoltage(void); //V_mot
+float Get_PhaseA_Current(void);
+float Get_PhaseB_Current(void);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
 void Motion_task_init(uint16_t taskPeriod);
