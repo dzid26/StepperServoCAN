@@ -107,10 +107,10 @@
     
 
 //LED
-#define GPIO_LED_RED				GPIOC
-#define	PIN_LED_RED					GPIO_Pin_13
-#define GPIO_LED_BLUE				GPIOB
-#define PIN_LED_BLUE				GPIO_Pin_0
+#define GPIO_LED_RED			GPIOB
+#define	PIN_LED_RED				GPIO_Pin_0
+#define GPIO_LED_BLUE			GPIOC
+#define PIN_LED_BLUE			GPIO_Pin_13
 
 void board_init(void);
 
