@@ -95,7 +95,13 @@ static void TLE5012B_init(void)
 	spi_initStructure.SPI_CPOL = SPI_CPOL_Low;
 	spi_initStructure.SPI_CPHA = SPI_CPHA_2Edge;
 	spi_initStructure.SPI_NSS = SPI_NSS_Soft;
-	spi_initStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; //4.5Mbit/s
+	#if (TLE5012B_SPIx == 1)
+		spi_initStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; //8Mbps at 64Mhz PLCK2
+	#endif
+	#if (TLE5012B_SPIx == 2)
+		spi_initStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; //8Mbps at 32Mhz PLCK1
+	#endif
+	
 	spi_initStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	 //X8+X4+X3+X2+1  J1850 - sadly to use hardware CRC8, SPI_DataSize would need to be change to 8bit - not ideal
 	spi_initStructure.SPI_CRCPolynomial = 0x1D;
