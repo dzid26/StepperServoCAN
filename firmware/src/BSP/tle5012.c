@@ -17,6 +17,7 @@
  */
 
 #include "tle5012.h"
+#include "spi.h"
 #include "delay.h"
 #include <stdio.h>
 
@@ -34,28 +35,30 @@ static volatile uint16_t safety;
 static uint16_t TLE5012_ReadValue(uint16_t command)
 {
   uint16_t data;
+	
+  __disable_irq();
 
   TLE5012_ACTIVE;
   SPI_RX_OFF;
   SPI_Cmd(TLE5012B_SPI, ENABLE);
   SPI_Write(TLE5012B_SPI, command|READ_FLAG); //command write. 
 
-	__disable_irq();
   SPI_RX_ON;
   data = SPI_Read(TLE5012B_SPI);
-  //wait one SPI clock cylce and then disable SPI just before last RX
-  delay_us(1); //this delay can be shorter, but since it is during next SPI word being received, it is not making any difference
-  SPI_Cmd(TLE5012B_SPI, DISABLE);//this will stop SCK right right after last word is read
-	__enable_irq();
+  SPI_Cmd(TLE5012B_SPI, DISABLE);//this will stop SCK right after last word is read
   safety = SPI_Read(TLE5012B_SPI);//read last word from the buffer
   TLE5012_INACTIVE;
   
+	__enable_irq();
+
   return data;
 }
 
 //
 static void TLE5012_WriteValue(uint16_t command, uint16_t regValue)
 {
+  __disable_irq();
+
   TLE5012_ACTIVE;
   SPI_RX_OFF;
   SPI_Cmd(TLE5012B_SPI, ENABLE);
@@ -63,6 +66,8 @@ static void TLE5012_WriteValue(uint16_t command, uint16_t regValue)
   SPI_Write(TLE5012B_SPI, regValue);
   SPI_Cmd(TLE5012B_SPI, DISABLE);
   TLE5012_INACTIVE;
+
+  __enable_irq();
 }
 
 static bool TLE5012_WriteAndCheck(uint16_t command,uint16_t regValue)
@@ -76,13 +81,13 @@ static bool TLE5012_WriteAndCheck(uint16_t command,uint16_t regValue)
   return true;
 }
 
-//
+//Reads status register
 static uint16_t TLE5012_ReadState(void)
 {
   return (TLE5012_ReadValue(READ_STATUS));
 }
 
-//
+//Reads the angle from the sensor
 uint16_t TLE5012_ReadAngle(void)
 {
   uint16_t raw_angle;

@@ -22,7 +22,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "board.h"
-#include "spi.h"
 
 #define SPI_RX_ON  SPI_BiDirectionalLineConfig(TLE5012B_SPI, SPI_Direction_Rx)
 #define SPI_RX_OFF   SPI_BiDirectionalLineConfig(TLE5012B_SPI, SPI_Direction_Tx)
