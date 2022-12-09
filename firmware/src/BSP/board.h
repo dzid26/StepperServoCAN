@@ -57,7 +57,7 @@
 #define PIN_A4950_VREF12    GPIO_Pin_5	//TIM3_CH2
 #define PIN_A4950_VREF34    GPIO_Pin_4	//TIM3_CH1
 
-#define RS_A4950            (uint16_t) 100 //mOhm
+#define RS_A4950            100U //mOhm
 
 #define PIN_A4950_IN1   	GPIO_Pin_6
 #define PIN_A4950_IN2   	GPIO_Pin_7

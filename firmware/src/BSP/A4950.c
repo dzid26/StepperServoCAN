@@ -18,6 +18,7 @@
  * along with this program.  If not, see <www.gnu.org/licenses/>.
  *
  */
+
 #include "A4950.h"
 
 #include "stepper_controller.h"
@@ -27,8 +28,7 @@
 #include "encoder.h"
 
 #define MCU_VOUT mV_REF
-#define I_RS_A4950_div     (uint16_t) (1000/10) //mOhm to Ohm and 10x multiplier
-#define I_RS_A4950_rat     (uint16_t) (RS_A4950/I_RS_A4950_div) //mOhm to Ohm and 10x multiplier
+#define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
 
 
 // phase lead due to DAC low pass filter C=uF, R=1k; phase = -atan(2pi*f*R*C)  
@@ -149,7 +149,7 @@ void A4950_enable(bool enable)
 // Note you can only move up to +/-A4950_STEP_MICROSTEPS from where you
 // currently are.
 
-void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees
+void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees, aka full step
 {
 	uint16_t vrefY;
 	uint16_t vrefX;
@@ -180,9 +180,16 @@ void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrica
 	sin = sine(elecAngleStep);
 	cos = cosine(elecAngleStep);
 
+	//limit Vref to 3300mV
+	const uint16_t I_RS_A4950_rat = RS_A4950/I_RS_A4950_div; //mOhm to Ohm and 10x multiplier
+	uint16_t vref = mA * I_RS_A4950_rat;
+	if(vref > MCU_VOUT){
+		vref = MCU_VOUT;
+	}
+
 	//Modified Park transform for Iq current. Here load angle is introduced ~ +/-90 degrees which controls the direction (instead of current sign in Park)
-	vrefX = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
-	vrefY = (uint16_t)((uint32_t) mA * I_RS_A4950_rat * fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
+	vrefX = (uint16_t)((uint32_t) vref * (uint32_t)fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
+	vrefY = (uint16_t)((uint32_t) vref * (uint32_t)fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
 
 	setVREF(vrefX,vrefY); //VREF12	VREF34
 
