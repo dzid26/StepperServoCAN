@@ -275,6 +275,21 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 	}
 }
 
+int32_t movingAverage(int32_t value) {
+	const uint8_t statesize = 8;
+	static int32_t ringbuffer[8]; //ringbuffer[statesize] in C++
+	static int32_t integrator = 0;
+	// don't forget to initialize the ringbuffer somehow
+	static uint8_t ringbuffer_ptr = 0;
+	
+	int32_t oldest_value = ringbuffer[ringbuffer_ptr];
+	integrator += (value - oldest_value);
+	ringbuffer[ringbuffer_ptr] = value;
+	ringbuffer_ptr = (ringbuffer_ptr+1u) % statesize;
+
+	return integrator / (int8_t)statesize;
+}
+
 
 bool StepperCtrl_processMotion(void)
 {
@@ -295,6 +310,7 @@ bool StepperCtrl_processMotion(void)
 	error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
+	speed_raw = movingAverage(speed_raw);
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
 	no_error = StepperCtrl_simpleFeedback(error);
