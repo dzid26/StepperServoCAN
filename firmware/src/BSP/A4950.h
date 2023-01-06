@@ -27,14 +27,19 @@
 
 #define A4950_STEP_MICROSTEPS (uint16_t) 256U //Full step electrical angle
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
-#define VREF_SCALER	6
+#define VREF_SCALER	6U
 #define VREF_SINE_RATIO	(1<<VREF_SCALER)
-#define PWM_SCALER	3 //low vibration
+#define PWM_SCALER	3U //low vibration
 #define SYS_Vin 14500 //mV
-#define PHASE_R 4 //ohm
+#define PHASE_R 3 //ohm
+#define PHASE_L 3 //Henry
+#define K_BEMF 3530/2 // mV/(rev/s)
+#define V_TO_mV 1000
+
 
 void A4950_enable(bool enable);
 void A4950_move(uint16_t stepAngle, uint16_t mA);
+void A4950_move_volt(uint16_t stepAngle, int16_t Iq);
 void A4954_begin(void);
 
 extern volatile bool A4950_Enabled;

@@ -27,7 +27,7 @@
 #include "encoder.h"
 #include "math.h"
 
-static void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
+static void StepperCtrl_moveToAngle(int16_t loadAngle, int16_t current_target);
 
 volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
@@ -321,7 +321,6 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 
 	static float iTerm; //iTerm memory
 	static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
-	static uint16_t magnitude = 0; //static for dTerm condition check
 
 	if(enableFeedback) //todo add openloop control
 	{
@@ -371,7 +370,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 
 			// PID derivative term
 			dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING * (int32_t) SAMPLING_PERIOD_uS;
-			if(magnitude < smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
+			if(control < smallLoad && control > -smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
 				dTerm=0;
 			}
 			
@@ -422,13 +421,12 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			loadAngleDesired = 0;
 		}
 
-		magnitude = (uint16_t) (fastAbs(control));
 
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		uint16_t sensDelay = 90u;
-		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + sensDelay);
+		uint16_t sensDelay = 45u;
+		uint16_t angleSensLatency = sensDelay;
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
-		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
+		StepperCtrl_moveToAngle(loadAngleSpeedComp, control);
 	
 	}else{
 		control = 0;
@@ -438,7 +436,6 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		lastError = 0;
 		iTerm = 0;
 		saturationId = 2;
-		magnitude = 0;
 	}
 
   // error needs to exist for some time period
@@ -461,7 +458,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 }
 
 
-static void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude) 
+static void StepperCtrl_moveToAngle(int16_t loadAngle, int16_t current_target) 
 {
 	uint16_t absoluteAngle; //0-65535 -> 0-360
 	uint16_t absoluteMicrosteps;
@@ -469,5 +466,8 @@ static void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude)
 	absoluteAngle = (uint16_t) (((uint32_t) (currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
 	absoluteMicrosteps = absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
 
-	A4950_move(absoluteMicrosteps, magnitude);
+	if(1)
+		A4950_move_volt(absoluteMicrosteps, current_target);
+	else
+		A4950_move(absoluteMicrosteps, (uint16_t)fastAbs(current_target));
 }
