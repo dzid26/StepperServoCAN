@@ -53,16 +53,17 @@
 
 
 //A4950
-#define PIN_A4950     			GPIOB
+#define PIN_A4950_VREF     			GPIOB
 #define PIN_A4950_VREF12    GPIO_Pin_5	//TIM3_CH2
 #define PIN_A4950_VREF34    GPIO_Pin_4	//TIM3_CH1
 
 #define RS_A4950            100U //mOhm
 
-#define PIN_A4950_IN1   	GPIO_Pin_6
-#define PIN_A4950_IN2   	GPIO_Pin_7
-#define PIN_A4950_IN3  		GPIO_Pin_8
-#define PIN_A4950_IN4  		GPIO_Pin_9
+#define PIN_A4950     			GPIOA
+#define PIN_A4950_IN1   	GPIO_Pin_8
+#define PIN_A4950_IN2   	GPIO_Pin_9
+#define PIN_A4950_IN3  		GPIO_Pin_10
+#define PIN_A4950_IN4  		GPIO_Pin_11
     
 #define	VREF_TIM			TIM3
 #define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple

@@ -139,15 +139,13 @@ static void A4950_init(void)
 
 	//A4950 Vref pins
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); //has to be enabled before remap
-	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);	//Release pins for VREF34, DIP2, DIP1
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);	//Release pins for VREF34, DIP2, DIP1
 	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	gpio_initStructure.GPIO_Pin = PIN_A4950_VREF12|PIN_A4950_VREF34;
-    GPIO_Init(PIN_A4950, &gpio_initStructure);
-
-	//Remap to the upper pins
+    GPIO_Init(PIN_A4950_VREF, &gpio_initStructure);
 
 	//Init TIM3
 	TIM_TimeBaseInitTypeDef  		timeBaseStructure;
@@ -184,19 +182,20 @@ static void LED_init(void)
 static void CAN_begin(void){
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);	//CAN
+	GPIO_PinRemapConfig(GPIO_Remap1_CAN1, ENABLE);	//CAN1 remap to other pins
 
 	/* Configure CAN RX pin */
 	GPIO_InitTypeDef gpio_initStructure;
-	gpio_initStructure.GPIO_Pin = GPIO_Pin_11;
+	gpio_initStructure.GPIO_Pin = GPIO_Pin_8;
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     gpio_initStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(GPIOA, &gpio_initStructure);
+	GPIO_Init(GPIOB, &gpio_initStructure);
 
 	/* Configure CAN TX pin */
-	gpio_initStructure.GPIO_Pin = GPIO_Pin_12;
+	gpio_initStructure.GPIO_Pin = GPIO_Pin_9;
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
     gpio_initStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_Init(GPIOA, &gpio_initStructure);
+	GPIO_Init(GPIOB, &gpio_initStructure);
 
 	/* Configure CAN RS pin */
 	// GPIO_Mode_IN_FLOATING for slew rate control
