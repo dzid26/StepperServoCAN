@@ -263,7 +263,7 @@ static void Analog_init(void){
 	adc_initStructure.ADC_ContinuousConvMode = DISABLE;	 
 	adc_initStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
 	adc_initStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
-	adc_initStructure.ADC_NbrOfChannel = 4;
+	adc_initStructure.ADC_NbrOfChannel = 5;
 	ADC_Init(ADC1, &adc_initStructure);
 
 	ADC_DiscModeCmd(ADC1, ENABLE);
@@ -297,8 +297,9 @@ static void Analog_init(void){
 	/* ADC1 regular channe16 configuration */ 
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);
 	ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 2, ADC_SampleTime_13Cycles5);
-	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_A, 3, ADC_SampleTime_1Cycles5);
-	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_B, 4, ADC_SampleTime_1Cycles5);
+	ADC_RegularChannelConfig(ADC_VBAT, ADC_CH_VBAT, 3, ADC_SampleTime_13Cycles5);
+	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_A, 4, ADC_SampleTime_1Cycles5);
+	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_B, 5, ADC_SampleTime_1Cycles5);
 }
 
 static uint16_t Get_ADC_raw_nextRank(ADC_TypeDef* adcx){
@@ -337,6 +338,17 @@ void Vmot_adc_update(void){
 float GetMotorVoltage(){
 	return vmot_adc;
 }
+
+static volatile float vbat_adc;
+void Vbat_adc_update(void){
+	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_VBAT));
+	vbat_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VBAT, R2_VDIV_VBAT);
+}
+
+float GetSupplyVoltage(){
+	return vbat_adc;
+}
+
 
 #define max(a,b)             \
 ({                           \

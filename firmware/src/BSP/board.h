@@ -85,8 +85,17 @@
 #define PIN_VMOT        GPIO_Pin_1
 #define ADC_CH_VMOT     ADC_Channel_9
 #define ADC_VMOT        ADC1
-#define R1_VDIV_VMOT    10 //kohm
-#define R2_VDIV_VMOT    1  //kohm
+#define R1_VDIV_VMOT    20 //kohm
+#define R2_VDIV_VMOT    2  //kohm
+
+//DClink v_bat adc
+#define GPIO_VBAT       GPIOA
+#define PIN_VBAT        GPIO_Pin_7
+#define ADC_CH_VBAT     ADC_Channel_9
+#define ADC_VBAT        ADC1
+#define R1_VDIV_VBAT    20 //kohm
+#define R2_VDIV_VBAT    2  //kohm
+
 
 //A1333
 #define PIN_A1333     			GPIOB
