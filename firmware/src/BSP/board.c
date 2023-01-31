@@ -137,6 +137,12 @@ static void A4950_init(void)
     gpio_initStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
     GPIO_Init(PIN_A4950, &gpio_initStructure);
 
+	//A4950 Enable pin
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU;
+ 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+	gpio_initStructure.GPIO_Pin = PIN_A4950_ENABLE;
+	GPIO_Init(PIN_A4950, &gpio_initStructure);
+
 	//A4950 Vref pins
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); //has to be enabled before remap
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);	//Release pins for VREF34, DIP2, DIP1

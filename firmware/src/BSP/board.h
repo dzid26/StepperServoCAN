@@ -64,6 +64,8 @@
 #define PIN_A4950_IN2   	GPIO_Pin_9
 #define PIN_A4950_IN3  		GPIO_Pin_10
 #define PIN_A4950_IN4  		GPIO_Pin_11
+
+#define PIN_A4950_ENABLE    GPIO_Pin_6
     
 #define	VREF_TIM			TIM3
 #define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
