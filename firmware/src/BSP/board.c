@@ -116,7 +116,7 @@ static void SWITCH_init(void)
 	GPIO_InitTypeDef  gpio_initStructure; 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    gpio_initStructure.GPIO_Pin = PIN_FCN_KEY;
+    gpio_initStructure.GPIO_Pin = PIN_F1_KEY;
     GPIO_Init(PIN_SW, &gpio_initStructure);
 
 	gpio_initStructure.GPIO_Pin = PIN_JP1 | PIN_JP2 | PIN_JP3;
@@ -388,7 +388,7 @@ void board_init(void)
 
 bool Fcn_button_state(void)
 {
-	if (GPIO_ReadInputDataBit(PIN_SW, PIN_FCN_KEY) == Bit_RESET){
+	if (GPIO_ReadInputDataBit(PIN_SW, PIN_F1_KEY) == Bit_RESET){
 		return true; //low is pressed
 	}
 	return false;

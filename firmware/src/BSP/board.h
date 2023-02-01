@@ -43,8 +43,9 @@
 
 //SW
 #define	PIN_SW                     GPIOC
-#define	PIN_FCN_KEY 				GPIO_Pin_15
-#define	PIN_SW3_ENTER				PIN_FCN_KEY
+#define	PIN_F1_KEY 				GPIO_Pin_14
+#define	PIN_F2_KEY 				GPIO_Pin_15
+#define	PIN_SW3_ENTER				PIN_F1_KEY
 
 #define	GPIO_JP                     GPIOA
 #define	PIN_JP1					GPIO_Pin_3
