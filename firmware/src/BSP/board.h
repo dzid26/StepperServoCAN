@@ -133,11 +133,13 @@ void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
 
 void Vmot_adc_update(void);
+void Vbat_adc_update(void);
 void ChipTemp_adc_update(void);
 void LSS_adc_update(void);
 
 float GetChipTemp(void);
 float GetMotorVoltage(void); //V_mot
+float GetSupplyVoltage(void); //V_bat
 float Get_PhaseA_Current(void);
 float Get_PhaseB_Current(void);
 

@@ -150,8 +150,8 @@ stepCtrlError_t StepperCtrl_begin(void)
 
 	if (NVM->motorParams.parametersValid == valid)
 	{
-		//lets read the motor voltage
-		if (GetMotorVoltage() < 8.0f)
+		//voltage check
+		if (GetMotorVoltage() < 8.0f || GetSupplyVoltage() < 8.0f)
 		{
 			return STEPCTRL_NO_POWER;
 		}
