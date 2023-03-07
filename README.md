@@ -2,22 +2,21 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/dzid26/StepperServoCAN/badge)](https://www.codefactor.io/repository/github/dzid26/StepperServoCAN)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/fce99e1ae7d149a0a6768b91afb259d7)](https://www.codacy.com/gh/dzid26/StepperServoCAN/dashboard)
 # StepperServoCAN - firmware
-- This is firmware for stepper motor actuators
-- The currently targetted hardware is S42Bv2 board or similar
-- Main control mode is torque based
+- This firmware is for two phase stepper motor actuator controller. 
+- It allows for smooth (close-loop) torque control by reading shaft angle from a magnetic sensor
+- it support CANbus communication. It can interpret values based on specified motor gearing
 
-## Hardware (BTT S42Bv2, S57Bv2)
+## Hardware
 - PCB Schematics repo [here](https://github.com/dzid26/StepperServo-hardware)
 - STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit, Cortex™-M3 CPU Core, 72MHz maximum frequency, 20k RAM, 64k Flash (but really 128k ??).
 - TLE5012 15bit magnetic (GMR) angle sensor. Also has temperature sensor.
 - A4950 current drivers (integrated mosfets) - **IMPORTANT** - do not back drive the motor without the [board modification](https://github.com/dzid26/RetroPilot-SERVO42B/wiki/Board-BEMF-protection-mod)
 
-## Firmware 
-- The frmware is compatible with Bigtreetech S42Bv2 and S57Bv2 boards.
-- Dip switches, step, dir, enable pin, USART are currenlty NOT used in the firmware
-- Uses ST's old Standard Peripheral Library (src/lib) for registers configuration
-- Buttons - Function (Fcn) and Reset (Rst)
+## Firmware
+- Uses ST's (old) Standard Peripheral Library (src/lib) for registers configuration
 - CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh` 
+- It uses Platformio to build, upload and debug the program
+- User can interract with Function buttons (F1 and F2) and Reset button (Rst) or via debug virtual serial, aka semihosting
 
 ### Build and upload
 - Specify your programming dongle in `firmware/platformio.ini` - default is stlink
@@ -33,7 +32,7 @@
 ### LED idnicators
 BLUE LED (Function):
  - short single blink after user long presses Fcn button indicating button can be released
- - solid - waiting for user confirmation [of calibration] (either with Fcn button or Enter in Platformio OpenOCD debugger console)
+ - solid - waiting for user confirmation [of calibration] (either with Fcn button or Enter in Platformio OpenOCD debugger virtual serial console)
 RED LED (Error):
  - solid/dim/flickering - Motion task CPU overrun (shall not happen)
  - slowly blinking every 1s- encoder initialization error
