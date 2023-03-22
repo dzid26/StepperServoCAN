@@ -386,7 +386,7 @@ void board_init(void)
 	CAN_begin();
 }
 
-bool Fcn_button_state(void)
+bool F1_button_state(void)
 {
 	if (GPIO_ReadInputDataBit(PIN_SW, PIN_F1_KEY) == Bit_RESET){
 		return true; //low is pressed

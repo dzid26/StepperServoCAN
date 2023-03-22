@@ -58,7 +58,7 @@ static void RunCalibration(void){
 		(void) printf("\n[Enter] to confirm start of the calibration..\n");
 		do{	//wait for the user
 			Set_Func_LED(true);
-		}while(!Fcn_button_state() && getchar()==EOF);
+		}while(!F1_button_state() && getchar()==EOF);
 		Set_Func_LED(false);
 
 		//print angle using fixed point
@@ -182,19 +182,19 @@ void Service_task(void){
 	}
 
 	//Function button and LED processing
-	static uint16_t fcn_button_count = 0; //centiseconds
-	const uint16_t fcn1_button_delay = 200U;//hold 2s to trigger re-calibration
-	if(Fcn_button_state() && (stepCtrlError == STEPCTRL_NO_ERROR)){//look for button long press
-		fcn_button_count++;
+	static uint16_t f1_button_count = 0; //centiseconds
+	const uint16_t button_delay_calib = 200U;//hold 2s to trigger re-calibration
+	if(F1_button_state() && (stepCtrlError == STEPCTRL_NO_ERROR)){//look for button long press
+		f1_button_count++;
 		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
-	if(fcn_button_count == (fcn1_button_delay-10U))	{Set_Func_LED(true);} 	//short LED blink
-	if(	fcn_button_count == fcn1_button_delay)		{Set_Func_LED(false);}
-	if((fcn_button_count >= fcn1_button_delay)  && (!Fcn_button_state())){ 	//wait for button release
+	if(f1_button_count == (button_delay_calib-10U))	{Set_Func_LED(true);} 	//short LED blink
+	if(	f1_button_count == button_delay_calib)		{Set_Func_LED(false);}
+	if((f1_button_count >= button_delay_calib)  && (!F1_button_state())){ 	//wait for button release
 		runCalibration = true; 		//request calibration - it will run in Background_process()
 	}
-	if(!Fcn_button_state()){
-		fcn_button_count=0;
+	if(!F1_button_state()){
+		f1_button_count=0;
 	}
 }
 

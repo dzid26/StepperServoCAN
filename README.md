@@ -31,8 +31,8 @@
 
 ### LED idnicators
 BLUE LED (Function):
- - short single blink after user long presses Fcn button indicating button can be released
- - solid - waiting for user confirmation [of calibration] (either with Fcn button or Enter in Platformio OpenOCD debugger virtual serial console)
+ - short single blink after user long presses `F1` button indicating button can be released
+ - solid - waiting for user confirmation [of calibration] (either with `F1` button or Enter in Platformio OpenOCD debugger virtual serial console)
 RED LED (Error):
  - solid/dim/flickering - Motion task CPU overrun (shall not happen)
  - slowly blinking every 1s- encoder initialization error
@@ -48,7 +48,7 @@ Many other parameters are not used and are slated for removal.
 ### Calibration and first run
 1. On first start defualt parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
-3. Next the controller automatically waits (blue LED on) for the user to confirm sensor calibration. Press `Fcn` button to start calibration. The motor will be calibrated and values stored in Flash. Calibration can be repeated any time by long pressing `Fcn` button until first short blink of the blue LED. 
+3. Next the controller automatically waits (blue LED on) for the user to confirm sensor calibration. Press `F1` button to start calibration. The motor will be calibrated and values stored in Flash. Calibration can be repeated any time by long pressing `F1` button until first short blink of the blue LED. 
 4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affectes signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
 5. Depending on mounting orientation and gearing the motor rotation direction might be reversed. If this is the case, reverse the motor direction ~~by navigating on display menu to `Rotation` and changing the parameter.~~ This corresponds to `SystemParams.dirRotation` in the code.
 6. Ądditionally one can extract sensor calibration values (point 3) from the Flash using `readCalibration.py`:

@@ -127,7 +127,7 @@
 
 void board_init(void);
 
-bool Fcn_button_state(void);
+bool F1_button_state(void);
 
 void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
