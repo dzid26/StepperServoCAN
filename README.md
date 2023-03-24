@@ -87,7 +87,7 @@ Reference implementation can be found in my bmw openpilot [repo](https://github.
 - `panda/board/safety/safety_xxx.h`- [CAN tx filter `558`](https://github.com/dzid26/panda_bmw/blob/openactuator_dev/board/safety/safety_bmw.h#L7), some [safety](https://github.com/dzid26/panda_bmw/blob/bbdb0ad5ea7c3ce55032f3875b8b2ee431889106/board/safety/safety_bmw.h#L192-L201), and [safety testing](https://github.com/dzid26/panda_bmw/blob/openactuator_dev/tests/safety/test_bmw.py#L75-L91)
 
 ## Contributing
-- Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is preconfigured (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode.
+- Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is preconfigured with (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode. Ask priv about the `misra_rules_set_cppcheck.txt` for cppcheck.
 
 ## BSP Firmware License 
 - The firmware is based on Misfittech project which is based on [nano_stepper](https://github.com/Misfittech/nano_stepper) project and it inherited GPL V3 license
