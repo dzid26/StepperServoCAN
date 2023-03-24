@@ -39,14 +39,14 @@ def calc_checksum_8bit(work_data, msg_id): # 0xb8 0x1a0 0x19e 0xaa 0xbf
 import struct
 def steering_msg_cmd_data(counter: int, steer_mode: int, steer_torque: float, steer_angle: float) -> bytes:
   # Define the structure format and pack the data
-  canbus_fmt = '<bhb' # msg '<bbhb'  without checksum byte[0]
+  canbus_fmt = '<Bhb' # msg '<bbhb'  without checksum byte[0]
   packed_data = struct.pack(canbus_fmt,
                             (steer_mode << 4) | counter,
                             int(steer_angle * 8),
                             int(steer_torque * 8)
                             )
   checksum = calc_checksum_8bit(packed_data, MSG_STEERING_COMMAND_FRAME_ID)
-  packed_data = struct.pack('<b', checksum) + packed_data # add checksum byte at the end
+  packed_data = struct.pack('<B', checksum) + packed_data # add checksum byte at the end
   return packed_data
 
 
