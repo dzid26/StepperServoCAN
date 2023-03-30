@@ -32,6 +32,7 @@
 #include "nonvolatile.h"
 #include "encoder.h"
 #include "main.h"
+#include "Msg.h"
 
 #define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
 
@@ -83,14 +84,17 @@ void StepperCtrl_setControlMode(uint8_t mode){
 		return;
 	}
 	switch (mode){
-		case 0:
+		case MSG_STEERING_COMMAND_STEER_MODE_OFF_CHOICE:
 			StepperCtrl_setMotionMode(STEPCTRL_OFF);
 			break;
-		case 1:
+		case MSG_STEERING_COMMAND_STEER_MODE_TORQUE_CONTROL_CHOICE:
 			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
 			break;
-		case 2:
+		case MSG_STEERING_COMMAND_STEER_MODE_ANGLE_CONTROL_CHOICE:
 			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE);
+			break;
+		case MSG_STEERING_COMMAND_STEER_MODE_SOFT_OFF_CHOICE:
+			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 			break;
 		default:
 			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
