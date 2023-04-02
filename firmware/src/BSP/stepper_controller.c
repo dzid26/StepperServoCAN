@@ -325,7 +325,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 
 	if(enableFeedback) //todo add openloop control
 	{
-		int16_t loadAngleDesired;
+		int16_t loadAngleDesired = 0;
 		
 		//todo add close loop intiazliation - I term with last control
 		if (enableSoftOff){
@@ -407,17 +407,17 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			closeLoop = 0;
 			lastError = 0;
 
-			iTerm = 0;
+			iTerm = 0.0;
 			saturationId = 2;
 		}
 		
 
 		if (control > 0)
 		{
-			loadAngleDesired = angleFullStep;
+			loadAngleDesired =  (int16_t) angleFullStep;
 		}else if (control < 0)
 		{
-			loadAngleDesired = -angleFullStep;
+			loadAngleDesired = (int16_t) -angleFullStep;
 		}else{
 			loadAngleDesired = 0;
 		}
@@ -427,7 +427,8 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
 		uint16_t sensDelay = 90u;
 		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + sensDelay);
-		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS  ); 
+		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS); 
+		// loadAngleSpeedComp = 1;
 		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
 	
 	}else{
@@ -436,13 +437,13 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		Iq_ma = 0;
 
 		lastError = 0;
-		iTerm = 0;
+		iTerm = 0.0;
 		saturationId = 2;
 		magnitude = 0;
 	}
 
   // error needs to exist for some time period
-	if (abs(lastError) > systemParams.errorLimit)
+	if (abs(lastError) > (int32_t) systemParams.errorLimit)
 	{
 		++errorCount;
 		if (errorCount > (SAMPLING_HZ >> 7))
@@ -452,7 +453,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		return false;
 	}
 
-	if(errorCount > 0)
+	if(errorCount > 0U)
 	{
 		--errorCount;
 	}
