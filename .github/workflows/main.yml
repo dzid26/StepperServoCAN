@@ -52,7 +52,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: firmware
-        path: firmware/.pio/build/S57Bv2/firmware.bin
+        path: firmware/.pio/build/ServoCAN/firmware.bin
 
     - name: PlatformIO Check
       run: |
