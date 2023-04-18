@@ -152,16 +152,16 @@ static void Background_process(void){
 //fast motor control task
 //rolling counters for debugging
 volatile uint32_t motion_task_counter=0;	// cppcheck-suppress  misra-c2012-8.4
-volatile uint32_t motion_task_count=0;		// cppcheck-suppress  misra-c2012-8.4
+volatile uint32_t service_task_counter=0;	// cppcheck-suppress  misra-c2012-8.4
 void Motion_task(void){
-	motion_task_count++;
+	motion_task_counter++;
 
 	(void) StepperCtrl_processMotion(); //handle the control loop
 }
 
 //10ms task for communication and diagnostic
 void Service_task(void){
-	motion_task_counter++;
+	service_task_counter++;
 
 	ChipTemp_adc_update();
 	Vmot_adc_update();
@@ -169,7 +169,7 @@ void Service_task(void){
 	LSS_adc_update();
 
 	//transmit CAN every 10ms
-	CAN_TransmitMotorStatus(motion_task_counter);
+	CAN_TransmitMotorStatus(service_task_counter);
 
 	//go to Soft Off if motor is actively controlled but control signal is not received
 	bool comm_error = false;
