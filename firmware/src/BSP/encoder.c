@@ -34,9 +34,19 @@ uint16_t ReadEncoderAngle(void){
 
 //Get oversampled encoder angle - simple averaging
 uint16_t OverSampleEncoderAngle(uint16_t numSamples){
-	uint32_t sum = 0;
+	int32_t sum = 0;
+	uint16_t x0 = ReadEncoderAngle();
+	
 	for(uint16_t k=0; k < numSamples; k++){
-		sum += ReadEncoderAngle();
+		int16_t diff = (int16_t)(x0 - ReadEncoderAngle());
+		sum += diff;
 	}
-	return (uint16_t)(sum/numSamples);
+	
+	uint16_t result;
+	if (numSamples > 0U){
+		result = (x0+(uint16_t)(int16_t)(sum/(int32_t)numSamples));
+	}else{
+		result = x0;
+	}
+	return result;
 }
