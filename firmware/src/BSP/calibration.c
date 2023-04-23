@@ -208,12 +208,13 @@ static void CalibrationTable_normalizeStartIdx(void){
 // We also need to calibrate the phasing of the motor
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
-static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
-	static uint32_t electAngle;//electric angle
-
+static uint16_t CalibrationMove(int8_t dir, bool verifyOnly){
+	static uint16_t electAngle;//electric angle - carry over between passes
+	if (dir > 0){
+		electAngle = 0;
+	}
 	uint16_t maxError = 0;
 	uint16_t stepCurrent = motorParams.currentMa;
-	uint8_t dir = (uint8_t)(pass_no % 2U);//forward during first pass, backward during second pass
 		
 	const uint16_t preRunSteps = CALIBRATION_TABLE_SIZE/2U; //do half rotation preRun to start calibration with max hysteresis
 	const uint16_t passSteps = preRunSteps + CALIBRATION_TABLE_SIZE;
@@ -225,23 +226,23 @@ static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
 		if (!preRun) {
 			delay_ms(60);
 			uint16_t sampled = OverSampleEncoderAngle(100U); //collect angle every half step for 1.8 stepper
-			uint16_t expectedAngle = (uint16_t)(ANGLE_STEPS * electAngle / A4950_STEP_MICROSTEPS / motorParams.fullStepsPerRotation);//convert to shaft angle
-			uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535)
-			int16_t delta = sampled - cal; //utlizes wrap around
+			uint16_t expectedAngle = (uint16_t)((uint32_t)ANGLE_STEPS * electAngle / A4950_STEP_MICROSTEPS / motorParams.fullStepsPerRotation);//convert to shaft angle
+			uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
 			
-			if(pass_no == 0U){//if first pass. This condition is not needed, but adds clarity
+			int16_t delta = sampled - cal; //this wrap around
+			if(dir > 0){//if first pass. This condition is not needed, but adds clarity
 				averageMeasurment = sampled; //add half a distance to average
 			}else{
-				int16_t delta_weighted = (delta / (int16_t)pass_no);//cast to signed temporarily to perform division
-				averageMeasurment = cal + (uint16_t)delta_weighted; //add half a distance to average
+				averageMeasurment = cal + (uint16_t)(int16_t)(delta/2); //this also handles well averaging around wrap around
 			}
-			//store max error during second pass
+			//record max error
 			uint16_t dist_abs = (uint16_t) fastAbs(delta);
 			maxError = (dist_abs > maxError) ? dist_abs : maxError;
+
 		}
 		if(!verifyOnly && !preRun){
 			uint16_t calIdx;
-			if(dir==0U){
+			if(dir > 0){
 				calIdx = step;
 			}else{
 				calIdx = passSteps - step; //index from the end on the way back
@@ -253,17 +254,10 @@ static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
 		
 		//move certain amount of half steps before capturing next data
 		for(uint8_t i = 0; i<((minMicroStep << 4U) / stepDivCal_q4); i++){
-			if(dir==0U){
-				electAngle += (uint32_t)A4950_STEP_MICROSTEPS/minMicroStep; //it's ok if it overflows since A4950_move has modulo
-			}else{
-				electAngle -= (uint32_t)A4950_STEP_MICROSTEPS/minMicroStep;
-			}
-			A4950_move((uint16_t)electAngle, stepCurrent);
+			electAngle += (uint16_t)(dir * (int16_t)(A4950_STEP_MICROSTEPS/minMicroStep)); //it's ok if it overflows since A4950_move has modulo
+			A4950_move(electAngle, stepCurrent);
 			delay_ms(1); //this produces somewhat smooth movement together with minMicroStep 
 		}
-	}
-	if (dir == 1U){ //reset static var after coming back
-		electAngle = 0;
 	}
 	return maxError;
 }
@@ -277,11 +271,11 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);
 	//first calibration pass forward
-	maxError = CalibrationMove(0U, verifyOnly);
+	maxError = CalibrationMove(1, verifyOnly);
 	//second calibration pass backward - reduces influence of magnetic hysteresis
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
-		maxError = CalibrationMove(1U, verifyOnly);
+		maxError = CalibrationMove(-1, verifyOnly);
 		CalibrationTable_normalizeStartIdx(); //this step is optional, but makes the calibration table more readable
 		CalibrationTable_saveToFlash(); //saves the calibration to flash
 	}
