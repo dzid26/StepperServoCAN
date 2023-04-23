@@ -215,7 +215,7 @@ static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
 	uint16_t stepCurrent = motorParams.currentMa;
 	uint8_t dir = (uint8_t)(pass_no % 2U);//forward during first pass, backward during second pass
 		
-	const uint16_t preRunSteps = motorParams.fullStepsPerRotation/2U; //do half rotation preRun to start calibration with max hysteresis
+	const uint16_t preRunSteps = CALIBRATION_TABLE_SIZE/2U; //do half rotation preRun to start calibration with max hysteresis
 	const uint16_t passSteps = preRunSteps + CALIBRATION_TABLE_SIZE;
 	for (uint16_t step = 0; step < passSteps; step++) //Starting calibration 
 	{
@@ -248,16 +248,18 @@ static uint16_t CalibrationMove(uint16_t pass_no, bool verifyOnly){
 			}
 			CalibrationTable_updateTableValue(calIdx % CALIBRATION_TABLE_SIZE, averageMeasurment);
 		}
-		//move half step at a time (even for 400 step motor). A full step move could cause a move backwards for uncalibrated controller
-		uint8_t stepSize = (uint8_t) (CALIBRATION_TABLE_SIZE/motorParams.fullStepsPerRotation);
-		for(uint16_t i = 0; i<stepSize; i++){
+		const uint8_t minMicroStep = 8U; // a full step move could cause a move backwards for uncalibrated controller
+		uint8_t stepDivCal_q4 = (uint8_t)(((uint16_t) CALIBRATION_TABLE_SIZE << 4U) / motorParams.fullStepsPerRotation);
+		
+		//move certain amount of half steps before capturing next data
+		for(uint8_t i = 0; i<((minMicroStep << 4U) / stepDivCal_q4); i++){
 			if(dir==0U){
-				electAngle += (uint32_t)A4950_STEP_MICROSTEPS/stepSize/2U; //it's ok if it overflows
+				electAngle += (uint32_t)A4950_STEP_MICROSTEPS/minMicroStep; //it's ok if it overflows since A4950_move has modulo
 			}else{
-				electAngle -= (uint32_t)A4950_STEP_MICROSTEPS/stepSize/2U;
+				electAngle -= (uint32_t)A4950_STEP_MICROSTEPS/minMicroStep;
 			}
 			A4950_move((uint16_t)electAngle, stepCurrent);
-			delay_ms(1);
+			delay_ms(1); //this produces somewhat smooth movement together with minMicroStep 
 		}
 	}
 	if (dir == 1U){ //reset static var after coming back

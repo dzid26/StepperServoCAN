@@ -25,8 +25,7 @@
 #include <stdbool.h>
 #include "flash.h"
 
-#define	CALIBRATION_TABLE_SIZE			400U  // 400 will work good for calibrating 1.8deg stepper every half step and 0.9deg stepper every full step 
-#define FAST_CAL_TABLE_SIZE 			16384U
+#define	CALIBRATION_TABLE_SIZE			50U  // 50 is enough, 100, 200 also good
 
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
