@@ -34,7 +34,7 @@ const uint16_t rated_current = 1500; //mA
 const uint16_t rated_torque = 40;   //cNm
 
 //specify gearing parameters here:
-const float motor_gearbox_ratio = 5; //gearbox ratio
+const float motor_gearbox_ratio = 5+2/11; //gearbox ratio - enter planetary gearbox tooth calculation for best accuracy
 const float final_drive_ratio = 2; //assembly gearing ratio
 
 
