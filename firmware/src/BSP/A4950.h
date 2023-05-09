@@ -30,6 +30,8 @@
 #define VREF_SCALER	6
 #define VREF_SINE_RATIO	(1<<VREF_SCALER)
 
+#define I_MAX_A4950       (3300) //mA
+
 void A4950_enable(bool enable);
 void A4950_move(uint16_t stepAngle, uint16_t mA);
 void A4954_begin(void);
