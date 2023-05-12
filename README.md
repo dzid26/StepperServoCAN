@@ -42,16 +42,14 @@ RED LED (Error):
     - `rated_current` (single phase) and `rated_torque` from motor spec or measurment. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
     - `motor_gearbox_ratio` - gearbox attached to the motor
     - `final_drive_ratio` - any additional gearing - separate parameter for convenience
-- In the display menu - set `Rotation` to `CW` or `CCW` according to the needs. Alternatively, you can effectively change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to negative value code.
-Many other parameters are not used and are slated for removal.
+- Depending on mounting orientation and gearing the motor rotation direction may be reversed. You can change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to a negative value.
 
 ### Calibration and first run
 1. On first start defualt parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
 3. Next the controller automatically waits (blue LED on) for the user to confirm sensor calibration. Press `F1` button to start calibration. The motor will be calibrated and values stored in Flash. Calibration can be repeated any time by long pressing `F1` button until first short blink of the blue LED. 
 4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affectes signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
-5. Depending on mounting orientation and gearing the motor rotation direction might be reversed. If this is the case, reverse the motor direction ~~by navigating on display menu to `Rotation` and changing the parameter.~~ This corresponds to `SystemParams.dirRotation` in the code.
-6. Ądditionally one can extract sensor calibration values (point 3) from the Flash using `readCalibration.py`:
+5. Ądditionally one can extract sensor calibration values (point 3) from the Flash using `readCalibration.py`:
 - ![CalibrationPlot](https://user-images.githubusercontent.com/841061/201538086-d977bde9-2bf5-4cec-ac3b-eec80bb5fbd9.png)
 ### CAN interface
 Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)
