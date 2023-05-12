@@ -6,7 +6,6 @@ if(env.GetBuildType()=="debug"):
         LINKFLAGS=[
             "--specs=rdimon.specs", #enables semihosting (printf via debugger)
             "--specs=nano.specs",
-            # "-u_ printf_float",  #adds linker printing floating point numbers flag. This makes too big code
         ],
     )
 else:
