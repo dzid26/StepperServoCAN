@@ -25,10 +25,12 @@
 #include <stdbool.h>
 #include "flash.h"
 
+//changing this requires recalibration
 #define	CALIBRATION_TABLE_SIZE			50U  // 50 is enough, 100, 200 also good
 
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
+#define CALIBRATION_MAX_ERROR (546)  //the maximal expected error on calibration 546 = 3deg
 
 typedef struct {
 	uint16_t FlashCalData[CALIBRATION_TABLE_SIZE];

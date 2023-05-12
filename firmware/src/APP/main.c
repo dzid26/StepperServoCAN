@@ -31,53 +31,59 @@
 #include "actuator_config.h"
 #include "display.h"
 #include "delay.h"
+#include <stdio.h>
 
 extern void initialise_monitor_handles(void); //semihosting
 
 
 volatile bool runCalibration = false;
 static void RunCalibration(void){
-	bool state = motion_task_isr_enabled;
-	Motion_task_disable();
+	StepperCtrl_enable(false);
 	runCalibration = true; //set again depending who calls the function
 
 	Set_Error_LED(true);
 
-	bool err1 = false;
+	bool err1 = !CalibrationTable_calValid();
 	bool err2 = false;
 
-	do{
+	do{//assert errors
+		err1 = !CalibrationTable_calValid();
+		
 		//print errors on after failed calibration
 		if(err1){
 			(void) printf("Calibration not set\n");
 		}
 		if (err2){
 			(void) printf("Large deviation. Reposition the magnet\n");
+			delay_ms(1000);
 		}
-		
 		(void) printf("\n[Enter] to confirm start of the calibration..\n");
+		// delay_ms(2000); //make sure the printf above reaches the host
 		do{	//wait for the user
 			Set_Func_LED(true);
-		}while(!F1_button_state() && getchar()==EOF);
+			int c;
+			c = getchar();
+			// (void) printf("%c", c);
+			if(c == '@')
+				break;
+		}while(!F1_button_state());
 		Set_Func_LED(false);
 
 		//print angle using fixed point
-		uint16_t max_error100 = (uint16_t) (ANGLERAW_T0_DEGREES(StepperCtrl_calibrateEncoder(false))*100.0f);
-		uint16_t max_error = max_error100/100u;
-		(void) printf("Max deviation was %01u.%02u deg\n", max_error, (max_error*100u)-max_error100);
+		uint16_t max_error = StepperCtrl_calibrateEncoder(false);
+		float max_error_deg = ANGLERAW_T0_DEGREES(max_error);
+		(void) printf("Max deviation was %01u.%02u deg\n", (uint16_t)max_error_deg, (uint16_t)((uint32_t)(max_error_deg*100.0)%100U));
 
 		//assert errors
 		err1 = !CalibrationTable_calValid();
-		err2 = max_error > DEGREES_TO_ANGLERAW(1);
-	}while(err1 || err2);
+		err2 = max_error > (uint16_t)CALIBRATION_MAX_ERROR;
 
+	}while(err1 || err2);
+	Set_Error_LED(false);
 	(void) printf("Calibration ok\n");
 
-
-	if(state){
-		Motion_task_enable();
-	}
 	runCalibration = false;
+	StepperCtrl_enable(true);
 }
 
 
@@ -89,7 +95,7 @@ static void Begin_process(void)
 
 	board_init();	//set up the pins correctly on the board.
 
-	nonvolatile_begin(); //����NVM_address
+	nonvolatile_begin();
 
 	validateAndInitNVMParams(); //systemParams init
 
@@ -145,7 +151,6 @@ static void Begin_process(void)
 static void Background_process(void){
 	if(runCalibration){
 		RunCalibration();
-		runCalibration = false;
 	}
 }
 

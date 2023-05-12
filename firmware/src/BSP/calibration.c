@@ -39,10 +39,6 @@ bool CalibrationTable_calValid(void){
 			return false;
 		}
 	}
-	
-	if (nvmFlashCalData->status != valid){ // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
-		CalibrationTable_saveToFlash();
-	}
 	return true;
 }
 
@@ -278,8 +274,10 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
 		maxError = CalibrationMove(-1, verifyOnly);
-		CalibrationTable_normalizeStartIdx(); //this step is optional, but makes the calibration table more readable
-		CalibrationTable_saveToFlash(); //saves the calibration to flash
+		if(maxError < CALIBRATION_MAX_ERROR){
+			CalibrationTable_normalizeStartIdx(); //this step is optional, but makes the calibration table more readable
+			CalibrationTable_saveToFlash(); //saves the calibration to flash
+		}
 	}
 	//measure new starting point
 	A4950_move(0, 0); //release motor - 0mA
