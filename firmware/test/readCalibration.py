@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+from platform import system
 import struct
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,18 +48,22 @@ class CalibrationRead(object):
         return struct
 
     def _update_cal_table_size(self):
-        #find calibration size in c-code (if it was manipulated like in my fork)
-        f = open("..\\src\\BSP\\calibration.h", "r")
-        for line in f:
-            if "#define"  in line and "CALIBRATION_TABLE_SIZE" in line:
-                self.cal_size = int(re.search(r'\d+', line).group())  #parse cal size from calibration.h
-                return
-        print("Didn't find cal table size in c-code. The output might be wrong")
+        #find calibration size in c-code
+        calibration_h_file = '../src/BSP/calibration.h'
+        with open(calibration_h_file, "r") as f:
+            for line in f:
+                if "#define"  in line and "CALIBRATION_TABLE_SIZE" in line:
+                    self.cal_size = int(re.search(r'\d+', line).group())  #parse cal size from calibration.h
+                    return
+            print("Didn't find cal table size in c-code. The output might be wrong")
 
     def dump_eeprom_to_file(self):
         #dump eeprom memory for calibration address 
-        os.system('ST-LINK_CLI  -NoPrompt -Dump ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct))  + ' eepromCals.bin')
-
+        if system() == 'Windows':
+            os.system('ST-LINK_CLI  -NoPrompt -Dump ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct))  + ' eepromCals.bin')
+        else: # Linux 
+            # https://github.com/stlink-org/stlink
+            os.system('st-flash read' + ' eepromCals.bin' + ' ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct)))
 
     def load_from_bin(self):
         with open('eepromCals.bin', mode='rb') as dump: # r -read, b -> binary
