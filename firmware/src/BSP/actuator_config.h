@@ -35,6 +35,9 @@ extern const uint16_t rated_torque; //cNm
 extern volatile float gearing_ratio;
 extern volatile float actuatorTq_to_current;
 extern volatile float current_to_actuatorTq;
+
+extern const int8_t anticogging_factor;
+
 void update_actuator_parameters(void);
 
 

@@ -26,6 +26,7 @@
 #include "board.h"
 #include "sine.h"
 #include "encoder.h"
+#include "actuator_config.h"
 
 #define MCU_VOUT mV_REF
 #define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
@@ -165,9 +166,6 @@ void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrica
 		elecAngleStep = stepAngle - stepPhaseLead;	
 	}
 
-	//modulo operator of 2^N implemented as a bitmask of 2^N-1
-	elecAngleStep = elecAngleStep & (SINE_STEPS-1u);
-	
 	if (A4950_Enabled == false)
 	{
 		setVREF(0,0); 	//turn current off
@@ -176,9 +174,9 @@ void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrica
 		return;
 	}
 
-	//calculate the sine and cosine of our elecAngleStep
-	sin = sine(elecAngleStep);
-	cos = cosine(elecAngleStep);
+	//calculate modified sine and cosine of our elecAngleStep
+	sin = sine_ripple(elecAngleStep, anticogging_factor);
+	cos = cosine_ripple(elecAngleStep, anticogging_factor);
 
 	//limit Vref to 3300mV
 	const uint16_t I_RS_A4950_rat = RS_A4950/I_RS_A4950_div; //mOhm to Ohm and 10x multiplier

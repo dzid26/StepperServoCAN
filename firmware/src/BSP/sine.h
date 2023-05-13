@@ -30,6 +30,9 @@
 
 int16_t sine(uint16_t angle);
 int16_t cosine(uint16_t angle);
+int16_t sine_ripple(uint16_t angle, int8_t strength);
+int16_t cosine_ripple(uint16_t angle, int8_t strength);
+
 int32_t fastAbs(int32_t v);
 
 #endif
