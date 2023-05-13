@@ -30,8 +30,8 @@ float volatile current_to_actuatorTq;
 
 //todo move these parameters to NVRAM
 //specify motor parameters here:
-const uint16_t rated_current = 1500; //mA
-const uint16_t rated_torque = 40;   //cNm
+const uint16_t rated_current = 1300; //mA
+const uint16_t rated_torque = 45;   //cNm
 
 //specify gearing parameters here:
 const float motor_gearbox_ratio = 5+2/11; //gearbox ratio - enter planetary gearbox tooth calculation for best accuracy
