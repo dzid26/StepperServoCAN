@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-    - ".github/workflows/build.yaml"
+    - ".github/workflows/main.yaml"
     - "firmware/src/**/*.c"
     - "firmware/src/**/*.h"
     - "firmware/*.json"
@@ -12,7 +12,7 @@ on:
     - "firmware/linker_options_pio.py"
   pull_request:
     paths:
-    - ".github/workflows/build.yaml"
+    - ".github/workflows/main.yaml"
     - "firmware/src/**/*.c"
     - "firmware/src/**/*.h"
     - "firmware/*.json"
@@ -125,7 +125,8 @@ jobs:
         with:
           name: CompilationDB
           path: firmware/compile_commands.json
-
+      - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
