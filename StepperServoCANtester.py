@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 """
-This is simple gui program that can be used to test StepperServoCAN motor.
-https://github.com/dzid26/StepperServo-hardware
-https://github.com/dzid26/StepperServoCAN
+Simple gui program that can be used to test StepperServoCAN motor by @killinen 
 
 """
 
@@ -15,6 +13,8 @@ import time
 import threading
 
 import tkinter as tk
+from tkinter import ttk
+
 from tkinter import messagebox
 import cantools
 import can
@@ -41,8 +41,9 @@ def check_linux():
 
     """
     if sys.platform != "linux":
-        print("Error: Operating system is not Linux. Aborting program.")
-        sys.exit(1)
+        print("Error: Operating system is not Linux. Aborting.")
+        return False
+    return True
 
 def msg_calc_checksum_8bit(data: bytes, len: int, msg_id: int) -> int:
     """
@@ -56,13 +57,10 @@ def msg_calc_checksum_8bit(data: bytes, len: int, msg_id: int) -> int:
 
     return checksum
 
-# Function to search for available CAN interfaces and connect to one.
-def connect_to_can_interface():
-    """
-    This function searches for available CAN interfaces, prompts the user to select one if there are multiple available.
-    It then connects to the selected CAN interface using the python-can library and returns a can_bus object.
-    """
-    # Check for available CAN interfaces
+# This function configures the socketCAN interface in the terminal
+def configure_socketcan():
+
+    # Check for available socketCAN interfaces
     interfaces = []
     output = subprocess.check_output("ip -details -brief link | grep can", shell=True)
     for line in output.decode().split("\n"):
@@ -84,10 +82,10 @@ def connect_to_can_interface():
                 raise ValueError
             elif selection == len(interfaces)+1:
                 print("Aborting program...")
-                sys.exit(1)
+                return
         except ValueError:
             print("Invalid selection")
-            sys.exit(1)
+            return
         interface = interfaces[selection-1]
     # If only 1 interface found, just choose that
     elif len(interfaces) == 1:
@@ -99,11 +97,26 @@ def connect_to_can_interface():
         print("sudo modprobe vcan")
         print("sudo ip link add dev vcan0 type vcan")
         print("sudo ip link set up vcan0")
-        sys.exit(1)
 
-    # Connect to selected CAN interface
-    print(f"Connected to CAN interface {interface}")
-    can_bus = can.interface.Bus(interface, bustype='socketcan')
+# Function to search for available CAN interfaces and connect to one.
+def connect_to_can_interface(interface):
+    """
+    This function searches for available CAN interfaces, prompts the user to select one if there are multiple available.
+    It then connects to the selected CAN interface using the python-can library and returns a can_bus object.
+    """
+    interface_name = interface.get()
+    if interface_name == "socketcan":
+        if not check_linux():
+            return
+        configure_socketcan()
+
+    # # Connect to selected CAN interface
+    # print(f"Connected to CAN interface {interface}")
+    can_bus = can.Bus(interface=interface_name, bitrate=500000)
+
+    # Start the send_can_message function in a separate thread
+    thread = threading.Thread(target=lambda:send_message(can_bus))
+    thread.start()
 
     return can_bus
 
@@ -185,7 +198,7 @@ def update_message():
         'CHECKSUM': checksum
     })
 
-def send_message():
+def send_message(can_bus):
     global can_enabled
 
     last_exec_time = time.monotonic()  # current time in seconds since some arbitrary reference point
@@ -224,7 +237,7 @@ class SteerModeWidget:
         
         # Create a Label widget with the specified label text and place it in the parent widget using the grid geometry manager
         self.label = tk.Label(master, text=label_text)
-        self.label.grid(row=2, column=0, sticky="w")  # set sticky to "w" for left alignment
+        self.label.grid(row=3, column=0, sticky="w")  # set sticky to "w" for left alignment
         
         # Create a set of radio buttons, one for each option in the options list
         self.buttons = []
@@ -257,11 +270,13 @@ can_enabled = True
 counter = 0
 
 # Define global variables for torque and angle
-torque = 0
+torque = 1
 angle = 0
 
 # Load the .dbc file and define it's variables
-db = cantools.database.load_file('./ocelot_controls.dbc')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+dbc_file_path = os.path.join(current_dir, 'opendbc/ocelot_controls.dbc')
+db = cantools.database.load_file(dbc_file_path)
 
 msg = db.get_message_by_name('STEERING_COMMAND')
 
@@ -278,13 +293,6 @@ data = msg.encode({
 ############################### MAIN STUFF ###############################
 ##########################################################################
 
-
-# Test if this is run on Linux, otherwise the program will not work
-check_linux()
-
-# Search for CAN interface and connect to it
-can_bus = connect_to_can_interface()
-
 # Create the GUI window
 window = tk.Tk()
 
@@ -292,21 +300,22 @@ window = tk.Tk()
 window.title("StepperServoCAN Tester")
 
 # Set window width and height to custom values
-window.geometry("360x235")  # Set window width to 400 pixels and height to 300 pixels
+window.geometry("360x260")  # Set window width and height
 
 # Create labels for the widgets
+selected_backend = tk.StringVar(window)
+selected_backend.set('pcan') #default
+
+can_interface_selector = ttk.OptionMenu(window, selected_backend, selected_backend.get(), *sorted(can.interfaces.VALID_INTERFACES))
+can_interface_connect = tk.Button(window, text="Connect", command=lambda:connect_to_can_interface(selected_backend))
+
 can_label = tk.Label(window, text="CAN interface:       ")
 torque_label = tk.Label(window, text="Steer Torque:       ")
 angle_label = tk.Label(window, text="Steer Angle:       ")
 
-# Strip out selected CAN interface name from can_bus
-can_value = str(can_bus).split("'")[1::2][0].upper()
-
-# Create the widget to display the CAN interface value
-can_widget = tk.Label(window, text=can_value)
 
 # Set the initial values for torque and angle
-initial_torque = 0
+initial_torque = 1
 initial_angle = 0
 
 # Create the torque and angle widget with an initial value
@@ -317,7 +326,7 @@ angle_widget = tk.Entry(window, textvariable=tk.StringVar(value=str(initial_angl
 STEER_MODE_OPTIONS = [
     (0, "Off - instant 0 torque"),
     (1, "TorqueControl"),
-    (2, "RelativeControl"),
+    (2, "AngleControl"),
     (3, "SoftOff - ramp torque to 0 in 1s")
 ]
 
@@ -328,7 +337,8 @@ send_button = tk.Button(window, text='Update Torque/Angle value', command=update
 
 # Place the labels and widgets using grid
 can_label.grid(row=0, column=0, sticky="w")  # set sticky to "w" for left alignment
-can_widget.grid(row=0, column=1, sticky="w")
+can_interface_selector.grid(row=0, column=1, sticky="w")
+can_interface_connect.grid(row=0, column=2, sticky="w")
 torque_label.grid(row=1, column=0, sticky="w")  # set sticky to "w" for left alignment
 torque_widget.grid(row=1, column=1, sticky="w")
 angle_label.grid(row=2, column=0, sticky="w")  # set sticky to "w" for left alignment
@@ -347,10 +357,6 @@ quit_button.grid(row=10, column=0, columnspan=2, pady=10, sticky=tk.N+tk.S+tk.E+
 
 window.bind('<Escape>', lambda event: on_closing())
 window.bind('<Return>', lambda event: update_values())
-
-# Start the send_can_message function in a separate thread
-thread = threading.Thread(target=send_message)
-thread.start()
 
 # Run the GUI loop
 window.mainloop()

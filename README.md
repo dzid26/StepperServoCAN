@@ -88,14 +88,17 @@ Reference implementation can be found in my bmw openpilot [repo](https://github.
 Use this `StepperServoCANtester.py` GUI program to quickly test the StepperServoCAN motor. 
 #### Requirements
 ```
-pip3 install tkinter cantools python-can
+pip install tkinter cantools python-can
+
+git submodule init opendbc
+git submodule update opendbc
 ```
 #### Usage
 1. Connect the StepperServoCAN motor to the computer via CAN interface supported by `python-can`.
 
-2. Run the program: 
+2. Run the program:
     ```
-    python3 StepperServoCANtester.py
+    python StepperServoCANtester.py
     ```
 3. The program will automatically detect and display a list of available CAN interfaces to the user. In case multiple interfaces are available, the user will be prompted to select one.
 4. Upon connecting to the selected CAN interface, the program will present a user-friendly GUI with two input fields for setting the torque and angle values of the motor.
