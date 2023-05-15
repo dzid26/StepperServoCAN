@@ -29,6 +29,13 @@
 - Upload firmware to the board by pressing Upload arrow at the status bar in VScode
 - Eeprom is not erased when flashing the firmware - any future calibration will not be lost.
 
+### Configuration
+- In `firmware/src/BSP/actuator_config.c` set:
+    - `rated_current` (single phase) and `rated_torque` from motor spec or measurment. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
+    - `motor_gearbox_ratio` - gearbox attached to the motor
+    - `final_drive_ratio` - any additional gearing - separate parameter for convenience
+- Depending on mounting orientation and gearing the motor rotation direction may be reversed. You can change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to a negative value.
+
 ### LED idnicators
 BLUE LED (Function):
  - short single blink after user long presses `F1` button indicating button can be released
@@ -37,13 +44,6 @@ RED LED (Error):
  - solid/dim/flickering - Motion task CPU overrun (shall not happen)
  - slowly blinking every 1s- encoder initialization error
  - solid with short interruption every 1s - waiting for power supply voltage to be above 8V (checks voltage every 1s)
-### Configuration
-- In `firmware/src/BSP/actuator_config.c` set:
-    - `rated_current` (single phase) and `rated_torque` from motor spec or measurment. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
-    - `motor_gearbox_ratio` - gearbox attached to the motor
-    - `final_drive_ratio` - any additional gearing - separate parameter for convenience
-- Depending on mounting orientation and gearing the motor rotation direction may be reversed. You can change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to a negative value.
-
 ### Calibration and first run
 1. On first start defualt parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
@@ -51,7 +51,7 @@ RED LED (Error):
 4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affectes signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
 5. Ądditionally one can extract sensor calibration values (point 3) from the Flash using `readCalibration.py`:
 - ![CalibrationPlot](https://user-images.githubusercontent.com/841061/201538086-d977bde9-2bf5-4cec-ac3b-eec80bb5fbd9.png)
-### CAN interface
+## CAN interface
 Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)
 
 CAN Command - expect rate is 10ms
@@ -83,6 +83,35 @@ Reference implementation can be found in my bmw openpilot [repo](https://github.
 - `selfdrive/car/xxx/xxxcan.py` - [sending CAN message](https://github.com/dzid26/openpilot-for-BMW-E8x-E9x/blob/0.74_openactuator_testdev/selfdrive/car/bmw/bmwcan.py#L4-L20)
 - `selfdrive/car/xxx/carstate.py` - [parsing CAN message](https://github.com/dzid26/openpilot-for-BMW-E8x-E9x/blob/51c692dd7e5940be8e6e8ddbfb46321120918d4e/selfdrive/car/bmw/carstate.py#L235-L247)
 - `panda/board/safety/safety_xxx.h`- [CAN tx filter `558`](https://github.com/dzid26/panda_bmw/blob/openactuator_dev/board/safety/safety_bmw.h#L7), some [safety](https://github.com/dzid26/panda_bmw/blob/bbdb0ad5ea7c3ce55032f3875b8b2ee431889106/board/safety/safety_bmw.h#L192-L201), and [safety testing](https://github.com/dzid26/panda_bmw/blob/openactuator_dev/tests/safety/test_bmw.py#L75-L91)
+
+### Interfacing from a PC
+Use this `StepperServoCANtester.py` GUI program to quickly test the StepperServoCAN motor. 
+#### Requirements
+```
+pip3 install tkinter cantools python-can
+```
+#### Usage
+1. Connect the StepperServoCAN motor to the computer via CAN interface supported by `python-can`.
+
+2. Run the program: 
+    ```
+    python3 StepperServoCANtester.py
+    ```
+3. The program will automatically detect and display a list of available CAN interfaces to the user. In case multiple interfaces are available, the user will be prompted to select one.
+4. Upon connecting to the selected CAN interface, the program will present a user-friendly GUI with two input fields for setting the torque and angle values of the motor.
+5. The user can update the injected values to the motor by clicking the "Update Torque/Angle Value" button or by pressing the "Return" key on the keyboard.
+6. Once the user selects either "TorqueControl" and provides a "Steer Torque" value, or selects "RelativeControl" and provides a "Steer Angle" value, the StepperServoCAN motor will start spinning.
+7. To exit the program, the user can click the "Exit" button, press the "ESC" key, or simply close the window.
+#### Notes
+- The torque value should be between -16 and 16, and the angle value should be between -4096 and 4096.
+- To use the program with SocketCAN on Linux, you can set up a virtual CAN interface with the following commands:
+  ```
+  sudo modprobe vcan
+  sudo ip link add dev vcan0 type vcan
+  sudo ip link set up vcan0
+  ip -details -brief link | grep can | grep UP
+  ```
+If SocketCAN interfaces are not found, the program will abort. 
 
 ## Contributing
 - Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is preconfigured with (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode. Ask priv about the `misra_rules_set_cppcheck.txt` for cppcheck.
