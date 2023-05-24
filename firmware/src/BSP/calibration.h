@@ -42,7 +42,6 @@ typedef struct {
   int16_t error; 	 //error assuming it is constantly updated
 } CalData_t;
 
-void StepperCtrl_setLocationFromEncoder(void);
 uint16_t StepperCtrl_calibrateEncoder(bool update);
 float StepperCtrl_measureStepSize(void);
 bool CalibrationTable_calValid(void);

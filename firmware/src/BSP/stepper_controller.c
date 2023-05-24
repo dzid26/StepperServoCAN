@@ -37,6 +37,7 @@ volatile bool StepperCtrl_Enabled = false;
 volatile bool enableFeedback = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
+static volatile bool enableRelative = true;
 volatile int32_t angleFullStep = 327;
 
 volatile int32_t zeroAngleOffset = 0;
@@ -105,25 +106,15 @@ static void StepperCtrl_updateParamsFromNVM(void)
 }
 
 
-void StepperCtrl_setLocationFromEncoder(void)
-{
-	currentLocation = 0;
-
-	if (CalibrationTable_calValid()){
-		currentLocation = (int32_t)GetCorrectedAngle(OverSampleEncoderAngle(100U)); //save position
-	}
-	desiredLocation = StepperCtrl_updateCurrentLocation(); //zero the angle shown on LCD
-}
-
-//estimate of the current location from encoder feedback
-//the current location lower 16 bits is angle (0-360 degrees in 65536 steps) while upper
-//bits is the number of full rotations.
-int32_t StepperCtrl_updateCurrentLocation(void)
+//Keep track of full rotations
+//the current location lower 16 bits is angle (0-360 degrees in 65536 steps) while 
+//upper 16 bits effectively hold number of full rotations.
+static int32_t StepperCtrl_updateCurrentLocation(void)
 {
 	uint16_t angle = GetCorrectedAngle(ReadEncoderAngle());
-	//use unisgned wrap around math to get circular angle distance
-	uint16_t angleDelta = angle - (uint16_t)((int16_t)(currentLocation%(int32_t)ANGLE_STEPS));
-	currentLocation = currentLocation + (int16_t)angleDelta;
+	//use unsigned wrap around math to get circular angle distance
+	uint16_t anglePreviousDelta = angle - (uint16_t)((int16_t)(currentLocation%(int32_t)ANGLE_STEPS));
+	currentLocation = currentLocation + (int16_t)anglePreviousDelta;
 
 	return currentLocation;
 }
@@ -195,8 +186,6 @@ stepCtrlError_t StepperCtrl_begin(void)
 
 	angleFullStep = (int32_t)(ANGLE_STEPS / motorParams.fullStepsPerRotation);
 
-	StepperCtrl_setLocationFromEncoder(); //measure new starting point
-
 	if (false == CalibrationTable_calValid())
 	{
 		return STEPCTRL_NO_CAL;
@@ -221,7 +210,6 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 	}
 	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
 	{
-		StepperCtrl_setLocationFromEncoder();
 		Motion_task_enable();
 	}
 	StepperCtrl_Enabled = enable;
@@ -240,11 +228,14 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 	case STEPCTRL_FEEDBACK_POSITION_RELATIVE:
 		enableFeedback = true;
 		enableCloseLoop = true;
+		enableRelative = true;
 		A4950_enable(true);
 		break;
-	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE: //TODO
+	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE:
 		enableFeedback = true;
 		enableCloseLoop = true;
+		enableRelative = false;
+
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
@@ -279,7 +270,6 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 bool StepperCtrl_processMotion(void)
 {
 	bool no_error = false;
-	int32_t commandedLoc;
 	int32_t currentLoc;
 	static int32_t lastLoc;
 	const int16_t speed_filter_tc = 128; //speed filter time constant
@@ -288,11 +278,15 @@ bool StepperCtrl_processMotion(void)
 	int32_t error;
 	static int32_t desiredLoc_slow = 0;
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
-	commandedLoc = desiredLocation;
 
-	loopError = commandedLoc - currentLoc;
-	desiredLoc_slow = (commandedLoc + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc; 
-	error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
+	loopError = desiredLocation - currentLoc;
+	desiredLoc_slow = (desiredLocation + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
+
+	if (enableRelative){
+		error = desiredLoc_slow;
+	}else{
+		error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
+	}
 
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
@@ -363,7 +357,7 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 			
 			//error deadzone to reduce mechanical vibration due to P term
 			if(abs(errorSat) < angleFullStep){
-				errorSat = 0;  
+				errorSat = 0;
 			}
 
 			// PID proportional term

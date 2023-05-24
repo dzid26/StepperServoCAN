@@ -37,8 +37,9 @@
 #define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
 
 void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
-	float newLocation = StepperCtrl_getAngleFromEncoderRaw() + DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio));
-	//safe conversion
+	float newLocation = DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio));
+	
+	//safe conversion to INT
 	int32_t newLocation_int;
 	if (newLocation > INT32_MAX){
 		newLocation_int = INT32_MAX;
@@ -91,7 +92,7 @@ void StepperCtrl_setControlMode(uint8_t mode){
 			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
 			break;
 		case MSG_STEERING_COMMAND_STEER_MODE_ANGLE_CONTROL_CHOICE:
-			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_POSITION_RELATIVE);
+			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_POSITION_ABSOLUTE);
 			break;
 		case MSG_STEERING_COMMAND_STEER_MODE_SOFT_OFF_CHOICE:
 			StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);

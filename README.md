@@ -61,7 +61,7 @@ CAN Command - expect rate is 10ms
     - STEER_MODE
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
-        - 2 - "RelativeControl" **To be DEPRICATED** - uses STEER_ANGLE signal to control relative angle using PID and STEER_TORQUE as feedforward
+        - 2 - "AngleControl"- uses STEER_ANGLE signal to control absolute angle using PID close-loop and STEER_TORQUE as feedforward
         - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for coommunication error safe mode
     - COUNTER
     - CHECKSUM

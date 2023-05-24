@@ -86,7 +86,6 @@ extern volatile int_fast16_t control;
 extern volatile int32_t speed_slow;
 extern volatile int32_t loopError;
 
-int32_t StepperCtrl_updateCurrentLocation(void);
 uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calLocOffset);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);

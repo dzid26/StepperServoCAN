@@ -270,7 +270,7 @@ can_enabled = True
 counter = 0
 
 # Define global variables for torque and angle
-torque = 1
+torque = 0
 angle = 0
 
 # Load the .dbc file and define it's variables
@@ -315,8 +315,8 @@ angle_label = tk.Label(window, text="Steer Angle:       ")
 
 
 # Set the initial values for torque and angle
-initial_torque = 1
-initial_angle = 0
+initial_torque = torque
+initial_angle = angle
 
 # Create the torque and angle widget with an initial value
 torque_widget = tk.Entry(window, textvariable=tk.StringVar(value=str(initial_torque)))
