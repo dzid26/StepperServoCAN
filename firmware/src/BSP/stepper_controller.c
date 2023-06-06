@@ -268,6 +268,24 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 }
 
 
+#define AVG_WINDOW 8U
+static int32_t errMovingAverage(int32_t val) {
+	const uint8_t window_n = AVG_WINDOW;
+	static int32_t ringbuffer[AVG_WINDOW];
+	static uint8_t ringbuffer_idx = 0;
+
+	static int32_t avg=0;
+	static int32_t accu=0;
+	
+	accu += val - ringbuffer[ringbuffer_idx];
+	ringbuffer[ringbuffer_idx] = val;
+
+	avg = accu/(int32_t)window_n;
+	ringbuffer_idx = (ringbuffer_idx + 1U) % window_n;
+
+	return avg;
+}
+
 bool StepperCtrl_processMotion(void)
 {
 	bool no_error = false;
@@ -292,8 +310,9 @@ bool StepperCtrl_processMotion(void)
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
-	no_error = StepperCtrl_simpleFeedback(error);
+	int32_t error_flt = errMovingAverage(error);
 
+	no_error = StepperCtrl_simpleFeedback(error_flt);
 
 	lastLoc = currentLoc;
 	return no_error;
