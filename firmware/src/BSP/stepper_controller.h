@@ -51,9 +51,9 @@ typedef	enum {
 } stepCtrlFeedbackMode_t;
 
 typedef struct { //closeloop position controller
-	int32_t Kp;
-	int32_t Ki;
-	int32_t Kd;
+	int16_t Kp;
+	int16_t Ki;
+	int16_t Kd;
 } PID_t;
 
 extern volatile PID_t sPID; //simple control loop PID parameters
@@ -61,7 +61,7 @@ extern volatile PID_t pPID; //positional current based PID control parameters
 extern volatile PID_t vPID; //velocity PID control parameters
 
 //scales PID parameters from Flash (floating point) to int32_t used in control 
-#define CTRL_PID_SCALING 			(int16_t)(8096)
+#define CTRL_PID_SCALING 			(int16_t)(4096)
 
 #define S_to_uS   	(uint32_t)(1000000)
 #define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop. 35uS puts theoretical limit of ~125rev/s on the motor which is plenty.  Adjust to reduce harmonics. 
@@ -76,13 +76,13 @@ extern volatile bool enableSoftOff;
 
 //api - commanded
 extern volatile int32_t desiredLocation;
-extern volatile int_fast16_t feedForward;
-extern volatile int_fast16_t closeLoopMax;
+extern volatile int16_t feedForward;
+extern volatile int16_t closeLoopMaxDes;
 
 //api - measured
 extern volatile int32_t currentLocation;
-extern volatile int_fast16_t closeLoop;
-extern volatile int_fast16_t control;
+extern volatile int16_t closeLoop;
+extern volatile int16_t control;
 extern volatile int32_t speed_slow;
 extern volatile int32_t loopError;
 
@@ -91,7 +91,6 @@ stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
 void StepperCtrl_setMotionMode(uint8_t mode);
 bool StepperCtrl_processMotion(void);
-bool StepperCtrl_simpleFeedback(int32_t error);
 
 
 #endif

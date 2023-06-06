@@ -27,6 +27,7 @@
 #include "encoder.h"
 #include "math.h"
 
+static bool StepperCtrl_simpleFeedback(int32_t error);
 static void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
 
 volatile PID_t sPID; //simple control loop PID parameters
@@ -44,13 +45,13 @@ volatile int32_t zeroAngleOffset = 0;
 
 //api - commanded
 volatile int32_t desiredLocation;
-volatile int_fast16_t feedForward;
-volatile int_fast16_t closeLoopMax=1000;
+volatile int16_t feedForward;
+volatile int16_t closeLoopMaxDes;
 
 //api - measured
 volatile int32_t currentLocation = 0;
-volatile int_fast16_t closeLoop;
-volatile int_fast16_t control;
+volatile int16_t closeLoop;
+volatile int16_t control;
 volatile int16_t Iq_ma;
 volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
@@ -298,23 +299,14 @@ bool StepperCtrl_processMotion(void)
 	return no_error;
 }
 
-#define max(a,b)             \
-({                           \
-    __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    (_a > _b) ? _a : _b;       \
-})
-
 //this was written to do the PID loop not modeling a DC servo
 // but rather using features of stepper motor.
-bool StepperCtrl_simpleFeedback(int32_t error)
+static bool StepperCtrl_simpleFeedback(int32_t error)
 {
 	static int32_t lastError = 0;
 	static uint32_t errorCount = 0;
-	const uint16_t smallLoad = 25; //abs mA
 
-	static float iTerm; //iTerm memory
-	static uint8_t saturationId = 2; //0 is negative saturation, 1 is positive saturation, 2 is no saturation
+	static int32_t iTerm_accu; //iTerm memory - float to acumulate small and big errors
 	static uint16_t magnitude = 0; //static for dTerm condition check
 
 	if(enableFeedback) //todo add openloop control
@@ -337,11 +329,24 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		}
 		else if(enableCloseLoop){
 			int32_t errorSat;
-			int_fast16_t pTerm;
-			int_fast16_t dTerm;
-			
-			//protect pTerm and iTerm 16bit variables against overflow
-			int32_t errorMax = (int32_t) INT16_MAX * CTRL_PID_SCALING / max(sPID.Kp, sPID.Ki);  //todo: move this to StepperCtrl_updateParamsFromNVM()
+			int16_t pTerm;
+			int16_t dTerm;
+
+			int16_t closeLoopMax = closeLoopMaxDes;
+			// increase closeLoopMax if feedForward is larger than it and in opposite direction
+			// so that closeloop has always power to cancel out the feedforward to avoid uncontrolled rotation
+			if((closeLoop > 0) && (-feedForward > closeLoopMaxDes)){
+				closeLoopMax = -feedForward;
+			}
+			if((closeLoop < 0 ) && (feedForward > closeLoopMaxDes)){
+				closeLoopMax = feedForward;
+			}
+
+			#define PID_TERMS 3
+			int16_t maxEachTerm = closeLoopMax * PID_TERMS;
+
+			int32_t errorMax = (int32_t)maxEachTerm * CTRL_PID_SCALING / sPID.Kp;
+			//protect closeLoop against overflow and unrealistic values - due to P term
 			if( error > errorMax){
 				errorSat = errorMax;
 			}else if (error < -errorMax){
@@ -350,59 +355,103 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 				errorSat = error;
 			}
 
-			// PID integral term
-			if((errorSat>0) != saturationId){ //antiwindup clamp - condition optimized using clever id values (0,1,2) from previous sample //todo - actually... make it more explicit
-				iTerm += (float) (errorSat * sPID.Ki / CTRL_PID_SCALING / (int32_t) SAMPLING_PERIOD_uS);
+			// PID - (I)ntegral term
+			iTerm_accu += errorSat;
+			int16_t iTerm = (int16_t)(iTerm_accu  * sPID.Ki / (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING); //it's safe to cast to int16_t as iTerm_accu / CTRL_PID_SCALING cannot be much bigger than maxEachTerm since last time because iTerm_accu uses limited errorSat when acumulating error
+			bool iTermLimited = false;
+			//protect closeLoop against overflow and unrealistic values - due to I term
+			if (iTerm  > maxEachTerm){
+				iTerm = maxEachTerm;
+				iTermLimited = true;
 			}
-			
-			//error deadzone to reduce mechanical vibration due to P term
-			if(abs(errorSat) < angleFullStep){
-				errorSat = 0;
+			if (iTerm < -maxEachTerm){
+				iTerm = -maxEachTerm;
+				iTermLimited = true;
 			}
 
-			// PID proportional term
-			pTerm  =  errorSat * sPID.Kp / CTRL_PID_SCALING;
+			// PID - (P)roportional term
+			// deadzone to reduce mechanical vibration of the P term
+			if((errorSat < (angleFullStep/4)) && (errorSat > (-angleFullStep/4))){
+				pTerm = 0;
+			}else{
+				pTerm  =  (int16_t)(errorSat * sPID.Kp / CTRL_PID_SCALING);
+			}
 
-			// PID derivative term
-			dTerm = (errorSat - lastError) * sPID.Kd / CTRL_PID_SCALING * (int32_t) SAMPLING_PERIOD_uS;
-			if(magnitude < smallLoad){ //dTerm causes noise when motor is not loaded enough (previous magnitude)
+			// PID - (D)erivative term
+			// error deadzone to reduce mechanical vibration of the D term
+			if(((error < angleFullStep) && (error > -angleFullStep))){
 				dTerm=0;
+			}else{
+				int32_t deltaErrorMax = (int32_t) maxEachTerm * CTRL_PID_SCALING / sPID.Kd / (int16_t)SAMPLING_PERIOD_uS;
+				int32_t deltaError = error - lastError;
+				
+				//protect closeLoop against overflow and unrealistic values - due to D term
+				if( deltaError > deltaErrorMax){
+					deltaError = deltaErrorMax;
+				}
+				if (deltaError < -deltaErrorMax){
+					deltaError = -deltaErrorMax;
+				}
+				dTerm = (int16_t)(deltaError * sPID.Kd * (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING);
 			}
+			lastError = error;
 			
-			closeLoop = pTerm + (int16_t) iTerm + dTerm;
-
-			// If closeLoop is in the same direction as feedforward, closelooop is limited by closeLoopMax. 
-			// If closeLoop is in opposite direction to feedforward, then it is limited to -feedforward so that closeloop
-			// has always power to cancel out the feedforward to avoid uncontrolled rotation
-
-			if( closeLoop > max(closeLoopMax, -feedForward)) //todo: often spikes double the limit. Create smooth antiwindup
-			{	
-				closeLoop = max(closeLoopMax, -feedForward);
-				saturationId = 1;
-			} else if (closeLoop < -(max(closeLoopMax, feedForward)))
-			{
-				closeLoop = -(max(closeLoopMax, feedForward));
-				saturationId = 0;
-			} else {
-				saturationId = 2;
+			
+			closeLoop = pTerm + iTerm + dTerm;
+			
+			// Saturate against closeLoopMax - any excess subtract from integral part, but don't make it change sign
+			if( closeLoop > closeLoopMax){	
+				iTerm -= closeLoop - closeLoopMax;
+				if(iTerm < 0){
+					iTerm = 0;
+				}
+				iTermLimited = true;
+				closeLoop = closeLoopMax;
+			}
+			if (closeLoop < -closeLoopMax){
+				iTerm -= closeLoop - (-closeLoopMax);
+				if(iTerm > 0){
+					iTerm = 0;
+				}
+				iTermLimited = true;
+				closeLoop = -closeLoopMax;
 			}
 			control = closeLoop + feedForward;
 
-			// add deadzone for small torque small error zero-crossing
-			const int16_t zerocrossMax = 20; //mA
-			if((control < zerocrossMax) && (control < -zerocrossMax) && (error < angleFullStep) && (error > -angleFullStep))
-			{
-				control = 0; //closeLoop * angleFullStep / zerocrossMax; //scale or just set to 0 if it keeps rocking
+			// Saturate against I_MAX_A4950 - any excess subtract from integral part, but don't make it change sign
+			if(control > I_MAX_A4950){	
+				iTerm -= closeLoop - I_MAX_A4950;
+				if(iTerm < 0){
+					iTerm = 0;
+				}
+				iTermLimited = true;
+				control = I_MAX_A4950;
 			}
-			lastError = errorSat;
+			if (control < -I_MAX_A4950){
+				iTerm -= closeLoop - (-I_MAX_A4950);
+				if(iTerm > 0){
+					iTerm = 0;
+				}
+				iTermLimited = true;
+				control = -I_MAX_A4950;
+			}
+
+			if(iTermLimited == true){ //backcalculate the accumulator
+				iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / sPID.Ki;
+			}
 
 		}else{
 			control = feedForward;
+			if(control > I_MAX_A4950){
+				control = I_MAX_A4950;
+			}
+			if (control < -I_MAX_A4950){
+				control = -I_MAX_A4950;
+			}
 			closeLoop = 0;
 			lastError = 0;
 
-			iTerm = 0.0;
-			saturationId = 2;
+			iTerm_accu = 0.0;
 		}
 		
 
@@ -419,10 +468,9 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		magnitude = (uint16_t) (fastAbs(control));
 
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		uint16_t sensDelay = 90u;
-		uint16_t angleSensLatency = (SAMPLING_PERIOD_uS + sensDelay);
-		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * (int_fast16_t) angleSensLatency / (int32_t) S_to_uS); 
-		// loadAngleSpeedComp = 1;
+		int16_t sensDelay = 90u;
+		int16_t angleSensLatency = (int16_t)SAMPLING_PERIOD_uS + sensDelay;
+		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
 		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
 	
 	}else{
@@ -431,13 +479,12 @@ bool StepperCtrl_simpleFeedback(int32_t error)
 		Iq_ma = 0;
 
 		lastError = 0;
-		iTerm = 0.0;
-		saturationId = 2;
+		iTerm_accu = 0.0;
 		magnitude = 0;
 	}
 
   // error needs to exist for some time period
-	if (abs(lastError) > (int32_t) systemParams.errorLimit)
+	if ((lastError > angleFullStep) || (lastError < -angleFullStep))
 	{
 		++errorCount;
 		if (errorCount > (SAMPLING_HZ >> 7))

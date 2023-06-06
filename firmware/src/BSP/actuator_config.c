@@ -23,6 +23,7 @@
  */
 
 #include "actuator_config.h"
+#include "stepper_controller.h"
 
 float volatile gearing_ratio;
 float volatile actuatorTq_to_current;
@@ -44,4 +45,7 @@ void update_actuator_parameters(void){
 
     actuatorTq_to_current = (float) rated_current / rated_torque * 100 / gearing_ratio;
     current_to_actuatorTq = 1 / actuatorTq_to_current;
+
+    closeLoopMaxDes = 2000U; //sets maximum close loop current [mA] to limit stresses and heat generation
+
 }

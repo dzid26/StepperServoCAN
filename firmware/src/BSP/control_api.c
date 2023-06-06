@@ -52,32 +52,34 @@ void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
 	desiredLocation = newLocation_int;
 }
 
+//sets torque [Nm] in motion control loop 
 void StepperCtrl_setFeedForwardTorque(float actuator_torque){ 
 	float Iq_feedforward = DIR_SIGN(actuator_torque * actuatorTq_to_current); //convert actuator output torque to Iq current
 	//safe conversion
-	int_fast16_t Iq_feedforward_int;
-	if(Iq_feedforward > INT_FAST16_MAX){
-		Iq_feedforward_int = INT_FAST16_MAX;
-	}else if(Iq_feedforward < INT_FAST16_MIN){
-		Iq_feedforward_int = INT_FAST16_MIN;
+	int16_t Iq_feedforward_int;
+	if(Iq_feedforward > INT16_MAX){
+		Iq_feedforward_int = INT16_MAX;
+	}else if(Iq_feedforward < INT16_MIN){
+		Iq_feedforward_int = INT16_MIN;
 	}else{
-		Iq_feedforward_int = (int_fast16_t)Iq_feedforward;
+		Iq_feedforward_int = (int16_t)Iq_feedforward;
 	}
 	feedForward = Iq_feedforward_int;
 }
 
+//sets max close loop torque [Nm] in motion control loop 
 void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error correction max torque
 	float Iq_closeloopLim = actuator_torque_cl_max * actuatorTq_to_current; //convert actuator output torque to Iq current
 	//safe conversion
-	int_fast16_t Iq_closeloopLim_int;
-	if(Iq_closeloopLim > INT_FAST16_MAX){
-		Iq_closeloopLim_int = INT_FAST16_MAX;
-	}else if(Iq_closeloopLim < INT_FAST16_MIN){
-		Iq_closeloopLim_int = INT_FAST16_MIN;
+	int16_t Iq_closeloopLim_int;
+	if(Iq_closeloopLim > INT16_MAX){
+		Iq_closeloopLim_int = INT16_MAX;
+	}else if(Iq_closeloopLim < INT16_MIN){
+		Iq_closeloopLim_int = INT16_MIN;
 	}else{
-		Iq_closeloopLim_int = (int_fast16_t)Iq_closeloopLim;
+		Iq_closeloopLim_int = (int16_t)Iq_closeloopLim;
 	}
-	closeLoopMax = Iq_closeloopLim_int;
+	closeLoopMaxDes = Iq_closeloopLim_int;
 }
 
 void StepperCtrl_setControlMode(uint8_t mode){ 
