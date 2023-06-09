@@ -76,7 +76,7 @@ static void RunCalibration(void){
 
 		//assert errors
 		err1 = !CalibrationTable_calValid();
-		err2 = max_error > (uint16_t)CALIBRATION_MAX_ERROR;
+		err2 = max_error > CALIBRATION_MAX_ERROR;
 
 	}while(err1 || err2);
 	Set_Error_LED(false);

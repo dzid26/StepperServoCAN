@@ -30,7 +30,7 @@
 
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
-#define CALIBRATION_MAX_ERROR (546)  //the maximal expected error on calibration 546 = 3deg
+#define CALIBRATION_MAX_ERROR (546U)  //the maximal expected error on calibration 546 = 3deg
 
 typedef struct {
 	uint16_t FlashCalData[CALIBRATION_TABLE_SIZE];
