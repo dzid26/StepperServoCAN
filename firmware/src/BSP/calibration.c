@@ -25,6 +25,7 @@
 #include "A4950.h"
 #include "encoder.h"
 #include "delay.h"
+#include "actuator_config.h"
 
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 
@@ -265,11 +266,20 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 
 	A4950_move(0, motorParams.currentMa);
 	delay_ms(50);
-	maxError = CalibrationMove(1, verifyOnly, true);
-	//second calibration pass backward - reduces influence of magnetic hysteresis
+
+	//determine first pass direction
+	int8_t dir;
+	//check if dir sign matches - on the first pass rotate the same direction as positive torque request
+	if((gearing_ratio > 0.f) == (systemParams.dirRotation == CW_ROTATION)){
+		dir = 1;
+	}else{
+		dir = -1;
+	}
+	maxError = CalibrationMove(dir, verifyOnly, true);
+	//second calibration pass the other direction - reduces influence of magnetic hysteresis
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
-		maxError = CalibrationMove(-1, verifyOnly, false);
+		maxError = CalibrationMove(-dir, verifyOnly, false);
 		if(maxError < CALIBRATION_MAX_ERROR){
 			CalibrationTable_normalizeStartIdx(); //this step is optional, but makes the calibration table more readable
 			CalibrationTable_saveToFlash(); //saves the calibration to flash
