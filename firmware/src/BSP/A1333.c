@@ -206,6 +206,16 @@ uint16_t A1333_readAddress(uint16_t addr)
 	return (data);
 }
 
+uint16_t A1333_readGauss(void) //15bits -  32767 is 360
+{
+	uint16_t read_gauss = 0;
+	if (a1333)
+	{
+		read_gauss = PrimaryRead(0x2A) & 0xFFF;
+	}
+	return read_gauss;
+}
+
 //read the encoders
 uint16_t A1333_readEncoderAngle(void) //15bits -  32767 is 360
 {
