@@ -60,59 +60,60 @@ def msg_calc_checksum_8bit(data: bytes, len: int, msg_id: int) -> int:
 # This function configures the socketCAN interface in the terminal
 def configure_socketcan():
 
-    # Check for available socketCAN interfaces
-    interfaces = []
+    # Check for available socketCAN channels
+    channels = []
     output = subprocess.check_output("ip -details -brief link | grep can", shell=True)
     for line in output.decode().split("\n"):
         if line.strip():
             words = line.split()
-            if words[1] == "UP" or words[1] == "UNKNOWN":  # Check if interface is up
-                interface = words[0]
-                interfaces.append(interface)
-    # If multiple CAN interfaces are found, list them and ask in terminal which interface to choose
-    if len(interfaces) > 1:
-        print("Multiple CAN interfaces found:")
-        for i, interface in enumerate(interfaces):
-            print(f"{i+1}: {interface}")
-        print(f"{len(interfaces)+1}: Abort the program")
-        selection = input("Select an interface number: ")
+            if words[1] == "UP" or words[1] == "UNKNOWN":  # Check if channel is up
+                channel = words[0]
+                channels.append(channel)
+    # If multiple CAN channels are found, list them and ask in terminal which channel to choose
+    if len(channels) > 1:
+        print("Multiple CAN channels found:")
+        for i, channel in enumerate(channels):
+            print(f"{i+1}: {channel}")
+        print(f"{len(channels)+1}: Abort the program")
+        selection = input("Select an channel number: ")
         try:
             selection = int(selection)
-            if selection < 1 or selection > len(interfaces)+1:
+            if selection < 1 or selection > len(channels)+1:
                 raise ValueError
-            elif selection == len(interfaces)+1:
+            elif selection == len(channels)+1:
                 print("Aborting program...")
                 return
         except ValueError:
             print("Invalid selection")
             return
-        interface = interfaces[selection-1]
-    # If only 1 interface found, just choose that
-    elif len(interfaces) == 1:
-        interface = interfaces[0]
-    # If no interfaces found abort the program
+        channel = channels[selection-1]
+    # If only 1 channel found, just choose that
+    elif len(channels) == 1:
+        channel = channels[0]
+    # If no channels found abort the program
     else:
-        print("No CAN interfaces found that are UP, will abort the program.")
-        print("Hint: if you want to test the program set up virtual CAN interface with these commands.")
+        print("No CAN channels found that are UP, will abort the program.")
+        print("Hint: if you want to test the program set up virtual CAN channel with these commands.")
         print("sudo modprobe vcan")
         print("sudo ip link add dev vcan0 type vcan")
         print("sudo ip link set up vcan0")
+    return channel
 
-# Function to search for available CAN interfaces and connect to one.
 def connect_to_can_interface(interface):
     """
     This function searches for available CAN interfaces, prompts the user to select one if there are multiple available.
     It then connects to the selected CAN interface using the python-can library and returns a can_bus object.
     """
     interface_name = interface.get()
+    channel = None
     if interface_name == "socketcan":
         if not check_linux():
             return
-        configure_socketcan()
+        channel = configure_socketcan()
 
     # # Connect to selected CAN interface
     # print(f"Connected to CAN interface {interface}")
-    can_bus = can.Bus(interface=interface_name, bitrate=500000)
+    can_bus = can.Bus(interface=interface_name, bitrate=500000, channel=channel)
 
     # Start the send_can_message function in a separate thread
     thread = threading.Thread(target=lambda:send_message(can_bus))
