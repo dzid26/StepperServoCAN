@@ -112,27 +112,32 @@ def configure_socketcan():
 def connect_to_can_interface(interface):
     global can_enabled
     can_enabled = True
+    can_bus = None
     interface_name = interface.get()
     channel = None
+    print("\nConnecting to CAN interface...")
     if interface_name == "socketcan":
         if not check_linux():
+            can_enabled = False
             return
+        print("Finding socketCAN channel...")
         channel = configure_socketcan()
-
-    if channel is None:
-        print(f'CAN interface "{interface_name}" not available.')
-        # If send_message thread is already running, stop the while loop by setting can_enable falg to False
+        if channel is None:
+            # If send_message thread is already running, stop the while loop by setting can_enable flag to False
+            print(f'CAN interface "{interface_name}" not available.')
+            can_enabled = False
+            # Handle the case where there are no compatible CAN interfaces
+            # You can display an error message or perform other actions as needed
+            return
+    try:
+        can_bus = can.Bus(interface=interface_name, bitrate=500000, channel=channel)
+    except Exception as e:
+        print("An error occurred:", e)
         can_enabled = False
-        # Handle the case where there are no compatible CAN interfaces
-        # You can display an error message or perform other actions as needed
-        return
 
-    can_bus = can.Bus(interface=interface_name, bitrate=500000, channel=channel)
-
-    thread = threading.Thread(target=lambda: send_message(can_bus))
-    thread.start()
-
-    return can_bus
+    if can_enabled:
+        thread = threading.Thread(target=lambda: send_message(can_bus))
+        thread.start()
 
 def interface_selected(event):
     # Run the connect_to_can_interface function when a new option is selected
@@ -211,7 +216,7 @@ def update_message():
         'CHECKSUM': checksum
     })
 
-def send_message(can_bus):
+def send_message(can_bus: can.bus.BusABC):
     global can_enabled
 
     last_exec_time = time.monotonic()  # current time in seconds since some arbitrary reference point
@@ -240,6 +245,8 @@ def send_message(can_bus):
             print(f"CAN send frequency: {loop_frequency:.2f} Hz")
             loop_count = 0
             last_print_time = time.monotonic()
+        
+    can_bus.shutdown()
 
 # Define a class named SteerModeWidget
 class SteerModeWidget:
