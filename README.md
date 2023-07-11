@@ -102,7 +102,7 @@ git submodule update opendbc
     ```
 3. Upon startup, the program will automatically attempt to connect to the default CAN interface, which is `pcan`. If you are using a different interface, you can select the desired CAN interface from the dropdown menu in the program. Once you have selected the interface, the program will establish a connection and start sending the 0x22E STEERING_COMMAND message with initial values of 0 for torque and angle.
 4. In addition to the CAN interface dropdown menu, the program also provides two input fields where you can enter the desired motor torque and angle values. Note that torque values can be entered as floats.
-5. You can update the injected values to the motor by clicking the "Update Torque/Angle Value" button or by pressing the "Return" key on your keyboard.
+5. You can update the injected values to the motor by clicking the "Update Torque/Angle Value" button or by pressing the "Return" key on your keyboard or changing Steer mode.
 6. After selecting either "TorqueControl" and providing a "Steer Torque" value, or selecting "AngleControl" and providing a "Steer Angle" value, the StepperServoCAN motor will start spinning accordingly.
 7. To exit the program, you can click the "Exit" button, press the "ESC" key, or simply close the window.
 

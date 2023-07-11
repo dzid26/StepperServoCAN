@@ -250,7 +250,7 @@ def send_message(can_bus: can.bus.BusABC):
 
 # Define a class named SteerModeWidget
 class SteerModeWidget:
-    def __init__(self, master, label_text, options):
+    def __init__(self, master, label_text, options_list, command):
         # Create an instance variable of type tk.IntVar to store the selected value
         self.var = tk.IntVar()
         
@@ -260,10 +260,10 @@ class SteerModeWidget:
         
         # Create a set of radio buttons, one for each option in the options list
         self.buttons = []
-        for idx, option in enumerate(options):
+        for idx, option in enumerate(options_list):
             # Create a Radiobutton widget with the specified text and value, and associate it with the var instance variable
             button = tk.Radiobutton(
-                master, text=option[1], variable=self.var, value=option[0]
+                master, text=option[1], variable=self.var, value=option[0], command=command
             )
             
             # Place the radio button in the parent widget using the grid geometry manager, and set sticky to "w" for left alignment
@@ -348,7 +348,7 @@ STEER_MODE_OPTIONS = [
     (3, "SoftOff - ramp torque to 0 in 1s")
 ]
 
-steer_mode_widget = SteerModeWidget(window, "Steer Mode:  ", STEER_MODE_OPTIONS)
+steer_mode_widget = SteerModeWidget(window, "Steer Mode:  ", STEER_MODE_OPTIONS, command=update_values)
 
 # Add a button to update torque/angle values
 send_button = tk.Button(window, text='Update Torque/Angle value', command=update_values)
