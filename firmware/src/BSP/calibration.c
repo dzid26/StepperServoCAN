@@ -223,7 +223,8 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		bool preRun = (step < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
 		if (!preRun) {
 			delay_us(stabilizationDelay);
-			uint16_t expectedAngle = (uint16_t)(int32_t)(electAngle * (int32_t)(uint16_t)(ANGLE_STEPS / A4950_STEP_MICROSTEPS) / (int32_t)motorParams.fullStepsPerRotation);//convert to shaft angle
+			int16_t calcStep = (int16_t)(electAngle / (int16_t)A4950_STEP_MICROSTEPS);
+			uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)motorParams.fullStepsPerRotation);//convert to shaft angle
 			uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
 			
 			uint16_t sampled = OverSampleEncoderAngle(stepOversampling); //collect angle every half step for 1.8 stepper
@@ -239,9 +240,10 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 			maxError = (delta_abs > maxError) ? delta_abs : maxError;
 		
 			if(!verifyOnly){
-				uint16_t calIdx;
-				calIdx = (uint16_t)((uint32_t)electAngle / (motorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE) / A4950_STEP_MICROSTEPS);
-				CalibrationTable_updateTableValue(calIdx % CALIBRATION_TABLE_SIZE, averageMeasurment);
+				int16_t calIdx;
+				calIdx = (calcStep / (int16_t)(uint16_t)(motorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE));
+				calIdx = (calIdx + (int16_t)CALIBRATION_TABLE_SIZE*2) % (int16_t)CALIBRATION_TABLE_SIZE; //adds 2*CALIBRATION_TABLE_SIZE, to make sure modulo gives positive value 
+				CalibrationTable_updateTableValue((uint16_t)calIdx, averageMeasurment);
 			}
 		}
 
