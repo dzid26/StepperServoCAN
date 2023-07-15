@@ -151,7 +151,6 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
           can_rx_cnt++;
           CAN_InterpretMesssages(rxMessage);
       }
-      CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
     }
     if(CAN_GetITStatus(CAN1, CAN_IT_FOV0)){
         // There has been a buffer overflow

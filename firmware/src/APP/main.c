@@ -35,6 +35,12 @@
 
 extern void initialise_monitor_handles(void); //semihosting
 
+//assert called from stm32f10x_conf.h
+void assert_failed(uint8_t* file, uint32_t line){
+	(void) printf("Wrong parameters value: file %s on line %lu\r\nPause the program to debug\r\n", file, line);
+	__ASM volatile("BKPT #01"); //debug on error
+}
+}
 
 volatile bool runCalibration = false;
 static void RunCalibration(void){
