@@ -220,6 +220,7 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 	
 	for (uint16_t step = 0; step < passSteps; ++step)
 	{
+		(void) ReadEncoderAngle(); //perform a readout so that 0.9 emulation doesn't loose track of an angle during preRun
 		bool preRun = (step < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
 		if (!preRun) {
 			delay_us(stabilizationDelay);

@@ -29,7 +29,14 @@ bool Encoder_begin(void){
 
 uint16_t ReadEncoderAngle(void){ 
 	//TLE5012 is 15bits - 32767 corresponds to 360deg
-	return (uint16_t)(TLE5012_ReadAngle()<<1U); //Scale (0-32767) -> (0-65535)
+	static uint32_t angle_accu = 0;
+	uint16_t angle =  (uint16_t)(TLE5012_ReadAngle()<<1U); //Scale (0-32767) -> (0-65535)
+	//use unsigned wrap around math to get circular angle distance
+	int16_t previousAngleDelta = (int16_t)(uint16_t)(angle - (uint16_t)(angle_accu % ANGLE_STEPS));
+	angle_accu = (uint32_t)(int32_t)((int32_t)angle_accu + previousAngleDelta);
+	angle_accu = angle_accu % (ANGLE_STEPS*2U);
+	
+	return angle_accu / 2U;
 }
 
 //Get oversampled encoder angle - simple averaging
