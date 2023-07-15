@@ -240,8 +240,8 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		
 			if(!verifyOnly){
 				uint16_t calIdx;
-				calIdx = (uint16_t)((uint32_t)expectedAngle * CALIBRATION_TABLE_SIZE / ANGLE_STEPS);
-				CalibrationTable_updateTableValue(calIdx, averageMeasurment);
+				calIdx = (uint16_t)((uint32_t)electAngle / (motorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE) / A4950_STEP_MICROSTEPS);
+				CalibrationTable_updateTableValue(calIdx % CALIBRATION_TABLE_SIZE, averageMeasurment);
 			}
 		}
 
