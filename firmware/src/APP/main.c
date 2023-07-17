@@ -31,15 +31,24 @@
 #include "actuator_config.h"
 #include "display.h"
 #include "delay.h"
+
+#ifdef DEBUG
 #include <stdio.h>
 
 extern void initialise_monitor_handles(void); //semihosting
 
-//assert called from stm32f10x_conf.h
-void assert_failed(uint8_t* file, uint32_t line){
-	(void) printf("Wrong parameters value: file %s on line %lu\r\nPause the program to debug\r\n", file, line);
-	__ASM volatile("BKPT #01"); //debug on error
+//Newlib-nano redefine - assert without aborting
+void __assert_func(const char *file, int line, const char *func, const char *failedexpr) {
+	(void) printf("\nAssertion \"%s\" failed: file \"%s\", line %d%s%s\n",
+		failedexpr, file, line,
+		func ? ", function: " : "", func ? func : "");
+		__ASM volatile("BKPT #02"); //debug on error and return, instead of newlib's abort
 }
+#endif //DEBUG
+
+//STMicro assert called from stm32f10x_conf.h
+void assert_failed(uint8_t* file, uint32_t line){
+	__assert_func((char*) file, (int)line, NULL, "STM32 registers");
 }
 
 volatile bool runCalibration = false;
@@ -69,7 +78,7 @@ static void RunCalibration(void){
 			Set_Func_LED(true);
 			int c;
 			c = getchar();
-			// (void) printf("%c", c);
+			// (void) printf("%c\n", c);
 			if(c == '@')
 				break;
 		}while(!F1_button_state());
