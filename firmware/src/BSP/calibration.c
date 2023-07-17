@@ -21,11 +21,11 @@
  
 #include "calibration.h"
 #include "nonvolatile.h"
-#include "sine.h"
 #include "A4950.h"
 #include "encoder.h"
 #include "delay.h"
 #include "actuator_config.h"
+#include <assert.h>
 
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 
@@ -235,7 +235,15 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 				//average with wrap around
 				//sampled - cal uses unsigned int wrap around math, then casts to signed to halve the distance,
 				//then casts back to unsigned to allow wrap around math again
-				anglePass = cal + (uint16_t)(int16_t)(((int16_t)(uint16_t)(sampled - cal))/2);
+				int16_t deltaCal = (int16_t)(uint16_t)(sampled - cal);
+				if((deltaCal > CALIBRATION_MAX_HYSTERESIS) || (deltaCal < -CALIBRATION_MAX_HYSTERESIS)){//should not happen if magnet is stationary
+					assert(0); //stop in debugger
+					if (deltaCal < 0){ //abs
+						deltaCal = -deltaCal;
+					}
+					return (ANGLE_STEPS/2U) + (uint16_t)deltaCal; //add half rotation to the error to make sure it fails due to large error
+				}
+				anglePass = cal + (uint16_t)(int16_t)(deltaCal/2);
 			}
 			if(!verifyOnly){
 				int16_t calIdx;
