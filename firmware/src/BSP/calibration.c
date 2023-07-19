@@ -187,8 +187,16 @@ static void CalibrationTable_normalizeStartIdx(void){
 	}
 
 	if(wrapFinds == 1U){//there shouldn't be more than one wrap point
+		//full electric angle in terms of calibrations points 
 		//electrical angle repeats every 4 full steps
-		uint16_t shiftBy = wrapIdx - (wrapIdx % (4U * CALIBRATION_TABLE_SIZE / motorParams.fullStepsPerRotation));
+		//for CALIBRATION_TABLE_SIZE=50 and 200steps, full elec angle is every single cal point, for 400steps it is every half a point
+		uint16_t fullElecAngleCalPoints = (4U * CALIBRATION_TABLE_SIZE / motorParams.fullStepsPerRotation); 
+		uint16_t shiftBy;
+		if(fullElecAngleCalPoints>1){
+			shiftBy = wrapIdx - (wrapIdx % fullElecAngleCalPoints);
+		}else{
+			shiftBy = wrapIdx;
+		}
 		
 		//shift data
 		for (uint16_t i=0; i < CALIBRATION_TABLE_SIZE; i++ ){
@@ -205,7 +213,7 @@ static void CalibrationTable_normalizeStartIdx(void){
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
 static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
-	const uint16_t stepCurrent = I_MAX_A4950;
+	const uint16_t stepCurrent = I_MAX_A4950/6;
 	const uint16_t microStepDelay = 30U;  	//[uS] controls calibration speed
 	const uint16_t stabilizationDelay = 0U; //[uS] wait for taking measurements - some medium stopping time can cause resonance, long stopping time can cause oveheat
 	const uint16_t stepOversampling = 3U;  		//measurements to take per point, note large will take some time
