@@ -16,11 +16,15 @@
 import os
 from platform import system
 import struct
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 from scipy import optimize
 import re
+
+basepath = os.path.dirname(__file__)
+
 
 ## Firmware stores sensor calibration in a following structure with fields written one after another
 # typedef struct {
@@ -49,7 +53,7 @@ class CalibrationRead(object):
 
     def _update_cal_table_size(self):
         #find calibration size in c-code
-        calibration_h_file = '../src/BSP/calibration.h'
+        calibration_h_file = os.path.join(basepath, os.pardir, 'src', 'BSP', 'calibration.h')
         with open(calibration_h_file, "r") as f:
             for line in f:
                 if "#define"  in line and "CALIBRATION_TABLE_SIZE" in line:
@@ -59,14 +63,16 @@ class CalibrationRead(object):
 
     def dump_eeprom_to_file(self):
         #dump eeprom memory for calibration address 
+        
         if system() == 'Windows':
-            os.system('ST-LINK_CLI  -NoPrompt -Dump ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct))  + ' eepromCals.bin')
+            ret = os.system('ST-LINK_CLI  -NoPrompt -Dump ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct))  + ' eepromCals.bin')
         else: # Linux 
             # https://github.com/stlink-org/stlink
-            os.system('st-flash read' + ' eepromCals.bin' + ' ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct)))
+            ret = os.system('st-flash read' + ' eepromCals.bin' + ' ' + hex(self.address) + ' ' + str(struct.calcsize(self.struct)))
+        return ret
 
     def load_from_bin(self):
-        with open('eepromCals.bin', mode='rb') as dump: # r -read, b -> binary
+        with open(os.path.join(basepath, 'eepromCals.bin'), mode='rb') as dump: # r -read, b -> binary
             values_raw = struct.unpack(self.struct, dump.read(struct.calcsize(self.struct)))
         self.values = np.array(values_raw[0:self.cal_size])
         self.status = values_raw[-3]
@@ -132,8 +138,12 @@ class CalibrationRead(object):
 if __name__ == "__main__":
     cal = CalibrationRead()
 
-    cal.dump_eeprom_to_file() #currently uses ST-link tool
-    cal.load_from_bin()
+    if cal.dump_eeprom_to_file() != 0:  # currently uses ST-link tool
+        response = input("Downloading eeprom failed; continue plotting with old dump..? (y/n):")
+        if response.lower() != 'y':
+            sys.exit("Exiting program...")
+    cal.load_from_bin() 
     cal.print_cals()
+    print("Plotting Cal...")
     cal.plotcals()
 
