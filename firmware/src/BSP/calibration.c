@@ -213,7 +213,7 @@ static void CalibrationTable_normalizeStartIdx(void){
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
 static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
-	const uint16_t stepCurrent = I_MAX_A4950/6;
+	const uint16_t stepCurrent = I_MAX_A4950;
 	const uint16_t microStepDelay = 30U;  	//[uS] controls calibration speed
 	const uint16_t stabilizationDelay = 0U; //[uS] wait for taking measurements - some medium stopping time can cause resonance, long stopping time can cause oveheat
 	const uint16_t stepOversampling = 3U;  		//measurements to take per point, note large will take some time
