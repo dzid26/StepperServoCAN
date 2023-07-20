@@ -231,19 +231,19 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		bool preRun = (step < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
 		if (!preRun) {
 			delay_us(stabilizationDelay);
-			int16_t calcStep = (int16_t)(electAngle / (int16_t)A4950_STEP_MICROSTEPS);
-			uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)motorParams.fullStepsPerRotation);//convert to shaft angle
-			uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
+			volatile int16_t calcStep = (int16_t)(electAngle / (int16_t)A4950_STEP_MICROSTEPS);
+			volatile uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)motorParams.fullStepsPerRotation);//convert to shaft angle
+			volatile uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
 			
-			uint16_t sampled = OverSampleEncoderAngle(stepOversampling);
-			uint16_t anglePass; //stores average on the second pass
+			volatile uint16_t sampled = OverSampleEncoderAngle(stepOversampling);
+			volatile uint16_t anglePass; //stores average on the second pass
 			if(firstPass){
 				anglePass = sampled;
 			}else{
 				//average with wrap around
 				//sampled - cal uses unsigned int wrap around math, then casts to signed to halve the distance,
 				//then casts back to unsigned to allow wrap around math again
-				int16_t deltaCal = (int16_t)(uint16_t)(sampled - cal);
+				volatile int16_t deltaCal = (int16_t)(uint16_t)(sampled - cal);
 				if((deltaCal > CALIBRATION_MAX_HYSTERESIS) || (deltaCal < -CALIBRATION_MAX_HYSTERESIS)){//should not happen if magnet is stationary
 					assert(0); //stop in debugger
 					if (deltaCal < 0){ //abs
@@ -254,7 +254,7 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 				anglePass = cal + (uint16_t)(int16_t)(deltaCal/2);
 			}
 			if(!verifyOnly){
-				int16_t calIdx;
+				volatile int16_t calIdx;
 				calIdx = (calcStep / (int16_t)(uint16_t)(motorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE));
 				calIdx = (calIdx + (int16_t)CALIBRATION_TABLE_SIZE*2) % (int16_t)CALIBRATION_TABLE_SIZE; //adds 2*CALIBRATION_TABLE_SIZE, to make sure modulo gives positive value 
 				CalibrationTable_updateTableValue((uint16_t)calIdx, anglePass);
