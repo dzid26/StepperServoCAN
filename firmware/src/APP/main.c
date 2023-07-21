@@ -37,12 +37,12 @@
 
 extern void initialise_monitor_handles(void); //semihosting
 
-//Newlib-nano redefine - assert without aborting
-void __assert_func(const char *file, int line, const char *func, const char *failedexpr) {
+//similar to assert() but continues after pause
+void debug_assert_func(const char *file, int line, const char *func, const char *failedexpr) {
 	(void) printf("\nAssertion \"%s\" failed: file \"%s\", line %d%s%s\n",
 		failedexpr, file, line,
 		func ? ", function: " : "", func ? func : "");
-		__ASM volatile("BKPT #02"); //debug on error and return, instead of newlib's abort
+		__ASM ("BKPT #02"); //debug on error and return, instead of newlib's abort
 }
 #endif //DEBUG
 
@@ -91,7 +91,7 @@ static void RunCalibration(void){
 
 		//assert errors
 		err1 = !CalibrationTable_calValid();
-		err2 = max_error > CALIBRATION_MAX_ERROR;
+		err2 = max_error >= CALIBRATION_MAX_ERROR;
 
 	}while(err1 || err2);
 	Set_Error_LED(false);
