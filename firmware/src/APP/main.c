@@ -44,6 +44,22 @@ void debug_assert_func(const char *file, int line, const char *func, const char 
 		func ? ", function: " : "", func ? func : "");
 		__ASM ("BKPT #02"); //debug on error and return, instead of newlib's abort
 }
+static void clean_stdin(void){
+    int c;
+    do {
+        c = getchar();
+    } while ((c != (int)'\n') && (c != EOF));
+}
+
+static char HostReadCharacter(void){ //semihosting read
+    char cha=0;
+    scanf("%c", &cha);
+    // Discard extra characters in input buffer
+    clean_stdin(); //discard characters after the number
+    return cha;
+}
+#else
+static char HostReadCharacter(void) { return 0; }
 #endif //DEBUG
 
 //STMicro assert called from stm32f10x_conf.h
@@ -74,14 +90,12 @@ static void RunCalibration(void){
 		}
 		(void) printf("\n[Enter] to confirm start of the calibration..\n");
 		// delay_ms(2000); //make sure the printf above reaches the host
+		int key;
 		do{	//wait for the user
 			Set_Func_LED(true);
-			int c;
-			c = getchar();
-			// (void) printf("%c\n", c);
-			if(c == '@')
-				break;
-		}while(!F1_button_state());
+			key = HostReadCharacter(); //press any key
+			// printf("  key = %c\n", key);
+		}while((!F1_button_state()) && (key == 0));
 		Set_Func_LED(false);
 
 		//print angle using fixed point
@@ -105,7 +119,6 @@ static void RunCalibration(void){
 volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
 static void Begin_process(void)
 {
-	
 	update_actuator_parameters();
 
 	board_init();	//set up the pins correctly on the board.
