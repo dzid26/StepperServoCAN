@@ -31,12 +31,12 @@
 
 ### Configuration
 - In `firmware/src/BSP/actuator_config.c` set:
-    - `rated_current` (single phase) and `rated_torque` from motor spec or measurment. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
+    - `rated_current` (single phase) and `rated_torque` from motor spec or measurement. Note, this is just a datapoint and will be extrapolated up to 3.3A. Choose motor wisely.
     - `motor_gearbox_ratio` - gearbox attached to the motor
     - `final_drive_ratio` - any additional gearing - separate parameter for convenience
 - Depending on mounting orientation and gearing the motor rotation direction may be reversed. You can change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to a negative value.
 
-### LED idnicators
+### LED indicators
 BLUE LED (Function):
  - short single blink after user long presses `F1` button indicating button can be released
  - solid - waiting for user confirmation [of calibration] (either with `F1` button or Enter in Platformio OpenOCD debugger virtual serial console)
@@ -45,7 +45,7 @@ RED LED (Error):
  - slowly blinking every 1s- encoder initialization error
  - solid with short interruption every 1s - waiting for power supply voltage to be above 8V (checks voltage every 1s)
 ### Calibration and first run
-1. On first start defualt parameters are loaded to be later stored in Flash.
+1. On first start default parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
 3. Next the controller automatically waits (blue LED on) for the user to confirm sensor calibration. Press `F1` button to start calibration. The motor will be calibrated and values stored in Flash. Calibration can be repeated any time by long pressing `F1` button until first short blink of the blue LED. 
 4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affectes signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
@@ -54,6 +54,7 @@ RED LED (Error):
     <img width="488" alt="image" src="https://github.com/dzid26/StepperServoCAN/assets/841061/5316b32f-8268-41e9-b313-c464d13543d5">
     
     ([wiki](https://github.com/dzid26/StepperServoCAN/wiki/Calibration))
+
 ## CAN interface
 Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)
 
@@ -103,13 +104,14 @@ git submodule update opendbc
     ```
     python StepperServoCANtester.py
     ```
-3. The program will automatically detect and display a list of available CAN interfaces to the user. In case multiple interfaces are available, the user will be prompted to select one.
-4. Upon connecting to the selected CAN interface, the program will present a user-friendly GUI with two input fields for setting the torque and angle values of the motor.
-5. The user can update the injected values to the motor by clicking the "Update Torque/Angle Value" button or by pressing the "Return" key on the keyboard.
-6. Once the user selects either "TorqueControl" and provides a "Steer Torque" value, or selects "RelativeControl" and provides a "Steer Angle" value, the StepperServoCAN motor will start spinning.
-7. To exit the program, the user can click the "Exit" button, press the "ESC" key, or simply close the window.
+3. Upon startup, the program will automatically attempt to connect to the default CAN interface, which is `pcan`. If you are using a different interface, you can select the desired CAN interface from the dropdown menu in the program. Once you have selected the interface, the program will establish a connection and start sending the 0x22E STEERING_COMMAND message with initial values of 0 for torque and angle.
+4. In addition to the CAN interface dropdown menu, the program also provides two input fields where you can enter the desired motor torque and angle values. Note that torque values can be entered as floats.
+5. You can update the injected values to the motor by clicking the "Update Torque/Angle Value" button or by pressing the "Return" key on your keyboard or changing Steer mode.
+6. After selecting either "TorqueControl" and providing a "Steer Torque" value, or selecting "AngleControl" and providing a "Steer Angle" value, the StepperServoCAN motor will start spinning accordingly.
+7. To exit the program, you can click the "Exit" button, press the "ESC" key, or simply close the window.
+
 #### Notes
-- The torque value should be between -16 and 16, and the angle value should be between -4096 and 4096.
+- The torque value should be between -16 and 15.875, and the angle value should be between -4096 and 4096.
 - To use the program with SocketCAN on Linux, you can set up a virtual CAN interface with the following commands:
   ```
   sudo modprobe vcan
