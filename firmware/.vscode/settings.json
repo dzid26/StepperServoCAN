@@ -36,4 +36,7 @@
         "connectionId": "dzid26",
         "projectKey": "dzid26_RetroPilot-SERVO42B"
     },
+    "files.associations": {
+        "*.h": "c" //make sure __cplusplus is passed to intellisense for system headers
+    },
 }

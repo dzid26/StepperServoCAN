@@ -113,9 +113,9 @@ static void StepperCtrl_updateParamsFromNVM(void)
 static int32_t StepperCtrl_updateCurrentLocation(void)
 {
 	uint16_t angle = GetCorrectedAngle(ReadEncoderAngle());
-	//use unsigned wrap around math to get circular angle distance
-	uint16_t anglePreviousDelta = angle - (uint16_t)((int16_t)(currentLocation%(int32_t)ANGLE_STEPS));
-	currentLocation = currentLocation + (int16_t)anglePreviousDelta;
+	//convert to unsigned and use wrap around math to get circular angle distance!
+	int16_t previousAngleDelta = (int16_t)(uint16_t)(angle - (uint16_t)((int16_t)(currentLocation % (int32_t)ANGLE_STEPS)));
+	currentLocation = currentLocation + previousAngleDelta;
 
 	return currentLocation;
 }

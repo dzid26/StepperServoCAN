@@ -65,16 +65,21 @@ static uint8_t Msg_calc_checksum_8bit(const uint8_t *data, uint8_t len, uint16_t
 
 static void CheckTxStatus(uint8_t transmitMailbox){
 	uint8_t i = 0;
-	uint8_t status = CAN_TxStatus_Failed;
+	volatile uint8_t status = CAN_TxStatus_Failed;
   // wait until CAN transmission is OK
   i = 0;
-  while((status != CANTXOK))               
+  while((status != CAN_TxStatus_Ok))
   {
-    status = CAN_TransmitStatus(CAN1, transmitMailbox);
-    i++;
-    if ((status == CAN_TxStatus_Failed) || (i == 0xFFU)){
-      can_err_tx_cnt++;
+    if(transmitMailbox == CAN_TxStatus_NoMailBox){
       status = CAN_GetLastErrorCode(CAN1);
+    }else{
+      status = CAN_TransmitStatus(CAN1, transmitMailbox);
+    }
+    i++;
+    if ((status == CAN_TxStatus_Failed) || (i >= 0xFFU)){
+      can_err_tx_cnt++;
+      volatile uint8_t error = CAN_GetLastErrorCode(CAN1);
+      assert((error == CAN_ErrorCode_NoErr) || (error == CAN_ErrorCode_ACKErr));//don't stop if no CAN receivers on the bus
       return;
     }
   }
@@ -151,7 +156,6 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
           can_rx_cnt++;
           CAN_InterpretMesssages(rxMessage);
       }
-      CAN_ClearITPendingBit(CAN1, CAN_IT_FMP0);
     }
     if(CAN_GetITStatus(CAN1, CAN_IT_FOV0)){
         // There has been a buffer overflow
