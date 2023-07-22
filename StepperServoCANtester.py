@@ -115,7 +115,7 @@ def connect_to_can_interface(interface):
     can_bus = None
     interface_name = interface.get()
     channel = None
-    print("\nConnecting to CAN interface...")
+    print(f"\nConnecting to {interface_name}...")
     if interface_name == "socketcan":
         if not check_linux():
             can_enabled = False
@@ -131,6 +131,7 @@ def connect_to_can_interface(interface):
             return
     try:
         can_bus = can.Bus(interface=interface_name, bitrate=500000, channel=channel)
+        print("Connected.")
     except Exception as e:
         print("An error occurred:", e)
         can_enabled = False
