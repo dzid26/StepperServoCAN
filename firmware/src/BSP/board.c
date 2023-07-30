@@ -207,7 +207,7 @@ static void CAN_begin(void){
 	// GPIO_Mode_IN_FLOATING for slew rate control
 	// GPIO_Mode_Out_PP for highest speed or standby mode
 	gpio_initStructure.GPIO_Pin = GPIO_Pin_2;
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPD;
     gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(GPIOB, &gpio_initStructure);
 	
