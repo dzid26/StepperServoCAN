@@ -87,6 +87,10 @@ static void TLE5012B_init(void)
  	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP; //software NSS gpio switching - non-alternate function
  	GPIO_Init(PIN_TLE5012B, &gpio_initStructure);
 	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);//CS high - deselect device for now
+
+  	gpio_initStructure.GPIO_Pin = PIN_AUX_3_3;
+ 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU; //aux 3.3 mosfet - On by default
+ 	GPIO_Init(PIN_TLE5012B, &gpio_initStructure);
 	
 	SPI_InitTypeDef spi_initStructure;	
 	spi_initStructure.SPI_Direction = SPI_Direction_1Line_Tx;

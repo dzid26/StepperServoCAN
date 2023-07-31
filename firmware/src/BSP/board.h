@@ -111,6 +111,7 @@
 #define PIN_TLE5012B					GPIOB
 #define PIN_TLE5012B_CS					GPIO_Pin_12
 #define PIN_TLE5012B_SCK				GPIO_Pin_13
+#define PIN_AUX_3_3					    GPIO_Pin_14
 #define PIN_TLE5012B_DATA    			GPIO_Pin_15
 #if (TLE5012B_SPIx == 1)
     #define TLE5012B_SPI				SPI1
