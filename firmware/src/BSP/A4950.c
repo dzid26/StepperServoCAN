@@ -27,6 +27,7 @@
 #include "sine.h"
 #include "encoder.h"
 #include "actuator_config.h"
+#include "utils.h"
 
 #define MCU_VOUT mV_REF
 #define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
@@ -132,14 +133,6 @@ void A4950_enable(bool enable)
 		bridge2(3); //tri state bridge outputs
 	}
 }
-
-
-#define min(a,b)             \
-({                           \
-    __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    (_a < _b) ? _a : _b;       \
-})
 
 
 // this is precise move and modulo of A4950_STEP_MICROSTEPS is a full step.

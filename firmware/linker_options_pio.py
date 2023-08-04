@@ -8,7 +8,7 @@ if(env.GetBuildType()=="debug"):
             "--specs=nano.specs",
         ],
     )
-else:
+if(env.GetBuildType()=="release"):
     env.Append(
         LINKFLAGS=[
             "--specs=nosys.specs",

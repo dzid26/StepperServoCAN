@@ -26,6 +26,7 @@
 #include "board.h"
 #include "encoder.h"
 #include "math.h"
+#include "utils.h"
 
 static bool StepperCtrl_simpleFeedback(int32_t error);
 static void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);

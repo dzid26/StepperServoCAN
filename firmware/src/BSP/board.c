@@ -25,6 +25,7 @@
 #include "can.h"
 #include "A4950.h"
 #include "sine.h"
+#include "utils.h"
 
 //Init clock
 static void CLOCK_init(void)
@@ -352,14 +353,6 @@ void Vbat_adc_update(void){
 float GetSupplyVoltage(){
 	return vbat_adc;
 }
-
-
-#define max(a,b)             \
-({                           \
-    __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    (_a > _b) ? _a : _b;     \
-})
 
 static volatile float lssA_adc;
 static volatile float lssB_adc;

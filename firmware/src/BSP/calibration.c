@@ -26,6 +26,7 @@
 #include "delay.h"
 #include "actuator_config.h"
 #include "main.h"
+#include "utils.h"
 
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 

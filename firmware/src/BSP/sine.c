@@ -131,10 +131,3 @@ int16_t sine_ripple(uint16_t angle, int8_t strength){
 int16_t cosine_ripple(uint16_t angle, int8_t strength){
    return sine_ripple(angle + SINE_PI, strength);
 }
-
-int32_t fastAbs(int32_t v)
-{
-	int32_t t;
-	t = v >> 31;
-	return (v ^ t) - t;
-}
