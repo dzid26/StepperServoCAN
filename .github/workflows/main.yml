@@ -44,7 +44,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade platformio
     - name: Run tests on the native platform
-      run: platformio test -e PC_UnitTest
+      run: |
+        cd firmware
+        pio test -e PC_UnitTest
     - name: PlatformIO build
       run: |
         cd firmware
