@@ -55,7 +55,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: firmware
-        path: firmware/.pio/build/ServoCAN/firmware.bin
+        path: firmware/.pio/build/ServoCAN_release/firmware.bin
 
     - name: PlatformIO Check
       run: |

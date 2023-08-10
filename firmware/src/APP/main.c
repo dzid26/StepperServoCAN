@@ -231,6 +231,7 @@ void Service_task(void){
 	}
 }
 
+#ifndef PIO_UNIT_TESTING 
 int main (void)
 {	
 	#ifdef DEBUG
@@ -243,3 +244,4 @@ int main (void)
 		Background_process();
 	}
 }
+#endif //PIO_UNIT_TESTING

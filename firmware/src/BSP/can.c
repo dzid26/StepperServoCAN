@@ -79,7 +79,7 @@ static void CheckTxStatus(uint8_t transmitMailbox){
     if ((status == CAN_TxStatus_Failed) || (i >= 0xFFU)){
       can_err_tx_cnt++;
       volatile uint8_t error = CAN_GetLastErrorCode(CAN1);
-      assert((error == CAN_ErrorCode_NoErr) || (error == CAN_ErrorCode_ACKErr));//don't stop if no CAN receivers on the bus
+      assert((error == CAN_ErrorCode_NoErr) || (error == CAN_ErrorCode_ACKErr));//CAN_ErrorCode_ACKErr is allowed since it can happen if there is no CAN receivers on the bus
       return;
     }
   }

@@ -19,7 +19,7 @@
 
 extern void initialise_monitor_handles(void);
 
-void unityOutputStart()
+void unityOutputStart(void)
 {
 	#ifdef DEBUG
 	initialise_monitor_handles(); //semihosting
@@ -28,14 +28,14 @@ void unityOutputStart()
 
 void unityOutputChar(char c)
 {
-    putchar(c);
+    (void) putchar(c);
 }
 
-void unityOutputFlush()
+void unityOutputFlush(void)
 {
-    fflush(stdout);
+    (void) fflush(stdout);
 }
 
-void unityOutputComplete()
+void unityOutputComplete(void)
 {
 }
