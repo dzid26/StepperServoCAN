@@ -256,9 +256,24 @@ static void CAN_begin(void){
 
 }
 
+static void Vrefint_adc_update(void);
 
 static void Analog_init(void){
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6); //div6 default
+
+	
+	GPIO_InitTypeDef  gpio_initStructure;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AIN;
+    gpio_initStructure.GPIO_Pin = PIN_VMOT;
+	GPIO_Init(GPIO_VMOT, &gpio_initStructure);
+
+	gpio_initStructure.GPIO_Pin = PIN_VBAT;
+	GPIO_Init(GPIO_VBAT, &gpio_initStructure);
+	
+    gpio_initStructure.GPIO_Pin = PIN_LSS_A|PIN_LSS_B;
+	GPIO_Init(GPIO_LSS, &gpio_initStructure);
+
 
 	ADC_DeInit(ADC1);
 	ADC_InitTypeDef adc_initStructure;
@@ -275,7 +290,7 @@ static void Analog_init(void){
 	ADC_DiscModeChannelCountConfig(ADC1, 1);
 
 	/* Enable the temperature sensor and vref internal channel */ 
-	ADC_TempSensorVrefintCmd(ENABLE);    
+	ADC_TempSensorVrefintCmd(ENABLE);
 	/* Enable ADC1 */
 	ADC_Cmd(ADC1, ENABLE);
 	/* Enable ADC1 reset calibaration register */ 
@@ -291,24 +306,21 @@ static void Analog_init(void){
 		//wait for adc calibration finish
 	}
 
-	GPIO_InitTypeDef  gpio_initStructure;
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_AIN;
-    gpio_initStructure.GPIO_Pin = PIN_VMOT;
-	GPIO_Init(GPIO_VMOT, &gpio_initStructure);
-	
-    gpio_initStructure.GPIO_Pin = PIN_LSS_A|PIN_LSS_B;
-	GPIO_Init(GPIO_LSS, &gpio_initStructure);
+	//Measure VDDA shortly after ADC calibration
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 1, ADC_SampleTime_71Cycles5);
+	Vrefint_adc_update();
+	ADC_SoftwareStartConvCmd(ADC1, DISABLE);
 
-	/* ADC1 regular channe16 configuration */ 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_239Cycles5);
+	/* ADC1 regular configuration */ 
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1, ADC_SampleTime_71Cycles5);
 	ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 2, ADC_SampleTime_13Cycles5);
 	ADC_RegularChannelConfig(ADC_VBAT, ADC_CH_VBAT, 3, ADC_SampleTime_13Cycles5);
-	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_A, 4, ADC_SampleTime_1Cycles5);
-	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_B, 5, ADC_SampleTime_1Cycles5);
+	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_A, 4, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_B, 5, ADC_SampleTime_239Cycles5);
 }
 
 static uint16_t Get_ADC_raw_nextRank(ADC_TypeDef* adcx){
-	ADC_SoftwareStartConvCmd(adcx, ENABLE);	
+	ADC_SoftwareStartConvCmd(adcx, ENABLE);
 	while (ADC_GetFlagStatus(adcx, ADC_FLAG_EOC)!=SET){
 		//wait until conversion is finished
 	}
@@ -316,47 +328,59 @@ static uint16_t Get_ADC_raw_nextRank(ADC_TypeDef* adcx){
 	return adc_raw;
 }
 
+//ADC raw to voltage
+static uint16_t vrefint_adc = 1489U; //VDDA 3.3V @ 1.2V vrefint
 static float covnert_ADC_raw_volt(uint16_t adc_raw){
-	float adc_volt = ((float)adc_raw+0.5f) * V_REF / (float)ADC_12bit;
+	float adc_volt = (float)(uint16_t)((uint32_t)adc_raw * mVREFINT / vrefint_adc) / 1000U;
 	return adc_volt;
 }
 
-static volatile float chip_temp_adc;
-void ChipTemp_adc_update(){
-	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC1));
-	const float t0 = 35.0f;
-	const float adcVoltRef = 1.325f; //! calibrate at some t0
-	const float tempSlop = 4.3f/1000.0f; //typically 4.3mV per C
-	chip_temp_adc = ((adcVoltRef - adc_volt) / tempSlop) + t0;
+static void Vrefint_adc_update(void){
+	vrefint_adc = Get_ADC_raw_nextRank(ADC1);
+	assert(vrefint_adc > 1357); //VDDA above 3.5V @ 1.16V vrefint
+	assert(vrefint_adc < 1587); //VDDA below 3.2V @ 1.24V vrefint
 }
 
-float GetChipTemp(){
+float GetVDDA(void){
+	return covnert_ADC_raw_volt(ADC_12bit); //gets VDDA, 
+}
+
+static float chip_temp_adc;
+static void ChipTemp_adc_update(void){
+	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC1));
+	const float t0 = 25.0f; //deg Celsius
+	const float adcVolt_t0 = 1.385f; //! calibrate at some t0
+	const float tempSlop = 4.3f/1000.0f; //typically 4.3mV per C
+	chip_temp_adc = ((adcVolt_t0 - adc_volt) / tempSlop) + t0;
+}
+
+float GetChipTemp(void){
 	return chip_temp_adc;
 }
 
-static volatile float vmot_adc;
-void Vmot_adc_update(void){
+static float vmot_adc;
+static void Vmot_adc_update(void){
 	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_VMOT));
 	vmot_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VMOT, R2_VDIV_VMOT);
 }
 
-float GetMotorVoltage(){
+float GetMotorVoltage(void){
 	return vmot_adc;
 }
 
-static volatile float vbat_adc;
-void Vbat_adc_update(void){
+static float vbat_adc;
+static void Vbat_adc_update(void){
 	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_VBAT));
 	vbat_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VBAT, R2_VDIV_VBAT);
 }
 
-float GetSupplyVoltage(){
+float GetSupplyVoltage(void){
 	return vbat_adc;
 }
 
-static volatile float lssA_adc;
-static volatile float lssB_adc;
-void LSS_adc_update(void){ //todo add filter
+static float lssA_adc;
+static float lssB_adc;
+static void LSS_adc_update(void){ //todo add filter
 	float adc_volt;
 	adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_LSS));
 	lssA_adc = max(adc_volt-LSS_OP_OFFSET, 0.0f) / 9.2f * 10.0f;
@@ -369,6 +393,14 @@ float Get_PhaseA_Current(void){
 }
 float Get_PhaseB_Current(void){
 	return lssB_adc;
+}
+
+void adc_update_all(void){
+	//order matters - see ADC1 regular configuration above
+	ChipTemp_adc_update();
+	Vmot_adc_update();
+	Vbat_adc_update();
+	LSS_adc_update();
 }
 
 void board_init(void)

@@ -196,11 +196,8 @@ void Motion_task(void){
 void Service_task(void){
 	service_task_counter++;
 
-	ChipTemp_adc_update();
-	Vmot_adc_update();
-	Vbat_adc_update();
-	LSS_adc_update();
-
+	adc_update_all();
+	
 	//transmit CAN every 10ms
 	CAN_TransmitMotorStatus(service_task_counter);
 

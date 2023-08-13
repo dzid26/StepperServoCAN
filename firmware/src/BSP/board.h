@@ -30,7 +30,7 @@
 #define ADC_12bit 4096
 //MCU power supply
 #define mV_REF 3300u
-#define V_REF (float)mV_REF/1000.0f
+#define mVREFINT 1200u
 
 //OLED
 #define PIN_OLED						GPIOB
@@ -87,16 +87,16 @@
 #define PIN_VMOT        GPIO_Pin_1
 #define ADC_CH_VMOT     ADC_Channel_9
 #define ADC_VMOT        ADC1
-#define R1_VDIV_VMOT    20 //kohm
-#define R2_VDIV_VMOT    2  //kohm
+#define R1_VDIV_VMOT    56.0 //kohm
+#define R2_VDIV_VMOT    5.6  //kohm
 
 //DClink v_bat adc
 #define GPIO_VBAT       GPIOA
 #define PIN_VBAT        GPIO_Pin_7
-#define ADC_CH_VBAT     ADC_Channel_9
+#define ADC_CH_VBAT     ADC_Channel_7
 #define ADC_VBAT        ADC1
-#define R1_VDIV_VBAT    20 //kohm
-#define R2_VDIV_VBAT    2  //kohm
+#define R1_VDIV_VBAT    56.0 //kohm
+#define R2_VDIV_VBAT    5.6  //kohm
 
 
 //A1333
@@ -134,11 +134,9 @@ bool F1_button_state(void);
 void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
 
-void Vmot_adc_update(void);
-void Vbat_adc_update(void);
-void ChipTemp_adc_update(void);
-void LSS_adc_update(void);
+void adc_update_all(void);
 
+float GetVDDA(void);
 float GetChipTemp(void);
 float GetMotorVoltage(void); //V_mot
 float GetSupplyVoltage(void); //V_bat
