@@ -105,7 +105,7 @@ bool TLE5012_begin(void)
     (void) printf("\nTLE5012 SPI comm error, state: %d\n", state);
     ok = false;
   }else if((state & 0x0080U) != 0U) {// S_MAGOL - GMR Magnitude Out of Limit
-    (void) printf("\nMagnet too strong, state: %d\n", state);
+    (void) printf("\nMagnet too weak or too strong, state: %d\n", state);
     ok = false;
   }else{
     ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804U);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
