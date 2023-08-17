@@ -1,0 +1,7 @@
+#https://github.com/wokwi/wokwi-features/issues/363#issuecomment-1513806516
+#https://wokwi.com/projects/334824244586218068
+[wokwi]
+version = 1
+firmware = '.pio/build/ServoCAN_release/firmware.bin'
+elf = '.pio/build/ServoCAN_release/firmware.elf'
+gdbServerPort=3333

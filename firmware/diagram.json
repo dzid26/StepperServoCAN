@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "author": "Uri Shaked",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-stm32-bluepill", "id": "stm32", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 57.71,
+      "left": 145.42,
+      "rotate": 90,
+      "attrs": { "color": "red", "flip": "1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 233.26,
+      "left": 126.17,
+      "attrs": { "color": "black", "key": "1" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": 161.67,
+      "left": 142.6,
+      "rotate": 90,
+      "attrs": { "color": "blue" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 260.31,
+      "left": 34.51,
+      "attrs": { "value": "10000" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 209.65,
+      "left": 75.9,
+      "rotate": 90,
+      "attrs": { "value": "1000" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn2",
+      "top": 308.54,
+      "left": 124.34,
+      "attrs": { "color": "black", "key": "2" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 204.56,
+      "left": 188.31,
+      "rotate": 90,
+      "attrs": { "value": "1000" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r4",
+      "top": 334.78,
+      "left": 49.83,
+      "attrs": { "value": "10000" }
+    },
+    { "type": "wokwi-vcc", "id": "vcc1", "top": 6.39, "left": 201.14, "attrs": {} }
+  ],
+  "connections": [
+    [ "stm32:A10", "$serialMonitor:TX", "green", [] ],
+    [ "stm32:A9", "$serialMonitor:RX", "green", [] ],
+    [ "led1:C", "stm32:GND.1", "black", [ "v-0.85", "h-32.28", "v130.12", "h-75.68", "v-33.22" ] ],
+    [ "led1:A", "stm32:B0", "green", [ "v0" ] ],
+    [ "led2:C", "stm32:C13", "green", [ "h0" ] ],
+    [ "stm32:GND.1", "led2:A", "black", [ "h27.05", "v32.92", "h105.32" ] ],
+    [ "stm32:3V3.1", "r1:1", "red", [ "h-0.91", "v84.44" ] ],
+    [ "r1:2", "btn1:2.l", "red", [ "v0" ] ],
+    [ "r2:1", "stm32:C14", "green", [ "v0" ] ],
+    [ "r2:2", "btn1:1.l", "green", [ "h0" ] ],
+    [ "r3:1", "stm32:C15", "green", [ "v-16.21", "h-144.9" ] ],
+    [ "btn2:1.r", "r3:2", "green", [ "v-0.12", "h25.78" ] ],
+    [ "r4:2", "btn2:2.l", "green", [ "v0" ] ],
+    [ "stm32:3V3.1", "r4:1", "red", [ "h-0.91", "v147.07" ] ],
+    [ "vcc1:VCC", "stm32:A7", "red", [ "v67.5", "h-108.67", "v-14.17" ] ],
+    [ "vcc1:VCC", "stm32:B1", "red", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

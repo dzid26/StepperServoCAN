@@ -5,9 +5,7 @@
         "Sonarsource.sonarlint-vscode",
         "gruntfuggly.todo-tree",
         "jbenden.c-cpp-flylint",
-        "platformio.platformio-ide"
+        "platformio.platformio-ide",
+        "wokwi.wokwi-vscode"
     ],
-    "unwantedRecommendations": [
-        "ms-vscode.cpptools-extension-pack"
-    ]
 }
