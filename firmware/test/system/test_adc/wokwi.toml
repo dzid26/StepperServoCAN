@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = '../../../.pio/build/ServoCAN_wokwi/firmware.bin'
+elf = '../../../.pio/build/ServoCAN_wokwi/firmware.elf'
