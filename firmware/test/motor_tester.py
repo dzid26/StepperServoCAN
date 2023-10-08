@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 """
-For greatest compatibility this script doesn't depend bob-built-in modules - 
-except for the USB CAN interface (Panda, ) and it can be run on PC or Comma EON. 
-Keyboard input (w,s, q keys) in game mode - supported even over SSH
+For greatest compatibility this script doesn't depend non-built-in modules - 
+except for the USB CAN interface (Panda) and it can be run on PC or Comma device. 
+Keyboard input values 1,2,3,4... to set torque value
+or w,s, keys - control torque dynamically like in a game - supported even over SSH!
+s,d step angle in angle mode
+m - change control mode 
 """
 from panda import Panda  # install https://github.com/commaai/panda
 
@@ -14,13 +17,14 @@ import _thread
 import queue
 import threading
 import subprocess
+import sys
 
 
 def heartbeat_thread(p):
   while True:
     try:
       p.send_heartbeat()
-      time.sleep(1)
+      time.sleep(0.1)
     except:
       break
       raise
@@ -131,6 +135,7 @@ def CAN_rx_thread(p, bus):
           hz = 1/(t - t_status_msg_prev)
         else:
           hz = -1
+        clear_last_line()
         print(f"{hz:3.0f}Hz, addr: {address}, bus: {bus}, dat: {binascii.hexlify(dat)}")
         t_status_msg_prev = t
 
@@ -176,14 +181,20 @@ def long_press_value_ramp(key_queue:queue.Queue, break_key:threading.Event):
       _torque = rise_and_decay(_torque, torque_decay_factor, MAX_TORQUE)
     print_cmd_state()
 
+def clear_last_line():
+  sys.stdout.write("\033[F")  # Move the cursor up one line
+  sys.stdout.write("\033[K")  # Clear the line
+
 def print_cmd_state():
   global _torque
   global _angle
   global _mode
   if _mode == modes['TORQUE_CONTROL']:
-    print(f"Torque: {_torque:3.2f}")
+    clear_last_line()
+    print(f"Torque: {_torque:3.2f}\n")
   elif _mode == modes['ANGLE_CONTROL']:
-    print(f"Angle:{_angle:4.2f}, FeedForward torque: {_torque:3.2f}")
+    clear_last_line()
+    print(f"Angle:{_angle:4.2f}, FeedForward torque: {_torque:3.2f}\n")
 
 def motor_tester(bus):
   panda = Panda()
@@ -196,7 +207,7 @@ def motor_tester(bus):
   print("Enable panda usb heartbeat..") #so it doesn't stop
   _thread.start_new_thread(heartbeat_thread, (panda,))
 
-  #Request off control mode first - in case motmo
+  #Request off control mode first - in case motor
   # or was in SoftOff fault mode
   
   print("\nRequesting motor OFF mode...")
@@ -224,12 +235,13 @@ def motor_tester(bus):
     if first_run:
       first_run = False
       tx_t.start()
-      print(f"Mode: {[name for name, val in modes.items() if val == _mode][0]}")
+      rx_t.start()
+      print(f"Mode: {[name for name, val in modes.items() if val == _mode][0]}\n")
       time.sleep(0.1)
       _mode = modes['TORQUE_CONTROL']
-      print(f"Mode: {[name for name, val in modes.items() if val == _mode][0]}")
+      print(f"Mode: {[name for name, val in modes.items() if val == _mode][0]}\n")
       # rx_t.start()
-      print("\nEnter torque value or used W/S keys to increase/decrease torque and A/D angle. Q to quit:") #show this before CAN messages spam the terminal
+      print("Enter torque value or used W/S keys to increase/decrease torque and A/D angle. Q to quit.\n\n") #show this before CAN messages spam the terminal
       
     try:
       c = getChar()
@@ -246,8 +258,8 @@ def motor_tester(bus):
           pass #fine
       elif c == 'm': #mode input mode
         _mode = (_mode + 1)%len(modes) # cycle thru modes
-        print(_mode)
-        print(f"Mode: {[name for name, val in modes.items() if val == _mode][0]}")
+        clear_last_line()
+        print(f"\nMode: {[name for name, val in modes.items() if val == _mode][0]} ({_mode})\n")
         print_cmd_state()
       elif c == 'd' or c == 'a': #angle input mode
         if _mode == modes['ANGLE_CONTROL']:
