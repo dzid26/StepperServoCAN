@@ -25,6 +25,7 @@
 #include "can.h"
 #include "A4950.h"
 #include "sine.h"
+#include "stepper_controller.h"
 #include "utils.h"
 
 //Init clock
@@ -39,6 +40,8 @@ static void CLOCK_init(void)
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 }
 
 //Init NVIC
@@ -51,7 +54,11 @@ static void NVIC_init(void)
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	nvic_initStructure.NVIC_IRQChannelCmd = ENABLE;
 	
-	nvic_initStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
+	nvic_initStructure.NVIC_IRQChannel = TIM1_BRK_IRQn;//PWM_TIM break-in
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_Init(&nvic_initStructure);
+
+	nvic_initStructure.NVIC_IRQChannel = TIM4_IRQn;//MOTION_TASK_TIM
 	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_Init(&nvic_initStructure);
 	
@@ -60,7 +67,7 @@ static void NVIC_init(void)
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_Init(&nvic_initStructure);
 	
-	nvic_initStructure.NVIC_IRQChannel = TIM2_IRQn; //10ms loop
+	nvic_initStructure.NVIC_IRQChannel = TIM2_IRQn; //SERVICE_TASK_TIM
 	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 4;
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_Init(&nvic_initStructure);
@@ -130,44 +137,36 @@ static void SWITCH_init(void)
 }
 
 //Init A4950
-#define VREF_MAX			(SINE_MAX>>VREF_SCALER)  //timer threshold - higher frequency timer works better with voltage low pass filter - less ripple
 static void A4950_init(void)
 {	
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-	//A4950 Input pins
-	GPIO_InitTypeDef  gpio_initStructure; 
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;
- 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    gpio_initStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
-    GPIO_Init(PIN_A4950, &gpio_initStructure);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); //VREF_TIM
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE); //PWM_TIM
 
-	//A4950 Enable pin
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU;
- 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	gpio_initStructure.GPIO_Pin = PIN_A4950_ENABLE;
-	GPIO_Init(PIN_A4950, &gpio_initStructure);
+	GPIO_InitTypeDef  		gpio_initStructure;
+	TIM_TimeBaseInitTypeDef timeBaseStructure;
+	TIM_OCInitTypeDef		tim_OCInitStructure;
+
 
 	//A4950 Vref pins
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); //has to be enabled before remap
+	//RCC_APB2Periph_AFIO clock has to be enabled before remap
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);	//Release pins for VREF34, DIP2, DIP1
-	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
+	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);	 	//VREF_TIM
 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	gpio_initStructure.GPIO_Pin = PIN_A4950_VREF12|PIN_A4950_VREF34;
     GPIO_Init(PIN_A4950_VREF, &gpio_initStructure);
 
-	//Init TIM3
-	TIM_TimeBaseInitTypeDef  		timeBaseStructure;
-	timeBaseStructure.TIM_Period = VREF_MAX;									
+	//Init VREF_TIM
+	TIM_DeInit(VREF_TIM);
+	timeBaseStructure.TIM_Period = VREF_TIM_MAX;
 	timeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
 	timeBaseStructure.TIM_ClockDivision = 0;
 	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(VREF_TIM, &timeBaseStructure);
 	
 	
-	TIM_OCInitTypeDef  	        tim_OCInitStructure;
 	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
  	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
@@ -178,6 +177,60 @@ static void A4950_init(void)
 	TIM_OC2PreloadConfig(VREF_TIM, TIM_OCPreload_Enable);
  
 	TIM_Cmd(VREF_TIM, ENABLE);
+
+	//A4950 Input pins
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+ 	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    gpio_initStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
+    GPIO_Init(PIN_A4950, &gpio_initStructure);
+	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM1, ENABLE);//PWM_TIM
+	
+	TIM_DeInit(PWM_TIM);
+	//Init PWM_TIM - PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4
+	timeBaseStructure.TIM_Period = PWM_TIM_MAX;
+	timeBaseStructure.TIM_Prescaler = 0;	//No prescaling - max cpu speed (MHz)
+	timeBaseStructure.TIM_ClockDivision = 0;
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(PWM_TIM, &timeBaseStructure);
+
+	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+ 	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	tim_OCInitStructure.TIM_OutputNState = TIM_OutputState_Disable;
+	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	tim_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset; //Motor coasting when idle is set to reset
+	tim_OCInitStructure.TIM_Pulse = 0;
+
+	TIM_OC1Init(PWM_TIM, &tim_OCInitStructure);	//CH1
+	TIM_OC2Init(PWM_TIM, &tim_OCInitStructure);	//CH2
+	TIM_OC3Init(PWM_TIM, &tim_OCInitStructure);	//CH3
+	TIM_OC4Init(PWM_TIM, &tim_OCInitStructure);	//CH4
+		
+	TIM_OC1PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
+	TIM_OC2PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
+	TIM_OC3PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
+	TIM_OC4PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
+
+	// Configure PWM_TIM break
+	gpio_initStructure.GPIO_Pin = PIN_A4950_ENABLE;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
+	GPIO_Init(PIN_A4950, &gpio_initStructure);
+
+	TIM_BDTRInitTypeDef tim_BDTRInitStructure = {0};
+	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
+	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
+	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
+	TIM_BDTRConfig(PWM_TIM, &tim_BDTRInitStructure);
+	TIM_ITConfig(PWM_TIM, TIM_IT_Break, ENABLE);
+
+	TIM_Cmd(PWM_TIM, ENABLE);
+}
+
+void TIM1_BRK_IRQHandler(void){ //PWM_TIM break-in
+	if(TIM_GetITStatus(PWM_TIM, TIM_IT_Break) != RESET) {
+		TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
+		StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
+	}
 }
 
 static void LED_init(void)
@@ -437,15 +490,15 @@ void Set_Error_LED(bool state)
 	GPIO_WriteBit(GPIO_LED_RED, PIN_LED_RED, (BitAction)(state));
 }
 
-#define MOTION_TASK_TIM TIM1
+#define MOTION_TASK_TIM TIM4
 #define SERVICE_TASK_TIM  TIM2
 
 void Motion_task_init(uint16_t taskPeriod)
 {
 	//setup timer
-	TIM_DeInit(MOTION_TASK_TIM);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);//MOTION_TASK_TIM
 
+    TIM_DeInit(MOTION_TASK_TIM);
 	TIM_TimeBaseInitTypeDef timeBaseStructure;
 	timeBaseStructure.TIM_Prescaler = SystemCoreClock / MHz_to_Hz - 1U; //Prescale to 1MHz - 1uS
 	timeBaseStructure.TIM_Period = taskPeriod - 1U;
@@ -461,10 +514,9 @@ void Motion_task_init(uint16_t taskPeriod)
 
 void Serivice_task_init(void){
 	//setup timer
-	TIM_DeInit(SERVICE_TASK_TIM);
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); //SERVICE_TASK_TIM
 	
-
+	TIM_DeInit(SERVICE_TASK_TIM);
 	//Init SERVICE_TASK_TIM
 	TIM_TimeBaseInitTypeDef  timeBaseStructure;
 	timeBaseStructure.TIM_Prescaler = (SystemCoreClock / MHz_to_Hz - 1);	//Prescale timer clock to 1MHz - 1us period
@@ -482,8 +534,8 @@ void Serivice_task_init(void){
 	TIM_Cmd(SERVICE_TASK_TIM, ENABLE);
 }
 
-void TIM1_UP_IRQHandler(void);
-void TIM2_IRQHandler(void);
+void TIM4_IRQHandler(void);//MOTION_TASK_TIM
+void TIM2_IRQHandler(void);//SERVICE_TASK_TIM
 
 volatile bool motion_task_isr_enabled = false;
 
@@ -511,7 +563,7 @@ volatile bool service_task_overrun;
 volatile uint32_t service_task_overrun_count;
 volatile uint16_t service_task_execution_us;
 
-void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
+void TIM4_IRQHandler(void) //MOTION_TASK_TIM
 {
 	if(TIM_GetITStatus(MOTION_TASK_TIM, TIM_IT_Update) != RESET)
 	{	
@@ -535,7 +587,7 @@ void TIM1_UP_IRQHandler(void) //precise fast independant timer for motor control
 	}
 }
 
-void TIM2_IRQHandler(void) //TIM2 used for task triggering
+void TIM2_IRQHandler(void) //SERVICE_TASK_TIM triggering
 {
 	if(TIM_GetITStatus(SERVICE_TASK_TIM, TIM_IT_Update) != RESET)
 	{

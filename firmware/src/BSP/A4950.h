@@ -27,13 +27,19 @@
 
 #define A4950_STEP_MICROSTEPS (uint16_t) 256U //Full step electrical angle
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
-#define VREF_SCALER	6
-#define VREF_SINE_RATIO	(1<<VREF_SCALER)
+#define VREF_SCALER	6U
+#define PWM_SCALER	3U //low vibration
+#define SYS_Vin 14500U //mV
+#define V_TO_mV 1000
+
+#define PHASE_LEAD_MAX_SPEED  250u //revs/s
+extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 
 #define I_MAX_A4950       (3300) //mA
 
 void A4950_enable(bool enable);
-void A4950_move(uint16_t stepAngle, uint16_t mA);
+void A4950_move(uint16_t elecAngleStep, uint16_t curr_tar);
+void A4950_move_volt(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim);
 void A4954_begin(void);
 
 extern volatile bool A4950_Enabled;

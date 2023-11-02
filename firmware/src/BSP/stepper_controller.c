@@ -22,6 +22,7 @@
 
 #include "stepper_controller.h"
 #include "nonvolatile.h"
+#include "actuator_config.h"
 #include "A4950.h"
 #include "board.h"
 #include "encoder.h"
@@ -29,7 +30,7 @@
 #include "utils.h"
 
 static bool StepperCtrl_simpleFeedback(int32_t error);
-static void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
+static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t current_target);
 
 volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
@@ -151,7 +152,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 	}else
 	{
 		x = StepperCtrl_measureStepSize();
-		if (fabs(x) < 0.5f)
+		if (fabsf(x) < 0.5f)
 		{
 			return STEPCTRL_NO_POWER; //Motor may not have power
 		}
@@ -163,7 +164,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 		// power could have just been applied and step size read wrong
 		// if we are more than 200 steps/rotation which is most common
 		// lets read again just to be sure.
-		if (fabs(x) < 1.5)
+		if (fabsf(x) < 1.5)
 		{
 			//run step test a second time to be sure
 			x = StepperCtrl_measureStepSize();
@@ -173,7 +174,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 		{
 			motorParams.motorWiring = !motorParams.motorWiring;
 		}
-		if (fabs(x) <= 1.2)
+		if (fabsf(x) <= 1.2)
 		{
 			motorParams.fullStepsPerRotation = 400;
 		}else
@@ -309,6 +310,7 @@ bool StepperCtrl_processMotion(void)
 	}
 
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
+	speed_raw = errMovingAverage(speed_raw);
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
 	int32_t error_flt = errMovingAverage(error);
@@ -326,7 +328,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 	static int32_t lastError = 0;
 	static uint32_t errorCount = 0;
 
-	static int32_t iTerm_accu; //iTerm memory - float to acumulate small and big errors
+	static int32_t iTerm_accu; //iTerm memory
 	static uint16_t magnitude = 0; //static for dTerm condition check
 
 	if(enableFeedback) //todo add openloop control
@@ -471,7 +473,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			closeLoop = 0;
 			lastError = 0;
 
-			iTerm_accu = 0.0;
+			iTerm_accu = 0;
 		}
 		
 
@@ -485,13 +487,10 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			loadAngleDesired = 0;
 		}
 
-		magnitude = (uint16_t) (fastAbs(control));
-
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		int16_t sensDelay = 90u;
-		int16_t angleSensLatency = (int16_t)SAMPLING_PERIOD_uS + sensDelay;
+		int16_t angleSensLatency = 150u;
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
-		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
+		StepperCtrl_desired_current_vector(loadAngleSpeedComp, control);
 	
 	}else{
 		control = 0;
@@ -499,7 +498,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 		Iq_ma = 0;
 
 		lastError = 0;
-		iTerm_accu = 0.0;
+		iTerm_accu = 0;
 		magnitude = 0;
 	}
 
@@ -522,14 +521,34 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 	return false;
 }
 
-
-static void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude) 
+//calcualte target step angle and value
+static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t current_target) 
 {
-	uint16_t absoluteAngle; //0-65535 -> 0-360
-	uint16_t absoluteMicrosteps;
+	const bool volt_control = true;
 
-	absoluteAngle = (uint16_t) (((uint32_t) (currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
-	absoluteMicrosteps = absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
+	//convert load angle to microsteps domain
+	uint16_t absoluteAngle = (uint16_t) (((uint32_t)(int32_t)(currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
+	uint16_t absoluteMicrosteps = absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
 
-	A4950_move(absoluteMicrosteps, magnitude);
+	//calculate microsteps phase lead for current control
+	if (volt_control != true){
+		uint16_t stepPhaseLead = 0;
+		if (speed_slow > 0){
+			stepPhaseLead = dacPhaseLead[min(((uint32_t) ( speed_slow) / ANGLE_STEPS),  PHASE_LEAD_MAX_SPEED - 1U)];
+			absoluteMicrosteps += stepPhaseLead;
+		}else{
+			stepPhaseLead = dacPhaseLead[min(((uint32_t) (-speed_slow) / ANGLE_STEPS),  PHASE_LEAD_MAX_SPEED - 1U)];
+			absoluteMicrosteps -= stepPhaseLead;
+		}
+	}
+
+	uint16_t magnitude = ((current_target > 0) ? current_target : -current_target); //abs
+
+	if(volt_control){
+		int16_t i_q = current_target;
+		int32_t v_q = ((int32_t)i_q * (int32_t) phase_R) + ((int32_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);//todo  vq?
+		A4950_move_volt(absoluteMicrosteps, v_q, magnitude);
+	}else{
+		A4950_move(absoluteMicrosteps, magnitude);
+	}
 }

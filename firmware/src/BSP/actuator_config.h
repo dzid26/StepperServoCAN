@@ -30,6 +30,9 @@
 
 extern const uint16_t rated_current; //mA
 extern const uint16_t rated_torque; //cNm
+extern const uint16_t phase_R; //ohm
+extern const uint16_t phase_L; //Henry
+extern const uint16_t motor_k_bemf; // mV/(rev/s)
 
 //calculate actuator parameters to be used by control_api 
 extern volatile float gearing_ratio;
