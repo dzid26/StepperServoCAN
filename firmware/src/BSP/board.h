@@ -29,7 +29,6 @@
 #define VOLT_DIV_RATIO(R1, R2) (((float) R2 / ((float)R1 + (float)R2)))
 #define ADC_12bit 4096
 //MCU power supply
-#define mV_REF 3300u
 #define mVREFINT 1200u
 
 
@@ -132,9 +131,12 @@ void Set_Func_LED(bool state);
 void adc_update_all(void);
 
 float GetVDDA(void);
+uint16_t GetMcuVoltage_mV(void);
 float GetChipTemp(void);
 float GetMotorVoltage(void); //V_mot
+uint16_t GetMotorVoltage_mV(void);
 float GetSupplyVoltage(void); //V_bat
+uint16_t GetSupplyVoltage_mV(void);
 float Get_PhaseA_Current(void);
 float Get_PhaseB_Current(void);
 

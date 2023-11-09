@@ -388,14 +388,20 @@ static float covnert_ADC_raw_volt(uint16_t adc_raw){
 	return adc_volt;
 }
 
+static uint16_t  vdda_adc_mV;
 static void Vrefint_adc_update(void){
 	vrefint_adc = Get_ADC_raw_nextRank(ADC1);
 	assert(vrefint_adc > 1357); //VDDA above 3.5V @ 1.16V vrefint
 	assert(vrefint_adc < 1587); //VDDA below 3.2V @ 1.24V vrefint
+	vdda_adc_mV = (uint16_t)(float)(GetVDDA() * (float)V_TO_mV);
 }
 
 float GetVDDA(void){
 	return covnert_ADC_raw_volt(ADC_12bit); //gets VDDA, 
+}
+
+uint16_t GetMcuVoltage_mV(void){
+	return vdda_adc_mV;
 }
 
 static float chip_temp_adc;
@@ -412,23 +418,33 @@ float GetChipTemp(void){
 }
 
 static float vmot_adc;
+static uint16_t vmot_adc_mV;
 static void Vmot_adc_update(void){
 	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_VMOT));
 	vmot_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VMOT, R2_VDIV_VMOT);
+	vmot_adc_mV = (uint16_t)(float)(vmot_adc * (float)V_TO_mV);
 }
 
 float GetMotorVoltage(void){
 	return vmot_adc;
 }
+uint16_t GetMotorVoltage_mV(void){
+	return vmot_adc_mV;
+}
 
 static float vbat_adc;
+static uint16_t vbat_adc_mV;
 static void Vbat_adc_update(void){
 	float adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_VBAT));
 	vbat_adc = adc_volt / VOLT_DIV_RATIO(R1_VDIV_VBAT, R2_VDIV_VBAT);
+	vbat_adc_mV = (uint16_t)(float)(vbat_adc * (float)V_TO_mV);
 }
 
 float GetSupplyVoltage(void){
 	return vbat_adc;
+}
+uint16_t GetSupplyVoltage_mV(void){
+	return vbat_adc_mV;
 }
 
 static float lssA_adc;

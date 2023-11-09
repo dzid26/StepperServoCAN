@@ -29,7 +29,6 @@
 #include "actuator_config.h"
 #include "utils.h"
 
-#define MCU_VOUT mV_REF
 #define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
 
 
@@ -149,10 +148,11 @@ static uint16_t current_to_Vref_duty(uint16_t current)
 	uint16_t vref = current * I_RS_A4950_rat;
 
 	//limit Vref to MCU voltage
-	if(vref > MCU_VOUT){
-		vref = MCU_VOUT;
+	uint16_t mcu_volt = GetMcuVoltage_mV();
+	if(vref > mcu_volt){
+		vref = mcu_volt;
 	}
-	uint16_t vref_duty = (uint16_t)((uint32_t) vref * VREF_TIM_MAX / MCU_VOUT);
+	uint16_t vref_duty = (uint16_t)((uint32_t) vref * VREF_TIM_MAX / mcu_volt);
 	return vref_duty;
 }
 
@@ -162,7 +162,7 @@ inline static void set_curr(uint16_t curr_lim_A, uint16_t curr_lim_B)
 	uint16_t vref12 = current_to_Vref_duty(curr_lim_A);
 	uint16_t vref34 = current_to_Vref_duty(curr_lim_B);
 
-	//VREF12,34 between 0 and VREF_TIM_MAX corrresponds to 0 and MCU_VOUT mVolts
+	//VREF12,34 between 0 and VREF_TIM_MAX corrresponds to 0 and mcu_volt mVolts
 	TIM_SetCompare2(VREF_TIM, vref12);
 	TIM_SetCompare1(VREF_TIM, vref34);
 
@@ -180,7 +180,7 @@ static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
 	//Make sure the PIN_A4950_INs have running timer
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
 
-	//duty_A,B between 0 and PWM_MAX corresponds to 0 and MCU_VOUT mVolts
+	//duty_A,B between 0 and PWM_MAX corresponds to 0 and v_mot
 	//quadrant1or2,3or4 - determines which phase is used
 
 	if (slow_decay) //slow decay, zero duty is brake (phase shorted to ground ob both ends)
@@ -320,8 +320,9 @@ void A4950_move_volt(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim) //2
 	set_curr(curr_lim, curr_lim); 
 	
 	//timer compare
-	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * v_q) / SYS_Vin);
-	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * v_q) / SYS_Vin);
+	uint16_t v_in = GetMotorVoltage_mV();
+	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * v_q) / v_in);
+	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * v_q) / v_in);
 	setPWM_bridgeA(min(duty_A>>PWM_SCALER, PWM_TIM_MAX), (sin > 0)); //PWM12
 	setPWM_bridgeB(min(duty_B>>PWM_SCALER, PWM_TIM_MAX), motorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
 }
