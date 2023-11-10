@@ -57,7 +57,7 @@ const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 	234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 235, 235,
 	235, 235, 235};
 
-volatile bool A4950_Enabled = false;
+volatile bool driverEnabled = false;
 
 /** 
  * Selects drive direction in current control mode
@@ -240,8 +240,8 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4)
 
 void A4950_enable(bool enable)
 {
-	A4950_Enabled = enable;
-	if (A4950_Enabled == false)
+	driverEnabled = enable;
+	if (driverEnabled == false)
 	{
 		set_curr(0,0); //turn current off
 
@@ -262,12 +262,12 @@ void A4950_enable(bool enable)
 // Note you can only move up to +/-A4950_STEP_MICROSTEPS from where you
 // currently are.
 
-void A4950_move(uint16_t elecAngleStep, uint16_t curr_tar) //256 stepAngle is 90 electrical degrees, aka full step
+void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 stepAngle is 90 electrical degrees, aka full step
 {
 	int16_t sin;
 	int16_t cos;
 	
-	if (A4950_Enabled == false)
+	if (driverEnabled == false)
 	{
 		set_curr(0,0); 	//turn current off
 		bridgeA(3); 	//tri state bridge outputs
@@ -304,9 +304,9 @@ void A4950_move(uint16_t elecAngleStep, uint16_t curr_tar) //256 stepAngle is 90
 
 //todo direction is inverted and bridge is not fully opened when control is off
 //Voltage control
-void A4950_move_volt(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
+void apply_volt_command(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
 {	
-	if (A4950_Enabled == false)
+	if (driverEnabled == false)
 	{
 		set_curr(0,0); 	//turn current off
 		bridgeA(3); 	//tri state bridge outputs

@@ -182,7 +182,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 			motorParams.fullStepsPerRotation = 200;
 		}
 		//Motor params are now good
-		A4950_move(0, 0); //release the motor
+		apply_current_command(0, 0); //release the motor
 		nvmParams.motorParams = motorParams;
 		nvmWriteConfParms(&nvmParams);
 	}
@@ -547,8 +547,8 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 	if(volt_control){
 		int16_t i_q = current_target;
 		int32_t v_q = ((int32_t)i_q * (int32_t) phase_R) + ((int32_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);//todo  vq?
-		A4950_move_volt(absoluteMicrosteps, v_q, magnitude);
+		apply_volt_command(absoluteMicrosteps, v_q, magnitude);
 	}else{
-		A4950_move(absoluteMicrosteps, magnitude);
+		apply_current_command(absoluteMicrosteps, magnitude);
 	}
 }

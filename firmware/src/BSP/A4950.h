@@ -38,10 +38,10 @@ extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 #define I_MAX_A4950       (3300) //mA
 
 void A4950_enable(bool enable);
-void A4950_move(uint16_t elecAngleStep, uint16_t curr_tar);
-void A4950_move_volt(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim);
+void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar);
+void apply_volt_command(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim);
 void A4954_begin(void);
 
-extern volatile bool A4950_Enabled;
+extern volatile bool driverEnabled;
 
 #endif

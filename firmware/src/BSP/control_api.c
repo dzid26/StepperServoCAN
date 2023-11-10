@@ -145,7 +145,7 @@ float StepperCtrl_getPositionError(void) {
 }
 
 
-extern volatile bool A4950_Enabled;
+extern volatile bool driverEnabled;
 extern volatile uint32_t can_err_rx_cnt;
 
 uint16_t StepperCtrl_getStatuses(void){
@@ -159,7 +159,7 @@ uint16_t StepperCtrl_getStatuses(void){
 	ret1 |= (enableCloseLoop ? 0x1U : 0x0U) << 3U;
 
 	//debug - other
-	ret2 |= (A4950_Enabled ? 0x1U : 0x0U) << 0U;
+	ret2 |= (driverEnabled ? 0x1U : 0x0U) << 0U;
 	ret2 |= (motion_task_isr_enabled ? 0x1U : 0x0U) << 1U; //here should be always 0
 
 	// actuator parameters
