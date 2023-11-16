@@ -9,8 +9,8 @@
 ## Hardware
 - PCB Schematics repo [here](https://github.com/dzid26/StepperServo-hardware)
 - STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit, Cortex™-M3 CPU Core, 72MHz maximum frequency, 20k RAM, 64k Flash (but really 128k ??).
-- TLE5012 15bit magnetic (GMR) angle sensor. Also has temperature sensor.
-- A4950 current drivers (integrated mosfets) - **IMPORTANT** - do not back drive the motor without the [board modification](https://github.com/dzid26/RetroPilot-SERVO42B/wiki/Board-BEMF-protection-mod)
+- TLE5012 15bit magnetic (GMR) angle sensor. Also provides temperature sensing.
+- A4950 drivers with integrated mosfets and cureent limit 
 
 ## Firmware
 - Uses ST's (old) Standard Peripheral Library (src/lib) for registers configuration
