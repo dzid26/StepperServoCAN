@@ -198,6 +198,7 @@ static void A4950_init(void)
 	tim_OCInitStructure.TIM_OutputNState = TIM_OutputState_Disable;
 	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	tim_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset; //Motor coasting when idle is set to reset
+	tim_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
 	tim_OCInitStructure.TIM_Pulse = 0;
 
 	TIM_OC1Init(PWM_TIM, &tim_OCInitStructure);	//CH1
