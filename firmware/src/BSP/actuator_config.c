@@ -34,10 +34,9 @@ float volatile current_to_actuatorTq;
 const uint16_t rated_current = 1300; //mA
 const uint16_t rated_torque = 45;   //cNm
 
-const uint16_t phase_R = 3; //ohm
-const uint16_t phase_L = 3; //Henry
-const uint16_t motor_k_bemf = 1765; // mV/(rev/s)
-
+const uint16_t phase_R = 3000;         // mOhm
+const uint16_t phase_L = 3000;         // uH
+const uint16_t motor_k_bemf = 2965; // mV/(rev/s)
 
 // specify gearing parameters here:
 const float motor_gearbox_ratio = 5.0F+(2.0F/11.0F); // gearbox ratio - enter planetary gearbox tooth calculation for best accuracy
