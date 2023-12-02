@@ -168,17 +168,19 @@ inline static void set_curr(uint16_t curr_lim_A, uint16_t curr_lim_B)
 
 }
 
-static const bool slow_decay = true;
 /**
  * @brief Set the PWM bridgeA duty cycle
  * 
  * @param duty - value between zero and PWM_TIM_MAX
  * @param quadrant1or2
  */
+static const bool slow_decay = true;
 static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
 {
 	//Make sure the PIN_A4950_INs have running timer
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
+
+	uint16_t pwm_count = min(duty >> PWM_SCALER, PWM_TIM_MAX);
 
 	//duty_A,B between 0 and PWM_MAX corresponds to 0 and v_mot
 	//quadrant1or2,3or4 - determines which phase is used
@@ -186,21 +188,21 @@ static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
 	if (slow_decay) //slow decay, zero duty is brake (phase shorted to ground ob both ends)
 	{	 //electric field quadrant
 		if (quadrant1or2)
-		{ 		//"forward slow decay" - A4950 datasheet
+		{ 		//"forward slow decay"
 			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX);
-			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX-duty);
-		}else{	//"reverse slow decay" - A4950 datasheet
-			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX-duty);
+			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX - pwm_count);
+		}else{	//"reverse slow decay"
+			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX - pwm_count);
 			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX);
 		}
 	}else{	//fast decay, zero duty is coast (phase is floatinmg on both ends)
 		if (quadrant1or2)
-		{ 		//"forward fast decay" - A4950 datasheet
-			TIM_SetCompare1(PWM_TIM, duty);
+		{ 		//"forward fast decay"
+			TIM_SetCompare1(PWM_TIM, pwm_count);
 			TIM_SetCompare2(PWM_TIM, 0);
-		}else{	//"reverse fast decay" - A4950 datasheet
+		}else{	//"reverse fast decay"
 			TIM_SetCompare1(PWM_TIM, 0);
-			TIM_SetCompare2(PWM_TIM, duty);
+			TIM_SetCompare2(PWM_TIM, pwm_count);
 		}
 	}
 }
@@ -216,24 +218,26 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4)
 	//Make sure the PIN_A4950_INs are configured as PWM
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
 
+	uint16_t pwm_count = min(duty >> PWM_SCALER, PWM_TIM_MAX);
+
 	if (slow_decay)
 	{	 //electric field quadrant
 		if (quadrant3or4)
-		{		//"forward slow decay" - A4950 datasheet
+		{		//"forward slow decay"
 			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX);
-			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX-duty);
-		}else{	//"reverse slow decay" - A4950 datasheet
-			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX-duty);
+			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX - pwm_count);
+		}else{	//"reverse slow decay"
+			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX - pwm_count);
 			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX);
 		}
 	}else{		
 		if (quadrant3or4)
 		{		//"forward fast decay
-			TIM_SetCompare3(PWM_TIM, duty);
+			TIM_SetCompare3(PWM_TIM, pwm_count);
 			TIM_SetCompare4(PWM_TIM, 0);
-		}else{	//"reverse fast decay" - A4950 datasheet
+		}else{	//"reverse fast decay"
 			TIM_SetCompare3(PWM_TIM, 0);
-			TIM_SetCompare4(PWM_TIM, duty);
+			TIM_SetCompare4(PWM_TIM, pwm_count);
 		}
 	}
 }
@@ -323,6 +327,6 @@ void apply_volt_command(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim) 
 	uint16_t v_in = GetMotorVoltage_mV();
 	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * v_q) / v_in);
 	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * v_q) / v_in);
-	setPWM_bridgeA(min(duty_A>>PWM_SCALER, PWM_TIM_MAX), (sin > 0)); //PWM12
-	setPWM_bridgeB(min(duty_B>>PWM_SCALER, PWM_TIM_MAX), motorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
+	setPWM_bridgeA(duty_A, (sin > 0)); //PWM12
+	setPWM_bridgeB(duty_B, motorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
 }
