@@ -283,12 +283,12 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
 	sin = sine_ripple(elecAngleStep, anticogging_factor);
 	cos = cosine_ripple(elecAngleStep, anticogging_factor);
 	
-	uint16_t i_q = curr_tar;
+	uint16_t I_q = curr_tar;
 	//Modified Park transform for Iq current
-	uint16_t i_a = (uint16_t)((uint32_t) i_q * (uint32_t)fastAbs(sin) / SINE_MAX); //convert value with vref max corresponding to 3300mV
-	uint16_t i_b = (uint16_t)((uint32_t) i_q * (uint32_t)fastAbs(cos) / SINE_MAX); //convert value with vref max corresponding to 3300mV
+	uint16_t I_a = (uint16_t)((uint32_t) I_q * (uint32_t)fastAbs(sin) / SINE_MAX); //convert value with vref max corresponding to 3300mV
+	uint16_t I_b = (uint16_t)((uint32_t) I_q * (uint32_t)fastAbs(cos) / SINE_MAX); //convert value with vref max corresponding to 3300mV
 
-	set_curr(i_a, i_b);
+	set_curr(I_a, I_b);
 
 	if (sin < 0)
 	{
@@ -308,7 +308,7 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
 
 //todo direction is inverted and bridge is not fully opened when control is off
 //Voltage control
-void apply_volt_command(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
+void apply_volt_command(uint16_t elecAngleStep, int32_t U_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
 {	
 	if (driverEnabled == false)
 	{
@@ -324,9 +324,9 @@ void apply_volt_command(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim) 
 	set_curr(curr_lim, curr_lim); 
 	
 	//timer compare
-	uint16_t v_in = GetMotorVoltage_mV();
-	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * v_q) / v_in);
-	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * v_q) / v_in);
+	uint16_t U_in = GetMotorVoltage_mV();
+	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * U_q) / U_in);
+	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * U_q) / U_in);
 	setPWM_bridgeA(duty_A, (sin > 0)); //PWM12
 	setPWM_bridgeB(duty_B, motorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
 }

@@ -545,9 +545,10 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 	uint16_t magnitude = ((current_target > 0) ? current_target : -current_target); //abs
 
 	if(volt_control){
-		int16_t i_q = current_target;
-		int32_t v_q = ((int32_t)i_q * (int32_t)phase_R / (int32_t)Ohm_to_mOhm) + ((int32_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);//todo  vq?
-		apply_volt_command(absoluteMicrosteps, v_q, magnitude);
+		//Iq, Id, Uq, Ud is FOC nomencluture
+		int16_t I_q = current_target;
+		int32_t U_q = ((int32_t)I_q * (int32_t)phase_R / (int32_t)Ohm_to_mOhm) + ((int32_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);//todo  U_d
+		apply_volt_command(absoluteMicrosteps, U_q, magnitude);
 	}else{
 		apply_current_command(absoluteMicrosteps, magnitude);
 	}

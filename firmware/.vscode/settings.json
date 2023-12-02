@@ -39,4 +39,8 @@
     "files.associations": {
         "*.h": "c" //make sure __cplusplus is passed to intellisense for system headers
     },
+    "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+        "misc-include-cleaner",
+        "readability-identifier-length"
+    ],
 }

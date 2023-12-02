@@ -39,7 +39,7 @@ extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 
 void A4950_enable(bool enable);
 void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar);
-void apply_volt_command(uint16_t elecAngleStep, int32_t v_q, uint16_t curr_lim);
+void apply_volt_command(uint16_t elecAngleStep, int32_t U_q, uint16_t curr_lim);
 void A4954_begin(void);
 
 extern volatile bool driverEnabled;
