@@ -89,27 +89,27 @@ static const int16_t sineTable[SINE_STEPS] = {
  -3212, -3012, -2811, -2611, -2410, -2210, -2009, -1809, -1608, -1407, -1206, -1005,  -804,  -603,  -402,  -201
 };
 
-int16_t sine(uint16_t angle)
+int16_t sine(uint16_t electric_angle)
 {
-	return sineTable[angle % SINE_STEPS];
+	return sineTable[electric_angle % SINE_STEPS];
 }
 
-int16_t cosine(uint16_t angle)
+int16_t cosine(uint16_t electric_angle)
 {
-	return sine(angle + SINE_PI);//since SINE_STEPS is a divider of UINT16_MAX, potential wraping uint16_t angle around is not harmful
+	return sine(electric_angle + SINE_PI);//since SINE_STEPS is a divider of UINT16_MAX, potential wraping uint16_t electric_angle around is not harmful
 }
 
 /**
  * @brief Advance sine calculation to compensate higher torque harmonics
  * Interpolates sin(x) and sin(3x)
  * 
- * @param angle - electrical angle with usable range of 0-1023
+ * @param electric_angle - electrical electric_angle with usable range of 0-1023
  * @param strength is -128 to 127 and represent -1/8 to 1/8 sin(3x) ratio
  * @return int16_t 
  */
-int16_t sine_ripple(uint16_t angle, int8_t strength){
-   int16_t sin_x = sine(angle);
-   int16_t sin_3x = sine((3U*angle) % SINE_STEPS);
+int16_t sine_ripple(uint16_t electric_angle, int8_t strength){
+   int16_t sin_x = sine(electric_angle);
+   int16_t sin_3x = sine((3U*electric_angle) % SINE_STEPS);
    
    //max_ratio  is on purpose 8x value of int8 to only allow for 1/8 of a ratio
    const int16_t max_ratio = 1024U; 
@@ -124,10 +124,10 @@ int16_t sine_ripple(uint16_t angle, int8_t strength){
  * @brief Advance cosine calculation to compensate higher torque harmonics
  * Interpolates sin(x) and sin(3x)
  * 
- * @param angle - electrical angle with usable range of 0-1023
+ * @param electric_angle - electrical electric_angle with usable range of 0-1023
  * @param strength is -128 to 127 and represent -1/8 to 1/8 sin(3x) ratio
  * @return int16_t 
  */
-int16_t cosine_ripple(uint16_t angle, int8_t strength){
-   return sine_ripple(angle + SINE_PI, strength);
+int16_t cosine_ripple(uint16_t electric_angle, int8_t strength){
+   return sine_ripple(electric_angle + SINE_PI, strength);
 }
