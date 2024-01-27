@@ -5,3 +5,4 @@
 misra_rules_set_cppcheck.txt
 test/eepromCals.bin
 .cache
+compile_commands.json
