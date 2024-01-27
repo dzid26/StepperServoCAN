@@ -31,7 +31,7 @@ volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 nvm_t nvmMirror;
-volatile uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
+static uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
 
 // Find nvm data actual address
 void nonvolatile_begin(void)
@@ -61,6 +61,11 @@ void nvmWriteCalTable(void *ptrData)
 	if (state) {
 		Motion_task_enable();
 	}
+}
+
+//NVM mirror - buffers NVM read/write
+void nvmMirrorInRam(void){
+	nvmMirror = *(nvm_t*)NVM_address;//copy nvm from flash to ram
 }
 
 //currently only used once - after first boot
@@ -97,6 +102,8 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 		NVM_address = PARAMETERS_FLASH_ADDR;
 		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
+
+	nvmMirrorInRam();
 	
 	if (state) {
 		Motion_task_enable();	
@@ -107,7 +114,8 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 //parameters first boot defaults and restore on corruption
 void validateAndInitNVMParams(void)
 {
-	nvmMirror = *NVM; //copy whole nvm to ram
+	nvmMirrorInRam();
+
 	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
 		nvmMirror.pPID.Kp = .005f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 0.0f;
 		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;

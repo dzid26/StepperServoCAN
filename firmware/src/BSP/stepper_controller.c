@@ -61,16 +61,16 @@ volatile int32_t loopError = 0;
 static void UpdateRuntimeParams(void)
 {
 	//copy nvm (flash) to ram for fast access
-	pPID.Kp = NVM->pPID.Kp * CTRL_PID_SCALING;
-	pPID.Ki = NVM->pPID.Ki * CTRL_PID_SCALING;
-	pPID.Kd = NVM->pPID.Kd * CTRL_PID_SCALING;
+	pPID.Kp = nvmMirror.pPID.Kp * CTRL_PID_SCALING;
+	pPID.Ki = nvmMirror.pPID.Ki * CTRL_PID_SCALING;
+	pPID.Kd = nvmMirror.pPID.Kd * CTRL_PID_SCALING;
 
-	vPID.Kp = NVM->vPID.Kp * CTRL_PID_SCALING;
-	vPID.Ki = NVM->vPID.Ki * CTRL_PID_SCALING;
-	vPID.Kd = NVM->vPID.Kd * CTRL_PID_SCALING;
+	vPID.Kp = nvmMirror.vPID.Kp * CTRL_PID_SCALING;
+	vPID.Ki = nvmMirror.vPID.Ki * CTRL_PID_SCALING;
+	vPID.Kd = nvmMirror.vPID.Kd * CTRL_PID_SCALING;
 
-	liveSystemParams = NVM->systemParams;
-	liveMotorParams = NVM->motorParams;
+	liveSystemParams = nvmMirror.systemParams;
+	liveMotorParams = nvmMirror.motorParams;
 }
 
 

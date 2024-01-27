@@ -86,7 +86,7 @@ int motorSteps(int argc, char *argv[])
 	if (argc == 0)
 	{
 		uint16_t i;
-		i = NVM->motorParams.fullStepsPerRotation;
+		i = nvmMirror.motorParams.fullStepsPerRotation;
 		if (i == 400)
 		{
 			return 1;
@@ -96,8 +96,7 @@ int motorSteps(int argc, char *argv[])
 	if (argc > 0)
 	{
 		uint16_t i;
-		nvm_t params;
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
 		if (i != params.motorParams.fullStepsPerRotation)
 		{
@@ -177,10 +176,9 @@ int motorCurrent(int argc, char *argv[])
 	if (argc == 1)
 	{
 		int i;
-		nvm_t params;
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
 		i = i * 100;
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		if (i != params.motorParams.currentMa)
 		{
 			if(i > 3300)
@@ -194,7 +192,7 @@ int motorCurrent(int argc, char *argv[])
 	}else
 	{
 		int i;
-		i = NVM->motorParams.currentMa / 100;
+		i = nvmMirror.motorParams.currentMa / 100;
 		return i;
 	}
 }
@@ -204,10 +202,9 @@ int motorHoldCurrent(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params;
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
 		i = i * 100;
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		if (i != params.motorParams.currentHoldMa)
 		{
 			if(i > 3300)
@@ -222,7 +219,7 @@ int motorHoldCurrent(int argc, char *argv[])
 	}else
 	{
 		uint16_t i;
-		i = NVM->motorParams.currentHoldMa / 100;
+		i = nvmMirror.motorParams.currentHoldMa / 100;
 		return i;
 	}
 }
@@ -245,9 +242,8 @@ int setMicrosteps(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i,steps;
-		nvm_t params;
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		steps = 0x01 << i;
 		if (steps != params.systemParams.microsteps)
 		{
@@ -258,7 +254,7 @@ int setMicrosteps(int argc, char *argv[])
 	}else
 	{
 		uint16_t i,j;
-		i = NVM->systemParams.microsteps;
+		i = nvmMirror.systemParams.microsteps;
 		for (j=0; j<9; j++)
 		{
 
@@ -283,9 +279,8 @@ int controlLoop(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params;
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		if (i != params.systemParams.controllerMode)
 		{
 			params.systemParams.controllerMode = (feedbackCtrl_t)i;
@@ -293,7 +288,7 @@ int controlLoop(int argc, char *argv[])
 		}
 		return i;
 	}
-	return NVM->systemParams.controllerMode;
+	return nvmMirror.systemParams.controllerMode;
 }
 
 options_t enablePinOptions[] = {
@@ -307,9 +302,8 @@ int enablePin(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params;
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		if (i != params.systemParams.errorPinMode)
 		{
 			params.systemParams.errorPinMode = (ErrorPinMode_t)i;
@@ -317,7 +311,7 @@ int enablePin(int argc, char *argv[])
 		}
 		return i;
 	}
-	return NVM->systemParams.errorPinMode;
+	return nvmMirror.systemParams.errorPinMode;
 }
 
 options_t dirOptions[] = {
@@ -331,9 +325,8 @@ int changeDir(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params;
+		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		if (i != params.systemParams.dirRotation)
 		{
 			params.systemParams.dirRotation = (RotationDir_t)i;
@@ -341,7 +334,7 @@ int changeDir(int argc, char *argv[])
 		}
 		return i;
 	}
-	return NVM->systemParams.dirRotation;
+	return nvmMirror.systemParams.dirRotation;
 }
 
 menuItem_t MenuMain[] = {

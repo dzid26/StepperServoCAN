@@ -91,9 +91,8 @@ typedef struct {
 
 
 // nvram mirror
-extern volatile uint32_t NVM_address;
-
 extern nvm_t nvmMirror;
+
 extern volatile SystemParams_t liveSystemParams;
 extern volatile MotorParams_t liveMotorParams;
 
