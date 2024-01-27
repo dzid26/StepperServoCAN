@@ -69,14 +69,13 @@ void nvmMirrorInRam(void){
 }
 
 //currently only used once - after first boot
-void nvmWriteConfParms(nvm_t* ptrNVM)
-{		
+void nvmWriteConfParms(void){
+	nvm_t* ptr_nvmMirror = &nvmMirror;
+	ptr_nvmMirror->motorParams.parametersValid  = valid;
+	ptr_nvmMirror->systemParams.parametersValid = valid;
+	
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
-	
-	ptrNVM->motorParams.parametersValid  = valid;
-	ptrNVM->systemParams.parametersValid = valid;
-	
 	//wear leveling
 	if(Flash_readHalfWord(NVM_startAddress) != invalid && ((NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
 	{
@@ -91,16 +90,16 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 			else
 			{
 				NVM_startAddress = PARAMETERS_FLASH_ADDR;
-				Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+				Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptr_nvmMirror, (sizeof(nvm_t)/2U));
 				return;
 			}
 		}
-		Flash_ProgramSize(NVM_startAddress, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+		Flash_ProgramSize(NVM_startAddress, (uint16_t*)ptr_nvmMirror, (sizeof(nvm_t)/2U));
 	}
 	else 
 	{
 		NVM_startAddress = PARAMETERS_FLASH_ADDR;
-		Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+		Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptr_nvmMirror, (sizeof(nvm_t)/2U));
 	}
 
 	nvmMirrorInRam();
@@ -135,7 +134,7 @@ void validateAndInitNVMParams(void)
 	}
 
 	if((nvmMirror.systemParams.parametersValid != valid) || (nvmMirror.motorParams.parametersValid != valid)){
-		nvmWriteConfParms(&nvmMirror); //write default parameters
+		nvmWriteConfParms(); //save defaults
 	}
 
 	//the motor parameters are later checked in the stepper_controller code

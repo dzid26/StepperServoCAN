@@ -96,12 +96,11 @@ int motorSteps(int argc, char *argv[])
 	if (argc > 0)
 	{
 		uint16_t i;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		if (i != params.motorParams.fullStepsPerRotation)
+		if (i != nvmMirror.motorParams.fullStepsPerRotation)
 		{
-			params.motorParams.fullStepsPerRotation = i;
-			nvmWriteConfParms(&params);
+			nvmMirror.motorParams.fullStepsPerRotation = i;
+			nvmWriteConfParms();
 		}
 	}
 	return 0;
@@ -176,17 +175,16 @@ int motorCurrent(int argc, char *argv[])
 	if (argc == 1)
 	{
 		int i;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
 		i = i * 100;
-		if (i != params.motorParams.currentMa)
+		if (i != nvmMirror.motorParams.currentMa)
 		{
 			if(i > 3300)
 			{
 				i = 3300;
 			}
-			params.motorParams.currentMa = i;
-			nvmWriteConfParms(&params);
+			nvmMirror.motorParams.currentMa = i;
+			nvmWriteConfParms();
 		}
 		return i / 100;
 	}else
@@ -202,17 +200,16 @@ int motorHoldCurrent(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
 		i = i * 100;
-		if (i != params.motorParams.currentHoldMa)
+		if (i != nvmMirror.motorParams.currentHoldMa)
 		{
 			if(i > 3300)
 			{
 				i = 3300;
 			}
-			params.motorParams.currentHoldMa = i;
-			nvmWriteConfParms(&params);
+			nvmMirror.motorParams.currentHoldMa = i;
+			nvmWriteConfParms();
 		}
 		return i / 100;
 
@@ -242,13 +239,12 @@ int setMicrosteps(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i,steps;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
 		steps = 0x01 << i;
-		if (steps != params.systemParams.microsteps)
+		if (steps != nvmMirror.systemParams.microsteps)
 		{
-			params.systemParams.microsteps = steps;
-			nvmWriteConfParms(&params);
+			nvmMirror.systemParams.microsteps = steps;
+			nvmWriteConfParms();
 		}
 		return i;
 	}else
@@ -279,12 +275,11 @@ int controlLoop(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		if (i != params.systemParams.controllerMode)
+		if (i != nvmMirror.systemParams.controllerMode)
 		{
-			params.systemParams.controllerMode = (feedbackCtrl_t)i;
-			nvmWriteConfParms(&params);
+			nvmMirror.systemParams.controllerMode = (feedbackCtrl_t)i;
+			nvmWriteConfParms();
 		}
 		return i;
 	}
@@ -302,12 +297,11 @@ int enablePin(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		if (i != params.systemParams.errorPinMode)
+		if (i != nvmMirror.systemParams.errorPinMode)
 		{
-			params.systemParams.errorPinMode = (ErrorPinMode_t)i;
-			nvmWriteConfParms(&params);
+			nvmMirror.systemParams.errorPinMode = (ErrorPinMode_t)i;
+			nvmWriteConfParms();
 		}
 		return i;
 	}
@@ -325,12 +319,11 @@ int changeDir(int argc, char *argv[])
 	if (argc == 1)
 	{
 		uint16_t i;
-		nvm_t params = nvmMirror;
 		i = atol(argv[0]);
-		if (i != params.systemParams.dirRotation)
+		if (i != nvmMirror.systemParams.dirRotation)
 		{
-			params.systemParams.dirRotation = (RotationDir_t)i;
-			nvmWriteConfParms(&params);
+			nvmMirror.systemParams.dirRotation = (RotationDir_t)i;
+			nvmWriteConfParms();
 		}
 		return i;
 	}

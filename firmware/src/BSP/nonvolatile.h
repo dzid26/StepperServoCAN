@@ -97,7 +97,7 @@ extern volatile MotorParams_t liveMotorParams;
 
 void nonvolatile_begin(void);
 void nvmWriteCalTable(void *ptrData);
-void nvmWriteConfParms(nvm_t* ptrNVM);
+void nvmWriteConfParms(void);
 void validateAndInitNVMParams(void);
 
 #endif

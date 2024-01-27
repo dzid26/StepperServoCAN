@@ -134,7 +134,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 		//Motor params are now good
 		apply_current_command(0, 0); //release the motor
 		nvmMirror.motorParams = liveMotorParams;
-		nvmWriteConfParms(&nvmMirror);
+		nvmWriteConfParms();
 	}
 
 	angleFullStep = (int32_t)(ANGLE_STEPS / liveMotorParams.fullStepsPerRotation);
