@@ -23,9 +23,6 @@
 #include "board.h"
 #include "stepper_controller.h"
 #include "encoder.h"
-#include "flash.h"
-
-
 
 volatile MotorParams_t liveMotorParams;
 volatile SystemParams_t liveSystemParams;

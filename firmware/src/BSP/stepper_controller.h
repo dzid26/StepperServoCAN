@@ -81,7 +81,7 @@ extern volatile PID_t vPID; //velocity PID control parameters
 
 #define FULLSTEPS_1_8	200U  // 1.8deg stepper motor
 #define FULLSTEPS_0_9	400U  // 0.9deg stepper motor
-#define FULLSTEPS_NA	0xFFFFU
+#define FULLSTEPS_NA	(invalid)
 
 
 #define S_to_uS   	(uint32_t)(1000000)

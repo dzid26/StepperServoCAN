@@ -34,9 +34,6 @@
 #define	FLASH_PAGE63_ADDR				0x0800FC00U //CalTable
 #define FLASH_checkSum_ADDR			    0x0800FFFCU
 
-#define	valid								(uint16_t)0x0001
-#define invalid								(uint16_t)0xffff
-
 void Flash_ProgramPage(uint32_t flashAddr, uint16_t* ptrData, uint16_t size);
 void Flash_ProgramSize(uint32_t flashAddr, uint16_t* ptrData, uint16_t size);
 uint16_t Flash_readHalfWord(uint32_t address);

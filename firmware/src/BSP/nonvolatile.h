@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include "calibration.h"
 #include "stepper_controller.h"
+#include "flash.h"
 
 typedef struct {
 	uint16_t microsteps;
@@ -75,8 +76,9 @@ typedef struct {
 #define nvmFlashCalData				((FlashCalData_t*)CALIBRATION_FLASH_ADDR)
 
 //this is for wear leveling - sizeof(nvm_t) + 4bytes gap = 62 
-#define NONVOLATILE_STEPS				((uint32_t)62)		//! don't change, to maintain backward compatibility
-
+#define NONVOLATILE_STEPS			((uint32_t)62)		//! don't change, to maintain backward compatibility
+#define	valid						(uint16_t)0x0001
+#define invalid						(uint16_t)0xffff  // ffs are default value for unused space
 
 // nvram mirror
 extern nvm_t nvmMirror;

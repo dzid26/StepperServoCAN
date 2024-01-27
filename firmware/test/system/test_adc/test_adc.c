@@ -1,6 +1,5 @@
 #define UNITY_INCLUDE_PRINT_FORMATTED
 #include <unity.h>
-#include "stm32f10x.h"
 #include "board.h"
 
 
