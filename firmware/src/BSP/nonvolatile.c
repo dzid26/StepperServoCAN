@@ -142,8 +142,6 @@ void validateAndInitNVMParams(void)
 	}
 
 	if(nvmMirror.motorParams.parametersValid != valid){
-		nvmMirror.motorParams.currentMa = 800U;
-		nvmMirror.motorParams.currentHoldMa = 400U; //unused
 		nvmMirror.motorParams.motorWiring = false;
 		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with swapPhase
 	}

@@ -146,7 +146,7 @@ float StepperCtrl_measureStepSize(void){
 	uint16_t angle2;
 	A4950_enable(true);
 
-	uint16_t stepCurrent = I_MAX_A4950;
+	uint16_t stepCurrent = CALIBRATION_STEPPING_CURRENT;
 	// Measure the full step size
 	// Note we assume machine can take one step without issue///
 	apply_current_command(0, stepCurrent); //fix the stepper
@@ -215,7 +215,7 @@ static void CalibrationTable_normalizeStartIdx(void){
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
 static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
-	const uint16_t stepCurrent = I_MAX_A4950;
+	const uint16_t stepCurrent = CALIBRATION_STEPPING_CURRENT;
 	const uint16_t microStepDelay = 30U;  	//[uS] controls calibration speed
 	const uint16_t stabilizationDelay = 0U; //[uS] wait for taking measurements - some medium stopping time can cause resonance, long stopping time can cause oveheat
 	const uint16_t stepOversampling = 3U;  		//measurements to take per point, note large will take some time
@@ -299,7 +299,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 
 	A4950_enable(true);
 
-	apply_current_command(0, liveMotorParams.currentMa);
+	apply_current_command(0, CALIBRATION_STEPPING_CURRENT);
 	delay_ms(50);
 
 	//determine first pass direction
@@ -312,7 +312,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	}
 	maxError = CalibrationMove(dir, verifyOnly, true);
 	//wait holding two phases (half a step) for less heat generation before triggering second pass
-	apply_current_command(A4950_STEP_MICROSTEPS/2U, I_MAX_A4950); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
+	apply_current_command(A4950_STEP_MICROSTEPS/2U, CALIBRATION_STEPPING_CURRENT); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
 		//second calibration pass the other direction - reduces influence of magnetic hysteresis

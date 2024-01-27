@@ -74,120 +74,6 @@ int menuTestCal(int argc, char *argv[])
 }
 
 
-options_t currentOptions[] = {
-		{"0"},
-		{"100"},
-		{"200"},
-		{"300"},
-		{"400"},
-		{"500"},
-		{"600"},
-		{"700"},
-		{"800"},
-		{"900"},
-		{"1000"},
-		{"1100"},
-		{"1200"},
-		{"1300"},
-		{"1400"},
-		{"1500"},
-		{"1600"},
-		{"1700"},
-		{"1800"},
-		{"1900"},
-		{"2000"},
-		{"2100"},
-		{"2200"},
-		{"2300"},
-		{"2400"},
-		{"2500"},
-		{"2600"},
-		{"2700"},
-		{"2800"},
-		{"2900"},
-		{"3000"},
-		{"3100"},
-		{"3200"},
-		{"3300"},
-		{""},
-};
-
-
-options_t currentHoldOptions[] = {
-		{"0"},
-		{"100"},
-		{"200"},
-		{"300"},
-		{"400"},
-		{"500"},
-		{"600"},
-		{"700"},
-		{"800"},
-		{"900"},
-		{"1000"},
-		{"1100"},
-		{"1200"},
-		{"1300"},
-		{"1400"},
-		{"1500"},
-		{"1600"},
-		{"1700"},
-		{"1800"},
-		{"1900"},
-		{"2000"},
-		{""},
-};
-
-int motorCurrent(int argc, char *argv[])
-{
-	if (argc == 1)
-	{
-		int i;
-		i = atol(argv[0]);
-		i = i * 100;
-		if (i != nvmMirror.motorParams.currentMa)
-		{
-			if(i > 3300)
-			{
-				i = 3300;
-			}
-			nvmMirror.motorParams.currentMa = i;
-			nvmWriteConfParms();
-		}
-		return i / 100;
-	}else
-	{
-		int i;
-		i = nvmMirror.motorParams.currentMa / 100;
-		return i;
-	}
-}
-
-int motorHoldCurrent(int argc, char *argv[])
-{
-	if (argc == 1)
-	{
-		uint16_t i;
-		i = atol(argv[0]);
-		i = i * 100;
-		if (i != nvmMirror.motorParams.currentHoldMa)
-		{
-			if(i > 3300)
-			{
-				i = 3300;
-			}
-			nvmMirror.motorParams.currentHoldMa = i;
-			nvmWriteConfParms();
-		}
-		return i / 100;
-
-	}else
-	{
-		uint16_t i;
-		i = nvmMirror.motorParams.currentHoldMa / 100;
-		return i;
-	}
-}
 
 options_t microstepOptions[] = {
 		{"1"},
@@ -301,8 +187,6 @@ int changeDir(int argc, char *argv[])
 menuItem_t MenuMain[] = {
 		{"Calibrate", menuCalibrate, NULL},
 		{"Test Cal", menuTestCal, NULL},
-		{"Max mA", motorCurrent, currentOptions},
-		{"Hold mA", motorHoldCurrent, currentHoldOptions},
 		// {"Current mA", motorCurrent, currentOptions},
 		{"Microstep", setMicrosteps, microstepOptions},
 		{"EnablePin", enablePin, enablePinOptions},

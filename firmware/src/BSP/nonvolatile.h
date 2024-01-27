@@ -39,10 +39,10 @@ typedef struct {
 } SystemParams_t; //sizeof(SystemParams_t)=12
 
 typedef struct {
-	uint16_t currentMa;			// maximum current for the motor
-	uint16_t currentHoldMa;		// hold current for the motor
+	uint16_t reserved1;
+	uint16_t reserved2;
 	bool     motorWiring;			// motor rotating in opposite direction to angle sensor
-	uint8_t  reserved;			// unused
+	uint8_t  reserved3;
 	uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
 	uint16_t parametersValid;
 } MotorParams_t; //sizeof(MotorParams_t)=10

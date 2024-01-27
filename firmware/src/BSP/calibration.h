@@ -27,6 +27,8 @@
 //changing this requires recalibration
 #define	CALIBRATION_TABLE_SIZE			50U  // 50 is enough, 100, 200 also good
 
+#define CALIBRATION_STEPPING_CURRENT	(I_MAX_A4950)
+
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
 #define CALIBRATION_MAX_ERROR (546U)  //the maximal expected error on calibration 546 = 3deg
