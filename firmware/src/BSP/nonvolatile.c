@@ -30,16 +30,17 @@ volatile SystemParams_t liveSystemParams;
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
-nvm_t nvmParams;
+nvm_t nvmMirror;
 volatile uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
 
-//NVM_address search for the beginning of the last parameters segment from wear leveling
+// Find nvm data actual address
 void nonvolatile_begin(void)
 {
 	uint32_t i = ((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); //(1024/62) = 16(0~15)
 	
 	NVM_address = PARAMETERS_FLASH_ADDR;
-	
+
+	//NVM_address search for the beginning of the last parameters segment (some sort of wear leveling)	
 	for(i=((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); i > 0; i--)
 	{
 		if( Flash_readHalfWord( (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS)) ) != invalid )
@@ -106,27 +107,27 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 //parameters first boot defaults and restore on corruption
 void validateAndInitNVMParams(void)
 {
-	nvmParams = *NVM; //copy whole nvm to ram
-	if (nvmParams.systemParams.parametersValid != valid) //systemParams invalid
-	{	
-		nvmParams.pPID.Kp = .005f;  nvmParams.pPID.Ki = .0002f;  nvmParams.pPID.Kd = 0.0f;
-		nvmParams.vPID.Kp = 2.0f;   nvmParams.vPID.Ki = 1.0f; 	 nvmParams.vPID.Kd = 1.0f;
-		nvmParams.systemParams.microsteps = 256U; //unused
-		nvmParams.systemParams.controllerMode = CTRL_TORQUE;  //unused
-		nvmParams.systemParams.dirRotation = CCW_ROTATION;
-		nvmParams.systemParams.errorLimit = 0U;  //unused
-		nvmParams.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
+	nvmMirror = *NVM; //copy whole nvm to ram
+	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
+		nvmMirror.pPID.Kp = .005f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 0.0f;
+		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
+
+		nvmMirror.systemParams.microsteps = 256U; //unused
+		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused
+		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
+		nvmMirror.systemParams.errorLimit = 0U;  //unused
+		nvmMirror.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
 	}
 
-	if(nvmParams.motorParams.parametersValid != valid){
-		nvmParams.motorParams.currentMa = 800U;
-		nvmParams.motorParams.currentHoldMa = 400U; //unused
-		nvmParams.motorParams.motorWiring = false;
-		nvmParams.motorParams.fullStepsPerRotation = invalid; //it will be detected along with swapPhase
+	if(nvmMirror.motorParams.parametersValid != valid){
+		nvmMirror.motorParams.currentMa = 800U;
+		nvmMirror.motorParams.currentHoldMa = 400U; //unused
+		nvmMirror.motorParams.motorWiring = false;
+		nvmMirror.motorParams.fullStepsPerRotation = invalid; //it will be detected along with swapPhase
 	}
 
-	if((nvmParams.systemParams.parametersValid != valid) || (nvmParams.motorParams.parametersValid != valid)){
-		nvmWriteConfParms(&nvmParams); //write default parameters
+	if((nvmMirror.systemParams.parametersValid != valid) || (nvmMirror.motorParams.parametersValid != valid)){
+		nvmWriteConfParms(&nvmMirror); //write default parameters
 	}
 
 	//the motor parameters are later checked in the stepper_controller code
