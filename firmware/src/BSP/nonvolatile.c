@@ -31,21 +31,21 @@ volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 nvm_t nvmMirror;
-static uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
+static uint32_t NVM_startAddress = PARAMETERS_FLASH_ADDR;
 
 // Find nvm data actual address
 void nonvolatile_begin(void)
 {
 	uint32_t i = ((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); //(1024/62) = 16(0~15)
 	
-	NVM_address = PARAMETERS_FLASH_ADDR;
+	NVM_startAddress = PARAMETERS_FLASH_ADDR;
 
-	//NVM_address search for the beginning of the last parameters segment (some sort of wear leveling)	
+	//search for the beginning of the last parameters structure segment (wear leveling)	
 	for(i=((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); i > 0; i--)
 	{
 		if( Flash_readHalfWord( (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS)) ) != invalid )
 		{
-			NVM_address = (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS));
+			NVM_startAddress = (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS));
 			return;
 		}
 	}
@@ -65,7 +65,7 @@ void nvmWriteCalTable(void *ptrData)
 
 //NVM mirror - buffers NVM read/write
 void nvmMirrorInRam(void){
-	nvmMirror = *(nvm_t*)NVM_address;//copy nvm from flash to ram
+	nvmMirror = *(nvm_t*)NVM_startAddress;//copy nvm from flash to ram
 }
 
 //currently only used once - after first boot
@@ -78,29 +78,29 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 	ptrNVM->systemParams.parametersValid = valid;
 	
 	//wear leveling
-	if(Flash_readHalfWord(NVM_address) != invalid && ((NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
+	if(Flash_readHalfWord(NVM_startAddress) != invalid && ((NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
 	{
-		NVM_address += NONVOLATILE_STEPS;
+		NVM_startAddress += NONVOLATILE_STEPS;
 		
-		while( Flash_checknvmFlash(NVM_address, sizeof(nvm_t)/2U) == false )
+		while( Flash_checknvmFlash(NVM_startAddress, sizeof(nvm_t)/2U) == false )
 		{
-			if( (NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
+			if( (NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
 			{
-				NVM_address += NONVOLATILE_STEPS;
+				NVM_startAddress += NONVOLATILE_STEPS;
 			}
 			else
 			{
-				NVM_address = PARAMETERS_FLASH_ADDR;
-				Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+				NVM_startAddress = PARAMETERS_FLASH_ADDR;
+				Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 				return;
 			}
 		}
-		Flash_ProgramSize(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+		Flash_ProgramSize(NVM_startAddress, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
 	else 
 	{
-		NVM_address = PARAMETERS_FLASH_ADDR;
-		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+		NVM_startAddress = PARAMETERS_FLASH_ADDR;
+		Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
 
 	nvmMirrorInRam();

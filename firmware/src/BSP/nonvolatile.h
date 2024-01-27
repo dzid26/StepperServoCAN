@@ -46,7 +46,7 @@ typedef struct {
 	__attribute__((__aligned__(4))) float Kp;
 	__attribute__((__aligned__(4))) float Ki;
 	__attribute__((__aligned__(4))) float Kd;
-} PIDparams_t;
+} PIDparams_t; //2xsizeof(PIDparams_t)=12
 
 #pragma pack(2)
 typedef struct {
@@ -55,7 +55,7 @@ typedef struct {
 	__attribute__((__aligned__(2))) bool motorWiring;  //forward wiring of motor or reverse
 	__attribute__((__aligned__(2))) uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
 	__attribute__((__aligned__(2))) uint16_t parametersValid;
-} MotorParams_t; //sizeof(MotorParams_t)=14
+} MotorParams_t; //sizeof(MotorParams_t)=10
 
 #pragma pack(2)
 typedef struct {
@@ -65,7 +65,7 @@ typedef struct {
 	__attribute__((__aligned__(2))) ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
 	__attribute__((__aligned__(2))) feedbackCtrl_t controllerMode; //feedback mode for the controller
 	__attribute__((__aligned__(2))) uint16_t parametersValid;
-} SystemParams_t; //sizeof(SystemParams_t)=18
+} SystemParams_t; //sizeof(SystemParams_t)=12
 
 typedef struct {
 	__attribute__((__aligned__(4))) uint32_t reserved1;
@@ -78,16 +78,15 @@ typedef struct {
 	PIDparams_t 	pPID; //simple PID parameters
 	PIDparams_t 	vPID; //position PID parameters
 	Reserved_t 		reserved;
-} nvm_t;
+} nvm_t; //sizeof(nvm_t)=58
 
 #define PARAMETERS_FLASH_ADDR  		FLASH_PAGE62_ADDR
 #define CALIBRATION_FLASH_ADDR  	FLASH_PAGE63_ADDR
 
-#define NVM										((nvm_t*)NVM_address)
 #define nvmFlashCalData				((FlashCalData_t*)CALIBRATION_FLASH_ADDR)
 
-//this is for wear leveling
-#define NONVOLATILE_STEPS				((uint32_t)62)		//2bytes gap + sizeof(nvm_t) = 60
+//this is for wear leveling - sizeof(nvm_t) + 4bytes gap = 62 
+#define NONVOLATILE_STEPS				((uint32_t)62)		//! don't change, to maintain backward compatibility
 
 
 // nvram mirror
