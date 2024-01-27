@@ -97,9 +97,6 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
 	
-	liveMotorParams = NVM->motorParams; //update motorParams
-	liveSystemParams = NVM->systemParams; //update systemParams
-	
 	if (state) {
 		Motion_task_enable();	
 	}

@@ -58,7 +58,7 @@ volatile int16_t Iq_ma;
 volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
 
-static void StepperCtrl_updateParamsFromNVM(void)
+static void UpdateRuntimeParams(void)
 {
 	//copy nvm (flash) to ram for fast access
 	pPID.Kp = NVM->pPID.Kp * CTRL_PID_SCALING;
@@ -94,8 +94,8 @@ stepCtrlError_t StepperCtrl_begin(void)
 	enableFeedback = false;
 	currentLocation = 0;
 
-	//we have to update from NVM before moving motor
-	StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
+	//update the runtime storage from the NVM
+	UpdateRuntimeParams();
 
 	//start up encoder
 	if (false == Encoder_begin())
@@ -169,7 +169,13 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 }
 
 void StepperCtrl_setMotionMode(uint8_t mode)
-{
+{	
+	//refresh parameters when exiting STEPCTRL_OFF state
+	static uint8_t mode_prev = STEPCTRL_OFF;
+	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
+		UpdateRuntimeParams();
+	}
+	
 	switch (mode) //TODO add more modes
 	{
 	case STEPCTRL_OFF:
@@ -217,6 +223,7 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		A4950_enable(false);
 		break;
 	}
+	mode_prev = mode;
 }
 
 
