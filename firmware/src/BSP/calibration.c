@@ -145,7 +145,7 @@ float StepperCtrl_measureStepSize(void){
 	uint16_t angle2;
 	A4950_enable(true);
 
-	uint16_t stepCurrent = motorParams.currentMa;
+	uint16_t stepCurrent = I_MAX_A4950;
 	// Measure the full step size
 	// Note we assume machine can take one step without issue///
 	A4950_move(0, stepCurrent); //fix the stepper
