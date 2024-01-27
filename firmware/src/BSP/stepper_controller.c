@@ -70,10 +70,6 @@ static void StepperCtrl_updateParamsFromNVM(void)
 		vPID.Ki = NVM->vPID.Ki * CTRL_PID_SCALING;
 		vPID.Kd = NVM->vPID.Kd * CTRL_PID_SCALING;
 
-		sPID.Kp = NVM->sPID.Kp * CTRL_PID_SCALING;
-		sPID.Ki = NVM->sPID.Ki * CTRL_PID_SCALING;
-		sPID.Kd = NVM->sPID.Kd * CTRL_PID_SCALING;
-
 		systemParams = NVM->SystemParams;
 	}else
 	{
@@ -84,10 +80,6 @@ static void StepperCtrl_updateParamsFromNVM(void)
 		vPID.Kp = nvmParams.vPID.Kp * CTRL_PID_SCALING;
 		vPID.Ki = nvmParams.vPID.Ki * CTRL_PID_SCALING;
 		vPID.Kd = nvmParams.vPID.Kd * CTRL_PID_SCALING;
-
-		sPID.Kp = nvmParams.sPID.Kp * CTRL_PID_SCALING;
-		sPID.Ki = nvmParams.sPID.Ki * CTRL_PID_SCALING;
-		sPID.Kd = nvmParams.sPID.Kd * CTRL_PID_SCALING;
 
 		systemParams = nvmParams.SystemParams;
 	}
@@ -366,7 +358,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			#define PID_TERMS 3
 			int16_t maxEachTerm = closeLoopMax * PID_TERMS;
 
-			int32_t errorMax = (int32_t)maxEachTerm * CTRL_PID_SCALING / sPID.Kp;
+			int32_t errorMax = (int32_t)maxEachTerm * CTRL_PID_SCALING / pPID.Kp;
 			//protect closeLoop against overflow and unrealistic values - due to P term
 			if( error > errorMax){
 				errorSat = errorMax;
@@ -378,7 +370,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 
 			// PID - (I)ntegral term
 			iTerm_accu += errorSat;
-			int16_t iTerm = (int16_t)(iTerm_accu  * sPID.Ki / (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING); //it's safe to cast to int16_t as iTerm_accu / CTRL_PID_SCALING cannot be much bigger than maxEachTerm since last time because iTerm_accu uses limited errorSat when acumulating error
+			int16_t iTerm = (int16_t)(iTerm_accu  * pPID.Ki / (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING); //it's safe to cast to int16_t as iTerm_accu / CTRL_PID_SCALING cannot be much bigger than maxEachTerm since last time because iTerm_accu uses limited errorSat when acumulating error
 			bool iTermLimited = false;
 			//protect closeLoop against overflow and unrealistic values - due to I term
 			if (iTerm  > maxEachTerm){
@@ -395,7 +387,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			if((errorSat < (angleFullStep/4)) && (errorSat > (-angleFullStep/4))){
 				pTerm = 0;
 			}else{
-				pTerm  =  (int16_t)(errorSat * sPID.Kp / CTRL_PID_SCALING);
+				pTerm  =  (int16_t)(errorSat * pPID.Kp / CTRL_PID_SCALING);
 			}
 
 			// PID - (D)erivative term
@@ -403,7 +395,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			if(((error < angleFullStep) && (error > -angleFullStep))){
 				dTerm=0;
 			}else{
-				int32_t deltaErrorMax = (int32_t) maxEachTerm * CTRL_PID_SCALING / sPID.Kd / (int16_t)SAMPLING_PERIOD_uS;
+				int32_t deltaErrorMax = (int32_t) maxEachTerm * CTRL_PID_SCALING / pPID.Kd / (int16_t)SAMPLING_PERIOD_uS;
 				int32_t deltaError = error - lastError;
 				
 				//protect closeLoop against overflow and unrealistic values - due to D term
@@ -413,7 +405,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 				if (deltaError < -deltaErrorMax){
 					deltaError = -deltaErrorMax;
 				}
-				dTerm = (int16_t)(deltaError * sPID.Kd * (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING);
+				dTerm = (int16_t)(deltaError * pPID.Kd * (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING);
 			}
 			lastError = error;
 			
@@ -458,7 +450,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			}
 
 			if(iTermLimited == true){ //backcalculate the accumulator
-				iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / sPID.Ki;
+				iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / pPID.Ki;
 			}
 
 		}else{

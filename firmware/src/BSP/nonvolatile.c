@@ -24,16 +24,16 @@
 #include "stepper_controller.h"
 #include "encoder.h"
 
+
 volatile MotorParams_t motorParams;
 volatile SystemParams_t systemParams;
-volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 nvm_t nvmParams = {0};
 volatile uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
 
-//NVM_address
+//NVM_address search for the beginning of the last parameters segment from wear leveling
 void nonvolatile_begin(void)
 {
 	uint32_t i = ((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); //(1024/62) = 16(0~15)
@@ -62,6 +62,7 @@ void nvmWriteCalTable(void *ptrData)
 	}
 }
 
+//currently only used once after first boot
 void nvmWriteConfParms(nvm_t* ptrNVM)
 {		
 	bool state = motion_task_isr_enabled;
@@ -70,12 +71,13 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 	ptrNVM->motorParams.parametersValid  = valid;
 	ptrNVM->SystemParams.parametersValid = valid;
 	
+	//wear leveling
 	if(Flash_readHalfWord(NVM_address) != invalid && ((NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
 	{
 		NVM_address += NONVOLATILE_STEPS;
 		
 		while( Flash_checknvmFlash(NVM_address, sizeof(nvm_t)/2U) == false )
-		{																													 
+		{
 			if( (NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
 			{
 				NVM_address += NONVOLATILE_STEPS;
@@ -108,13 +110,12 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 void validateAndInitNVMParams(void)
 {
 	if (NVM->SystemParams.parametersValid != valid) //SystemParams invalid
-	{
-		nvmParams.sPID.Kp = .5;  nvmParams.sPID.Ki = .001;  nvmParams.sPID.Kd = 2;
-		nvmParams.pPID.Kp = 1.0;  nvmParams.pPID.Ki = 0.0; 	  nvmParams.pPID.Kd = 0.0;
+	{	
+		nvmParams.pPID.Kp = .005;  nvmParams.pPID.Ki = .0002;  nvmParams.pPID.Kd = 0;
 		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
 
 		nvmParams.SystemParams.microsteps = 256; //unused
-		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;  //unused
+		nvmParams.SystemParams.controllerMode = CTRL_TORQUE;  //unused
 		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
 		nvmParams.SystemParams.errorLimit = (int32_t)DEGREES_TO_ANGLERAW(1.8);  //unused
 		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin

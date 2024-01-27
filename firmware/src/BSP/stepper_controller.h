@@ -56,7 +56,6 @@ typedef struct { //closeloop position controller
 	int16_t Kd;
 } PID_t;
 
-extern volatile PID_t sPID; //simple control loop PID parameters
 extern volatile PID_t pPID; //positional current based PID control parameters
 extern volatile PID_t vPID; //velocity PID control parameters
 

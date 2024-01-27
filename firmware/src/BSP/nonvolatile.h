@@ -36,7 +36,7 @@ typedef enum {
 } ErrorPinMode_t; //sizeof(ErrorPinMode_t)=1
 
 typedef enum {
-	CTRL_SIMPLE = 0, //simple error controller
+	CTRL_TORQUE = 0, //simple error controller
 	CTRL_POS_PID =1, //PID  Position controller
 	CTRL_POS_VELOCITY_PID = 2, //PID  Velocity controller
 } feedbackCtrl_t; //sizeof(feedbackCtrl_t)=1
@@ -68,11 +68,16 @@ typedef struct {
 } SystemParams_t; //sizeof(SystemParams_t)=18
 
 typedef struct {
+	__attribute__((__aligned__(4))) uint32_t reserved1;
+	__attribute__((__aligned__(4))) uint32_t reserved2;
+	__attribute__((__aligned__(4))) uint32_t reserved3;
+} Reserved_t;
+typedef struct {
 	SystemParams_t 	SystemParams;
 	MotorParams_t 	motorParams;
-	PIDparams_t 		sPID; //simple PID parameters
-	PIDparams_t 		pPID; //position PID parameters
-	PIDparams_t 		vPID; //velocity PID parameters
+	PIDparams_t 		pPID; //simple PID parameters
+	PIDparams_t 		vPID; //position PID parameters
+	Reserved_t 		reserved;
 } nvm_t;
 
 #define PARAMETERS_FLASH_ADDR  		FLASH_PAGE62_ADDR
@@ -81,7 +86,8 @@ typedef struct {
 #define NVM										((nvm_t*)NVM_address)
 #define nvmFlashCalData				((FlashCalData_t*)CALIBRATION_FLASH_ADDR)
 
-#define NONVOLATILE_STEPS				((uint32_t)62)		//sizeof(nvm_t) = 60
+//this is for wear leveling
+#define NONVOLATILE_STEPS				((uint32_t)62)		//2bytes gap + sizeof(nvm_t) = 60
 
 
 // nvram mirror
@@ -94,5 +100,6 @@ extern volatile MotorParams_t motorParams;
 void nonvolatile_begin(void);
 void nvmWriteCalTable(void *ptrData);
 void nvmWriteConfParms(nvm_t* ptrNVM);
+void validateAndInitNVMParams(void);
 
 #endif
