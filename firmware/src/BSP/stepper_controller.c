@@ -28,7 +28,6 @@
 #include "encoder.h"
 #include "math.h"
 #include "utils.h"
-#include "flash.h"
 
 static bool StepperCtrl_simpleFeedback(int32_t error);
 static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t current_target);
@@ -113,7 +112,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 	}
 
 	//Checking the motor parameters
-	if (liveMotorParams.fullStepsPerRotation == invalid) //motor was not identified, let's do it now
+	if (liveMotorParams.fullStepsPerRotation == FULLSTEPS_NA) //motor was not identified, let's do it now
 	{
 		
 		x = StepperCtrl_measureStepSize();
@@ -127,16 +126,17 @@ stepCtrlError_t StepperCtrl_begin(void)
 		}
 		if (fabsf(x) <= 1.2)
 		{
-			liveMotorParams.fullStepsPerRotation = 400;
+			liveMotorParams.fullStepsPerRotation = FULLSTEPS_0_9;
 		}else
 		{
-			liveMotorParams.fullStepsPerRotation = 200;
+			liveMotorParams.fullStepsPerRotation = FULLSTEPS_1_8;
 		}
 		//Motor params are now good
 		apply_current_command(0, 0); //release the motor
 		nvmMirror.motorParams = liveMotorParams;
 		nvmWriteConfParms();
 	}
+	assert((liveMotorParams.fullStepsPerRotation == FULLSTEPS_1_8) || (liveMotorParams.fullStepsPerRotation == FULLSTEPS_0_9));
 
 	angleFullStep = (int32_t)(ANGLE_STEPS / liveMotorParams.fullStepsPerRotation);
 

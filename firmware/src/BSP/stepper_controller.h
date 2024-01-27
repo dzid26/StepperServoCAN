@@ -79,6 +79,11 @@ extern volatile PID_t vPID; //velocity PID control parameters
 //scales PID parameters from Flash (floating point) to int32_t used in control 
 #define CTRL_PID_SCALING 			(int16_t)(4096)
 
+#define FULLSTEPS_1_8	200U  // 1.8deg stepper motor
+#define FULLSTEPS_0_9	400U  // 0.9deg stepper motor
+#define FULLSTEPS_NA	0xFFFFU
+
+
 #define S_to_uS   	(uint32_t)(1000000)
 #define SAMPLING_PERIOD_uS	(uint16_t)(40) //sampling time in uS of control loop. 35uS puts theoretical limit of ~125rev/s on the motor which is plenty.  Adjust to reduce harmonics. 
 #define SAMPLING_HZ		(uint32_t)(S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop

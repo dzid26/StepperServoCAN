@@ -73,38 +73,6 @@ int menuTestCal(int argc, char *argv[])
 	return 1;
 }
 
-options_t stepOptions[] = {
-		{"200"},
-		{"400"},
-		{""},
-};
-
-//returns the index of the stepOptions when called
-// with no arguments.
-int motorSteps(int argc, char *argv[])
-{
-	if (argc == 0)
-	{
-		uint16_t i;
-		i = nvmMirror.motorParams.fullStepsPerRotation;
-		if (i == 400)
-		{
-			return 1;
-		}
-		return 0; //default to 200
-	}
-	if (argc > 0)
-	{
-		uint16_t i;
-		i = atol(argv[0]);
-		if (i != nvmMirror.motorParams.fullStepsPerRotation)
-		{
-			nvmMirror.motorParams.fullStepsPerRotation = i;
-			nvmWriteConfParms();
-		}
-	}
-	return 0;
-}
 
 options_t currentOptions[] = {
 		{"0"},
