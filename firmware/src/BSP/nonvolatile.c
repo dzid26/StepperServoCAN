@@ -30,7 +30,7 @@ volatile SystemParams_t systemParams;
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
-nvm_t nvmParams = {0};
+nvm_t nvmParams;
 volatile uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
 
 //NVM_address search for the beginning of the last parameters segment from wear leveling
@@ -109,23 +109,31 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 //check the NVM and set to defaults if there is any
 void validateAndInitNVMParams(void)
 {
-	if (NVM->SystemParams.parametersValid != valid) //SystemParams invalid
+	nvmParams = *NVM; //copy whole nvm to ram
+	if (nvmParams.SystemParams.parametersValid != valid) //SystemParams invalid
 	{	
-		nvmParams.pPID.Kp = .005;  nvmParams.pPID.Ki = .0002;  nvmParams.pPID.Kd = 0;
-		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
+		nvmParams.pPID.Kp = .005f;  nvmParams.pPID.Ki = .0002f;  nvmParams.pPID.Kd = 0.0f;
+		nvmParams.vPID.Kp = 2.0f;   nvmParams.vPID.Ki = 1.0f; 	 nvmParams.vPID.Kd = 1.0f;
 
-		nvmParams.SystemParams.microsteps = 256; //unused
+		nvmParams.SystemParams.microsteps = 256U; //unused
 		nvmParams.SystemParams.controllerMode = CTRL_TORQUE;  //unused
 		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
-		nvmParams.SystemParams.errorLimit = (int32_t)DEGREES_TO_ANGLERAW(1.8);  //unused
+		nvmParams.SystemParams.errorLimit = 0U;  //unused
 		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
-
-		if(NVM->motorParams.parametersValid == valid)
-		{
-			nvmParams.motorParams = NVM->motorParams;
-			nvmWriteConfParms(&nvmParams);
-		}
 	}
-	//the motor parameters are check in the stepper_controller code
+
+	if(nvmParams.motorParams.parametersValid != valid){
+		nvmParams.motorParams.currentMa = 800U;
+		nvmParams.motorParams.currentHoldMa = 400U; //unused
+		nvmParams.motorParams.swapPhase = false;
+		nvmParams.motorParams.fullStepsPerRotation = invalid; //it will be detected along with swapPhase
+	}
+
+	if((nvmParams.SystemParams.parametersValid != valid) || (nvmParams.motorParams.parametersValid != valid)){
+		nvmWriteConfParms(&nvmParams); //write default parameters
+	}
+
+	//the motor parameters are later checked in the stepper_controller code
 	// as that there we can auto set much of them.
+
 }

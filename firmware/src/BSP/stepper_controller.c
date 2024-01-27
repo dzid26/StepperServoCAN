@@ -60,44 +60,17 @@ volatile int32_t loopError = 0;
 
 static void StepperCtrl_updateParamsFromNVM(void)
 {
-	if(NVM->SystemParams.parametersValid == valid)
-	{
-		pPID.Kp = NVM->pPID.Kp * CTRL_PID_SCALING;
-		pPID.Ki = NVM->pPID.Ki * CTRL_PID_SCALING;
-		pPID.Kd = NVM->pPID.Kd * CTRL_PID_SCALING;
+	//copy nvm (flash) to ram for fast access
+	pPID.Kp = NVM->pPID.Kp * CTRL_PID_SCALING;
+	pPID.Ki = NVM->pPID.Ki * CTRL_PID_SCALING;
+	pPID.Kd = NVM->pPID.Kd * CTRL_PID_SCALING;
 
-		vPID.Kp = NVM->vPID.Kp * CTRL_PID_SCALING;
-		vPID.Ki = NVM->vPID.Ki * CTRL_PID_SCALING;
-		vPID.Kd = NVM->vPID.Kd * CTRL_PID_SCALING;
+	vPID.Kp = NVM->vPID.Kp * CTRL_PID_SCALING;
+	vPID.Ki = NVM->vPID.Ki * CTRL_PID_SCALING;
+	vPID.Kd = NVM->vPID.Kd * CTRL_PID_SCALING;
 
-		systemParams = NVM->SystemParams;
-	}else
-	{
-		pPID.Kp = nvmParams.pPID.Kp * CTRL_PID_SCALING;
-		pPID.Ki = nvmParams.pPID.Ki * CTRL_PID_SCALING;
-		pPID.Kd = nvmParams.pPID.Kd * CTRL_PID_SCALING;
-
-		vPID.Kp = nvmParams.vPID.Kp * CTRL_PID_SCALING;
-		vPID.Ki = nvmParams.vPID.Ki * CTRL_PID_SCALING;
-		vPID.Kd = nvmParams.vPID.Kd * CTRL_PID_SCALING;
-
-		systemParams = nvmParams.SystemParams;
-	}
-	//default the error pin to input, if it is an error pin the
-	// handler for this will change the pin to be an output.
-	// for bidirection error it has to handle input/output it's self as well.
-	// This is not the cleanest way to handle this...
-	// TODO implement this cleaner
-	if(NVM->motorParams.parametersValid == valid)
-	{
-		motorParams = NVM->motorParams;
-	} else
-	{
-		motorParams.fullStepsPerRotation = 200;
-
-		motorParams.currentHoldMa = 400;
-		motorParams.currentMa = 800;
-	}
+	systemParams = NVM->SystemParams;
+	motorParams = NVM->motorParams;
 }
 
 
@@ -133,33 +106,18 @@ stepCtrlError_t StepperCtrl_begin(void)
 	//cal table init
 	CalibrationTable_init();
 
-
-	if (NVM->motorParams.parametersValid == valid)
-	{
-		//voltage check
-		if ((GetSupplyVoltage() < 9.0f) || (GetMotorVoltage() < 8.9f))
-		{
-			return STEPCTRL_NO_POWER;
-		}
-	}else
-	{
-		x = StepperCtrl_measureStepSize();
-		if (fabsf(x) < 0.5f)
-		{
-			return STEPCTRL_NO_POWER; //Motor may not have power
-		}
+	//voltage check
+	if ((GetSupplyVoltage() < 9.0f) || (GetMotorVoltage() < 8.9f)){
+		return STEPCTRL_NO_POWER;
 	}
 
 	//Checking the motor parameters
-	if (NVM->motorParams.parametersValid != valid) //NVM motor parameters are not set, we will update
+	if (motorParams.fullStepsPerRotation == invalid) //motor was not identified, let's do it now
 	{
-		// power could have just been applied and step size read wrong
-		// if we are more than 200 steps/rotation which is most common
-		// lets read again just to be sure.
-		if (fabsf(x) < 1.5)
-		{
-			//run step test a second time to be sure
-			x = StepperCtrl_measureStepSize();
+		
+		x = StepperCtrl_measureStepSize();
+		if (fabsf(x) < 0.5f){
+			return STEPCTRL_NO_POWER; //Motor may not have power
 		}
 
 		if (x < 0.0f)
