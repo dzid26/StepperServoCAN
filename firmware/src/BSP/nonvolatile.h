@@ -42,40 +42,39 @@ typedef enum {
 } feedbackCtrl_t; //sizeof(feedbackCtrl_t)=1
 
 
-#pragma pack(2)
 typedef struct {
-	__attribute__((__aligned__(2))) uint16_t microsteps;    //number of microsteps on the dir/step pin interface from host
-	__attribute__((__aligned__(2))) RotationDir_t dirRotation;  //stores rotation direction
-	__attribute__((__aligned__(2))) uint16_t errorLimit;    //error limit before error pin asserts 65536==360degrees
-	__attribute__((__aligned__(2))) ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
-	__attribute__((__aligned__(2))) feedbackCtrl_t controllerMode; //feedback mode for the controller
-	__attribute__((__aligned__(2))) uint16_t parametersValid;
+	uint16_t microsteps;
+	RotationDir_t dirRotation;  //stores rotation direction
+	uint8_t reserved1;
+	uint16_t errorLimit;    //error limit before error pin asserts 65536==360degrees
+	uint16_t reserved2;
+	ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
+	feedbackCtrl_t controllerMode; //feedback mode for the controller
+	uint16_t parametersValid;
 } SystemParams_t; //sizeof(SystemParams_t)=12
 
-#pragma pack(2)
 typedef struct {
-	__attribute__((__aligned__(2))) uint16_t currentMa;			// maximum current for the motor
-	__attribute__((__aligned__(2))) uint16_t currentHoldMa;		// hold current for the motor
-	__attribute__((__aligned__(2))) bool     motorWiring;			// motor rotating in opposite direction to angle sensor
-	__attribute__((__aligned__(2))) uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
-	__attribute__((__aligned__(2))) uint16_t parametersValid;
+	uint16_t currentMa;			// maximum current for the motor
+	uint16_t currentHoldMa;		// hold current for the motor
+	bool     motorWiring;			// motor rotating in opposite direction to angle sensor
+	uint8_t  reserved;			// unused
+	uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
+	uint16_t parametersValid;
 } MotorParams_t; //sizeof(MotorParams_t)=10
 
-#pragma pack(4)
 typedef struct {
-	__attribute__((__aligned__(4))) float Kp;
-	__attribute__((__aligned__(4))) float Ki;
-	__attribute__((__aligned__(4))) float Kd;
+	float Kp;
+	float Ki;
+	float Kd;
 } PIDparams_t; //2xsizeof(PIDparams_t)=12
 
-#pragma pack(4)
 typedef struct {
-	__attribute__((__aligned__(4))) uint32_t reserved1;
-	__attribute__((__aligned__(4))) uint32_t reserved2;
-	__attribute__((__aligned__(4))) uint32_t reserved3;
+	uint32_t reserved1;
+	uint32_t reserved2;
+	uint32_t reserved3;
 } Reserved_t;
 
-#pragma pack(2)
+#pragma pack(2) //removes 2byte padding between motorParams and pPid - this is mostly for back compatibility at this point
 typedef struct {
 	SystemParams_t 	systemParams;
 	MotorParams_t 	motorParams;
@@ -83,6 +82,7 @@ typedef struct {
 	PIDparams_t 	vPID; //position PID parameters
 	Reserved_t 		reserved;
 } nvm_t; //sizeof(nvm_t)=58
+#pragma pack()
 
 #define PARAMETERS_FLASH_ADDR  		FLASH_PAGE62_ADDR
 #define CALIBRATION_FLASH_ADDR  	FLASH_PAGE63_ADDR
