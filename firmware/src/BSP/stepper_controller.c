@@ -310,7 +310,6 @@ bool StepperCtrl_processMotion(void)
 	}
 
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
-	speed_raw = errMovingAverage(speed_raw);
 	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
 
 	int32_t error_flt = errMovingAverage(error);
