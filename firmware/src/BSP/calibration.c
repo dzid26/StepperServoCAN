@@ -21,6 +21,7 @@
  
 #include "calibration.h"
 #include "nonvolatile.h"
+#include "flash.h"
 #include "A4950.h"
 #include "encoder.h"
 #include "delay.h"

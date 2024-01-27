@@ -23,6 +23,8 @@
 #include "board.h"
 #include "stepper_controller.h"
 #include "encoder.h"
+#include "flash.h"
+
 
 
 volatile MotorParams_t liveMotorParams;
@@ -68,6 +70,19 @@ void nvmMirrorInRam(void){
 	nvmMirror = *(nvm_t*)NVM_startAddress;//copy nvm from flash to ram
 }
 
+//Check if empty (invalid)
+bool nvmFlashCheck(uint32_t address, size_t n)
+{
+	uint32_t i;
+	for(i=0; i < n; i++)
+	{
+		if( Flash_readHalfWord( address + (i * 2) ) != invalid )
+			return false;
+	}
+	return true;
+}
+
+
 //currently only used once - after first boot
 void nvmWriteConfParms(void){
 	nvm_t* ptr_nvmMirror = &nvmMirror;
@@ -81,7 +96,7 @@ void nvmWriteConfParms(void){
 	{
 		NVM_startAddress += NONVOLATILE_STEPS;
 		
-		while( Flash_checknvmFlash(NVM_startAddress, sizeof(nvm_t)/2U) == false )
+		while(nvmFlashCheck(NVM_startAddress, sizeof(nvm_t)/2U) == false )
 		{
 			if( (NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
 			{

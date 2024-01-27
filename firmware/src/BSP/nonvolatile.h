@@ -25,22 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "calibration.h"
-typedef enum {
-	CW_ROTATION = 0,
-	CCW_ROTATION = 1,
-} RotationDir_t; //sizeof(RotationDir_t)=1
-
-typedef enum {
-	ERROR_PIN_MODE_ENABLE = 0, //error pin works like enable on step sticks
-	ERROR_PIN_MODE_ACTIVE_LOW_ENABLE = 1, //error pin works like enable on step sticks
-} ErrorPinMode_t; //sizeof(ErrorPinMode_t)=1
-
-typedef enum {
-	CTRL_TORQUE = 0, //simple error controller
-	CTRL_POS_PID =1, //PID  Position controller
-	CTRL_POS_VELOCITY_PID = 2, //PID  Velocity controller
-} feedbackCtrl_t; //sizeof(feedbackCtrl_t)=1
-
+#include "stepper_controller.h"
 
 typedef struct {
 	uint16_t microsteps;

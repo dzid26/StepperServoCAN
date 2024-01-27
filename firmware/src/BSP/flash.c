@@ -20,7 +20,9 @@
  */
 
 #include "flash.h"
-//clean��write uint16_t data
+#include "stm32f10x_flash.h"
+
+//clear whole page and write uint16_t data into selected address
 /*
  *	flashAddr:
  *	ptrData:
@@ -36,7 +38,7 @@ void Flash_ProgramPage(uint32_t flashAddr, uint16_t *ptrData, uint16_t size)
 }
 
 
-//write uint16_t data
+//write uint16_t data into selected address
 /*
  *	flashAddr:
  *	ptrData:
@@ -74,14 +76,3 @@ uint32_t Flash_readWord(uint32_t address)
   return (*(__IO uint32_t*)address); 
 }
 
-//CRC
-bool Flash_checknvmFlash(uint32_t address, size_t n)
-{
-	uint32_t i;
-	for(i=0; i < n; i++)
-	{
-		if( Flash_readHalfWord( address + (i * 2) ) != invalid )
-			return false;
-	}
-	return true;
-}

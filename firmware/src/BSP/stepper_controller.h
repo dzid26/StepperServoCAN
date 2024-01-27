@@ -26,6 +26,23 @@
 #include <stdbool.h>
 
 typedef enum {
+	CW_ROTATION = 0,
+	CCW_ROTATION = 1,
+} RotationDir_t; //sizeof(RotationDir_t)=1
+
+typedef enum {
+	ERROR_PIN_MODE_ENABLE = 0, //error pin works like enable on step sticks
+	ERROR_PIN_MODE_ACTIVE_LOW_ENABLE = 1, //error pin works like enable on step sticks
+} ErrorPinMode_t; //sizeof(ErrorPinMode_t)=1
+
+typedef enum {
+	CTRL_TORQUE = 0, //simple error controller
+	CTRL_POS_PID =1, //PID  Position controller
+	CTRL_POS_VELOCITY_PID = 2, //PID  Velocity controller
+} feedbackCtrl_t; //sizeof(feedbackCtrl_t)=1
+
+
+typedef enum {
 	STEPCTRL_NO_ERROR=0,
 	STEPCTRL_NO_POWER=1, 	//no power to motor
 	STEPCTRL_NO_CAL=2,	 	//calibration not set
@@ -85,7 +102,6 @@ extern volatile int16_t control;
 extern volatile int32_t speed_slow;
 extern volatile int32_t loopError;
 
-uint16_t CalibrationMove(bool updateFlash, int8_t dir, int32_t *microSteps, uint8_t *passes, uint16_t calLocOffset);
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
 void StepperCtrl_setMotionMode(uint8_t mode);

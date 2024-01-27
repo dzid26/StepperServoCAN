@@ -28,6 +28,7 @@
 #include "encoder.h"
 #include "math.h"
 #include "utils.h"
+#include "flash.h"
 
 static bool StepperCtrl_simpleFeedback(int32_t error);
 static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t current_target);

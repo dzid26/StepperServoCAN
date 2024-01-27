@@ -25,7 +25,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "stm32f10x_flash.h"
 
 #define FLASH_WAIT_TIMEOUT			100000U
 #define FLASH_PAGE_SIZE   			1024U
@@ -35,13 +34,12 @@
 #define	FLASH_PAGE63_ADDR				0x0800FC00U //CalTable
 #define FLASH_checkSum_ADDR			    0x0800FFFCU
 
-#define	valid									(uint16_t)0x0001
+#define	valid								(uint16_t)0x0001
 #define invalid								(uint16_t)0xffff
 
 void Flash_ProgramPage(uint32_t flashAddr, uint16_t* ptrData, uint16_t size);
 void Flash_ProgramSize(uint32_t flashAddr, uint16_t* ptrData, uint16_t size);
 uint16_t Flash_readHalfWord(uint32_t address);
 uint32_t Flash_readWord(uint32_t address);
-bool Flash_checknvmFlash(uint32_t address, size_t n);
 
 #endif

@@ -23,7 +23,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "flash.h"
 
 //changing this requires recalibration
 #define	CALIBRATION_TABLE_SIZE			50U  // 50 is enough, 100, 200 also good
