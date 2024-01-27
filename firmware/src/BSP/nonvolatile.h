@@ -42,7 +42,7 @@ typedef struct {
 typedef struct {
 	uint16_t reserved1;
 	uint16_t reserved2;
-	bool     motorWiring;			// motor rotating in opposite direction to angle sensor
+	bool     swapPhase;			// motor rotating in opposite direction to angle sensor
 	uint8_t  reserved3;
 	uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
 	uint16_t parametersValid;

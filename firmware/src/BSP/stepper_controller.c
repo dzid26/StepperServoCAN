@@ -122,7 +122,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 
 		if (x < 0.0f)
 		{
-			liveMotorParams.motorWiring = !liveMotorParams.motorWiring;
+			liveMotorParams.swapPhase = !liveMotorParams.swapPhase;
 		}
 		if (fabsf(x) <= 1.2)
 		{
@@ -443,12 +443,8 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 		}else{
 			loadAngleDesired = 0;
 		}
-
-		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		int16_t angleSensLatency = 64u;
-		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
-		StepperCtrl_desired_current_vector(loadAngleSpeedComp, control);
-	
+		
+		StepperCtrl_desired_current_vector(loadAngleDesired, control);
 	}else{
 		control = 0;
 		closeLoop = 0;
@@ -483,12 +479,19 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 {
 	const bool volt_control = true;
 
-	//convert load angle to microsteps domain
-	uint16_t absoluteAngle = (uint16_t) (((uint32_t)(int32_t)(currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
-	uint16_t absoluteMicrosteps = absoluteAngle *  liveMotorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
+	int16_t angleSensLatency = 64u; //bigger value can result in higher speed (because it fakes field weakening), but can be detrimental to motor power and efficiency
+	int16_t angleSpeedComp = (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
+
+	uint16_t absoluteAngle = 0U;
+	if (volt_control == true){ //current limit control scheme operates on basis of angle load, whereas voltage control scheme is based on Iq current which is always electrical 90deg
+		absoluteAngle = (uint16_t)(((uint32_t)(int32_t)(currentLocation + angleSpeedComp)) & ANGLE_MAX); //add load angle to current location
+	}else{
+		absoluteAngle = (uint16_t)(((uint32_t)(int32_t)(currentLocation + angleSpeedComp + loadAngle)) & ANGLE_MAX); //add load angle to current location
+	}
+	uint16_t absoluteMicrosteps = absoluteAngle * liveMotorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
 
 	//calculate microsteps phase lead for current control
-	if (volt_control != true){
+	if (volt_control == false){
 		uint16_t stepPhaseLead = 0;
 		if (speed_slow > 0){
 			stepPhaseLead = dacPhaseLead[min(((uint32_t) ( speed_slow) / ANGLE_STEPS),  PHASE_LEAD_MAX_SPEED - 1U)];
@@ -499,7 +502,7 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 		}
 	}
 
-	uint16_t magnitude = ((current_target > 0) ? current_target : -current_target); //abs
+	uint16_t magnitude = (uint16_t)((current_target > 0) ? current_target : -current_target); //abs
 
 	if(volt_control == true){
 		//Iq, Id, Uq, Ud is FOC nomencluture

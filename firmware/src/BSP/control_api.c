@@ -163,7 +163,7 @@ uint16_t StepperCtrl_getStatuses(void){
 	ret2 |= (motion_task_isr_enabled ? 0x1U : 0x0U) << 1U; //here should be always 0
 
 	// actuator parameters
-	ret2 |= (liveMotorParams.motorWiring ? 0x1U : 0x0U) << 2U;
+	ret2 |= (liveMotorParams.swapPhase ? 0x1U : 0x0U) << 2U;
 	ret2 |= (liveSystemParams.dirRotation ? 0x1U : 0x0U) << 3U;
 	ret2 |= (liveSystemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
 

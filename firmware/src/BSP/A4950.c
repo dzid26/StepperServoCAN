@@ -67,14 +67,14 @@ inline static void bridgeA(int state)
 {
 	//Make sure the PIN_A4950_INs timer is counting to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
-	if (state == 0) //Forward
+	if (state == 1) //Forward
 	{	//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
 		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare2(PWM_TIM, 0);
 	}
-	if (state == 1) //Reverse
+	if (state == 0) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0	
 		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1
@@ -105,14 +105,14 @@ inline static void bridgeB(int state)
 {	
 	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
-	if (state == 0) //Forward
+	if (state == 1) //Forward
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare4(PWM_TIM, 0);
 	}
-	if (state == 1) //Reverse
+	if (state == 0) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
@@ -268,9 +268,6 @@ void A4950_enable(bool enable)
 
 void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 stepAngle is 90 electrical degrees, aka full step
 {
-	int16_t sin;
-	int16_t cos;
-	
 	if (driverEnabled == false)
 	{
 		set_curr(0,0); 	//turn current off
@@ -280,35 +277,34 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
 	}
 
 	//calculate modified sine and cosine of our elecAngleStep
-	sin = sine_ripple(elecAngleStep, anticogging_factor);
-	cos = cosine_ripple(elecAngleStep, anticogging_factor);
+	int16_t sin = sine_ripple(elecAngleStep, anticogging_factor);
+	int16_t cos = cosine_ripple(elecAngleStep, anticogging_factor);
 	
-	uint16_t I_q = curr_tar;
-	//Modified Park transform for Iq current
-	uint16_t I_a = (uint16_t)((uint32_t) I_q * (uint32_t)fastAbs(sin) / SINE_MAX); //convert value with vref max corresponding to 3300mV
-	uint16_t I_b = (uint16_t)((uint32_t) I_q * (uint32_t)fastAbs(cos) / SINE_MAX); //convert value with vref max corresponding to 3300mV
+	int32_t I_d = curr_tar;
+	// Corresponds to Park transform for Id current only
+	// If we want to produce torque, we add +/-90deg load angle to elecAngleStep in the function caller
+	int16_t I_a = (int16_t)(I_d * cos / (int32_t)SINE_MAX); //convert value with vref max corresponding to 3300mV
+	int16_t I_b = (int16_t)(I_d * sin / (int32_t)SINE_MAX); //convert value with vref max corresponding to 3300mV
 
-	set_curr(I_a, I_b);
+	set_curr(fastAbs(I_a), fastAbs(I_b));
 
-	if (sin < 0)
-	{
-		bridgeA(1);
-	}else
-	{
-		bridgeA(0);
-	}
-	if (cos < 0)
-	{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
-		bridgeB(liveMotorParams.motorWiring ? 1U : 0U);
-	}else
-	{
-		bridgeB(liveMotorParams.motorWiring ? 0U : 1U); 
+	bridgeA((I_a > 0) ? 1 : 0);
+	if(liveMotorParams.swapPhase){
+		bridgeB((I_b > 0) ? 0 : 1);
+	}else{
+		bridgeB((I_b > 0) ? 1 : 0);
 	}
 }
 
-//todo direction is inverted and bridge is not fully opened when control is off
-//Voltage control
-void apply_volt_command(uint16_t elecAngleStep, int32_t U_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
+//todo bridge is not fully opened when control is off?
+/**
+ * @brief Voltage commutation scheme
+ * 
+ * @param elecAngle - current angle in electrical degrees - 360 corresponds to SINE_STEPS
+ * @param U_q - quadrature voltage command - corresponds to torque generating current command + BEMF compensation 
+ * @param U_d - direct voltage command - corresponds to flux generating current + current lag compesantion
+ */
+void apply_volt_command(uint16_t elecAngle, int32_t U_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
 {	
 	if (driverEnabled == false)
 	{
@@ -317,16 +313,20 @@ void apply_volt_command(uint16_t elecAngleStep, int32_t U_q, uint16_t curr_lim) 
 		bridgeB(3); 	//tri state bridge outputs
 		return;
 	}
-	//calculate the sine and cosine of our elecAngleStep
-	int16_t sin = sine_ripple(elecAngleStep, anticogging_factor);
-	int16_t cos = cosine_ripple(elecAngleStep, anticogging_factor);
+	//calculate the sine and cosine of elecAngle
+	int16_t sin = sine_ripple(elecAngle, anticogging_factor);
+	int16_t cos = cosine_ripple(elecAngle, anticogging_factor);
 	
 	set_curr(curr_lim, curr_lim); 
 	
 	//timer compare
 	uint16_t U_in = GetMotorVoltage_mV();
-	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * U_q) / U_in);
-	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * U_q) / U_in);
-	setPWM_bridgeA(duty_A, (sin > 0)); //PWM12
-	setPWM_bridgeB(duty_B, liveMotorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
+	int32_t U_d = 0;
+	int32_t U_a = (cos * U_d) - (sin * U_q);
+	int32_t U_b = (sin * U_d) + (cos * U_q);
+
+	uint16_t duty_a = (uint16_t) ((uint32_t)fastAbs(U_a) / U_in);
+	uint16_t duty_b = (uint16_t) ((uint32_t)fastAbs(U_b) / U_in);
+	setPWM_bridgeA(duty_a, (U_a > 0)); //PWM12
+	setPWM_bridgeB(duty_b, liveMotorParams.swapPhase ? (U_b < 0) : (U_b > 0)); //PWM34
 }
