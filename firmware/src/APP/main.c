@@ -166,7 +166,6 @@ static void Begin_process(void)
 	}
 	Set_Error_LED(false);
 
-	display_setMenu(MenuMain);
 	printf("Initialization successful\n");
 	
 

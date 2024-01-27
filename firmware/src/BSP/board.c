@@ -21,7 +21,6 @@
 #include "board.h"
 #include "main.h"
 #include "stm32f10x.h"
-#include "MKS.h"
 #include "can.h"
 #include "A4950.h"
 #include "sine.h"
