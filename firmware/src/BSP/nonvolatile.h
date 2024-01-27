@@ -41,21 +41,6 @@ typedef enum {
 	CTRL_POS_VELOCITY_PID = 2, //PID  Velocity controller
 } feedbackCtrl_t; //sizeof(feedbackCtrl_t)=1
 
-#pragma pack(4)
-typedef struct {
-	__attribute__((__aligned__(4))) float Kp;
-	__attribute__((__aligned__(4))) float Ki;
-	__attribute__((__aligned__(4))) float Kd;
-} PIDparams_t; //2xsizeof(PIDparams_t)=12
-
-#pragma pack(2)
-typedef struct {
-	__attribute__((__aligned__(2))) uint16_t currentMa;   //maximum current for the motor
-	__attribute__((__aligned__(2))) uint16_t currentHoldMa; //hold current for the motor
-	__attribute__((__aligned__(2))) bool motorWiring;  //forward wiring of motor or reverse
-	__attribute__((__aligned__(2))) uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
-	__attribute__((__aligned__(2))) uint16_t parametersValid;
-} MotorParams_t; //sizeof(MotorParams_t)=10
 
 #pragma pack(2)
 typedef struct {
@@ -67,11 +52,30 @@ typedef struct {
 	__attribute__((__aligned__(2))) uint16_t parametersValid;
 } SystemParams_t; //sizeof(SystemParams_t)=12
 
+#pragma pack(2)
+typedef struct {
+	__attribute__((__aligned__(2))) uint16_t currentMa;			// maximum current for the motor
+	__attribute__((__aligned__(2))) uint16_t currentHoldMa;		// hold current for the motor
+	__attribute__((__aligned__(2))) bool     motorWiring;			// motor rotating in opposite direction to angle sensor
+	__attribute__((__aligned__(2))) uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
+	__attribute__((__aligned__(2))) uint16_t parametersValid;
+} MotorParams_t; //sizeof(MotorParams_t)=10
+
+#pragma pack(4)
+typedef struct {
+	__attribute__((__aligned__(4))) float Kp;
+	__attribute__((__aligned__(4))) float Ki;
+	__attribute__((__aligned__(4))) float Kd;
+} PIDparams_t; //2xsizeof(PIDparams_t)=12
+
+#pragma pack(4)
 typedef struct {
 	__attribute__((__aligned__(4))) uint32_t reserved1;
 	__attribute__((__aligned__(4))) uint32_t reserved2;
 	__attribute__((__aligned__(4))) uint32_t reserved3;
 } Reserved_t;
+
+#pragma pack(2)
 typedef struct {
 	SystemParams_t 	systemParams;
 	MotorParams_t 	motorParams;
