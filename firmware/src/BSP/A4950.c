@@ -299,10 +299,10 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
 	}
 	if (cos < 0)
 	{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
-		bridgeB(motorParams.motorWiring ? 1U : 0U);
+		bridgeB(liveMotorParams.motorWiring ? 1U : 0U);
 	}else
 	{
-		bridgeB(motorParams.motorWiring ? 0U : 1U); 
+		bridgeB(liveMotorParams.motorWiring ? 0U : 1U); 
 	}
 }
 
@@ -328,5 +328,5 @@ void apply_volt_command(uint16_t elecAngleStep, int32_t U_q, uint16_t curr_lim) 
 	uint16_t duty_A = (uint16_t) ((uint32_t)fastAbs(sin * U_q) / U_in);
 	uint16_t duty_B = (uint16_t) ((uint32_t)fastAbs(cos * U_q) / U_in);
 	setPWM_bridgeA(duty_A, (sin > 0)); //PWM12
-	setPWM_bridgeB(duty_B, motorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
+	setPWM_bridgeB(duty_B, liveMotorParams.motorWiring ? (cos > 0) : (cos < 0)); //PWM34
 }

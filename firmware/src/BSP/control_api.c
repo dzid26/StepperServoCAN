@@ -34,7 +34,7 @@
 #include "main.h"
 #include "Msg.h"
 
-#define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
+#define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
 
 void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
 	float newLocation = DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio));
@@ -163,9 +163,9 @@ uint16_t StepperCtrl_getStatuses(void){
 	ret2 |= (motion_task_isr_enabled ? 0x1U : 0x0U) << 1U; //here should be always 0
 
 	// actuator parameters
-	ret2 |= (motorParams.motorWiring ? 0x1U : 0x0U) << 2U;
-	ret2 |= (systemParams.dirRotation ? 0x1U : 0x0U) << 3U;
-	ret2 |= (systemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
+	ret2 |= (liveMotorParams.motorWiring ? 0x1U : 0x0U) << 2U;
+	ret2 |= (liveSystemParams.dirRotation ? 0x1U : 0x0U) << 3U;
+	ret2 |= (liveSystemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
 
 	//CAN checksum 
 	ret2 |= ((can_err_rx_cnt > 0U) ? 0x1U : 0x0U) << 5U;

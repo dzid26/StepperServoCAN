@@ -73,10 +73,10 @@ typedef struct {
 	__attribute__((__aligned__(4))) uint32_t reserved3;
 } Reserved_t;
 typedef struct {
-	SystemParams_t 	SystemParams;
+	SystemParams_t 	systemParams;
 	MotorParams_t 	motorParams;
-	PIDparams_t 		pPID; //simple PID parameters
-	PIDparams_t 		vPID; //position PID parameters
+	PIDparams_t 	pPID; //simple PID parameters
+	PIDparams_t 	vPID; //position PID parameters
 	Reserved_t 		reserved;
 } nvm_t;
 
@@ -94,8 +94,8 @@ typedef struct {
 extern volatile uint32_t NVM_address;
 
 extern nvm_t nvmParams;
-extern volatile SystemParams_t systemParams;
-extern volatile MotorParams_t motorParams;
+extern volatile SystemParams_t liveSystemParams;
+extern volatile MotorParams_t liveMotorParams;
 
 void nonvolatile_begin(void);
 void nvmWriteCalTable(void *ptrData);

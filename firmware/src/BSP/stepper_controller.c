@@ -69,8 +69,8 @@ static void StepperCtrl_updateParamsFromNVM(void)
 	vPID.Ki = NVM->vPID.Ki * CTRL_PID_SCALING;
 	vPID.Kd = NVM->vPID.Kd * CTRL_PID_SCALING;
 
-	systemParams = NVM->SystemParams;
-	motorParams = NVM->motorParams;
+	liveSystemParams = NVM->systemParams;
+	liveMotorParams = NVM->motorParams;
 }
 
 
@@ -112,7 +112,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 	}
 
 	//Checking the motor parameters
-	if (motorParams.fullStepsPerRotation == invalid) //motor was not identified, let's do it now
+	if (liveMotorParams.fullStepsPerRotation == invalid) //motor was not identified, let's do it now
 	{
 		
 		x = StepperCtrl_measureStepSize();
@@ -122,22 +122,22 @@ stepCtrlError_t StepperCtrl_begin(void)
 
 		if (x < 0.0f)
 		{
-			motorParams.motorWiring = !motorParams.motorWiring;
+			liveMotorParams.motorWiring = !liveMotorParams.motorWiring;
 		}
 		if (fabsf(x) <= 1.2)
 		{
-			motorParams.fullStepsPerRotation = 400;
+			liveMotorParams.fullStepsPerRotation = 400;
 		}else
 		{
-			motorParams.fullStepsPerRotation = 200;
+			liveMotorParams.fullStepsPerRotation = 200;
 		}
 		//Motor params are now good
 		apply_current_command(0, 0); //release the motor
-		nvmParams.motorParams = motorParams;
+		nvmParams.motorParams = liveMotorParams;
 		nvmWriteConfParms(&nvmParams);
 	}
 
-	angleFullStep = (int32_t)(ANGLE_STEPS / motorParams.fullStepsPerRotation);
+	angleFullStep = (int32_t)(ANGLE_STEPS / liveMotorParams.fullStepsPerRotation);
 
 	if (false == CalibrationTable_calValid())
 	{
@@ -477,7 +477,7 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 
 	//convert load angle to microsteps domain
 	uint16_t absoluteAngle = (uint16_t) (((uint32_t)(int32_t)(currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
-	uint16_t absoluteMicrosteps = absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
+	uint16_t absoluteMicrosteps = absoluteAngle *  liveMotorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
 
 	//calculate microsteps phase lead for current control
 	if (volt_control != true){

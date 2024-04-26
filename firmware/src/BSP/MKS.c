@@ -249,16 +249,16 @@ int setMicrosteps(int argc, char *argv[])
 		i = atol(argv[0]);
 		memcpy((void *)&params, (void *)NVM, sizeof(params));
 		steps = 0x01 << i;
-		if (steps != params.SystemParams.microsteps)
+		if (steps != params.systemParams.microsteps)
 		{
-			params.SystemParams.microsteps = steps;
+			params.systemParams.microsteps = steps;
 			nvmWriteConfParms(&params);
 		}
 		return i;
 	}else
 	{
 		uint16_t i,j;
-		i = NVM->SystemParams.microsteps;
+		i = NVM->systemParams.microsteps;
 		for (j=0; j<9; j++)
 		{
 
@@ -286,14 +286,14 @@ int controlLoop(int argc, char *argv[])
 		nvm_t params;
 		i = atol(argv[0]);
 		memcpy((void *)&params, (void *)NVM, sizeof(params));
-		if (i != params.SystemParams.controllerMode)
+		if (i != params.systemParams.controllerMode)
 		{
-			params.SystemParams.controllerMode = (feedbackCtrl_t)i;
+			params.systemParams.controllerMode = (feedbackCtrl_t)i;
 			nvmWriteConfParms(&params);
 		}
 		return i;
 	}
-	return NVM->SystemParams.controllerMode;
+	return NVM->systemParams.controllerMode;
 }
 
 options_t enablePinOptions[] = {
@@ -310,14 +310,14 @@ int enablePin(int argc, char *argv[])
 		nvm_t params;
 		i = atol(argv[0]);
 		memcpy((void *)&params, (void *)NVM, sizeof(params));
-		if (i != params.SystemParams.errorPinMode)
+		if (i != params.systemParams.errorPinMode)
 		{
-			params.SystemParams.errorPinMode = (ErrorPinMode_t)i;
+			params.systemParams.errorPinMode = (ErrorPinMode_t)i;
 			nvmWriteConfParms(&params);
 		}
 		return i;
 	}
-	return NVM->SystemParams.errorPinMode;
+	return NVM->systemParams.errorPinMode;
 }
 
 options_t dirOptions[] = {
@@ -334,14 +334,14 @@ int changeDir(int argc, char *argv[])
 		nvm_t params;
 		i = atol(argv[0]);
 		memcpy((void *)&params, (void *)NVM, sizeof(params));
-		if (i != params.SystemParams.dirRotation)
+		if (i != params.systemParams.dirRotation)
 		{
-			params.SystemParams.dirRotation = (RotationDir_t)i;
+			params.systemParams.dirRotation = (RotationDir_t)i;
 			nvmWriteConfParms(&params);
 		}
 		return i;
 	}
-	return NVM->SystemParams.dirRotation;
+	return NVM->systemParams.dirRotation;
 }
 
 menuItem_t MenuMain[] = {

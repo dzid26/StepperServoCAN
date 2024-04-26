@@ -25,8 +25,8 @@
 #include "encoder.h"
 
 
-volatile MotorParams_t motorParams;
-volatile SystemParams_t systemParams;
+volatile MotorParams_t liveMotorParams;
+volatile SystemParams_t liveSystemParams;
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
@@ -62,14 +62,14 @@ void nvmWriteCalTable(void *ptrData)
 	}
 }
 
-//currently only used once after first boot
+//currently only used once - after first boot
 void nvmWriteConfParms(nvm_t* ptrNVM)
 {		
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
 	
 	ptrNVM->motorParams.parametersValid  = valid;
-	ptrNVM->SystemParams.parametersValid = valid;
+	ptrNVM->systemParams.parametersValid = valid;
 	
 	//wear leveling
 	if(Flash_readHalfWord(NVM_address) != invalid && ((NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
@@ -97,8 +97,8 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
 	}
 	
-	motorParams = NVM->motorParams; //update motorParams
-	systemParams = NVM->SystemParams; //update systemParams
+	liveMotorParams = NVM->motorParams; //update motorParams
+	liveSystemParams = NVM->systemParams; //update systemParams
 	
 	if (state) {
 		Motion_task_enable();	
@@ -106,30 +106,29 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 	return;
 }
 
-//check the NVM and set to defaults if there is any
+//parameters first boot defaults and restore on corruption
 void validateAndInitNVMParams(void)
 {
 	nvmParams = *NVM; //copy whole nvm to ram
-	if (nvmParams.SystemParams.parametersValid != valid) //SystemParams invalid
+	if (nvmParams.systemParams.parametersValid != valid) //systemParams invalid
 	{	
 		nvmParams.pPID.Kp = .005f;  nvmParams.pPID.Ki = .0002f;  nvmParams.pPID.Kd = 0.0f;
 		nvmParams.vPID.Kp = 2.0f;   nvmParams.vPID.Ki = 1.0f; 	 nvmParams.vPID.Kd = 1.0f;
-
-		nvmParams.SystemParams.microsteps = 256U; //unused
-		nvmParams.SystemParams.controllerMode = CTRL_TORQUE;  //unused
-		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
-		nvmParams.SystemParams.errorLimit = 0U;  //unused
-		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
+		nvmParams.systemParams.microsteps = 256U; //unused
+		nvmParams.systemParams.controllerMode = CTRL_TORQUE;  //unused
+		nvmParams.systemParams.dirRotation = CCW_ROTATION;
+		nvmParams.systemParams.errorLimit = 0U;  //unused
+		nvmParams.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
 	}
 
 	if(nvmParams.motorParams.parametersValid != valid){
 		nvmParams.motorParams.currentMa = 800U;
 		nvmParams.motorParams.currentHoldMa = 400U; //unused
-		nvmParams.motorParams.swapPhase = false;
+		nvmParams.motorParams.motorWiring = false;
 		nvmParams.motorParams.fullStepsPerRotation = invalid; //it will be detected along with swapPhase
 	}
 
-	if((nvmParams.SystemParams.parametersValid != valid) || (nvmParams.motorParams.parametersValid != valid)){
+	if((nvmParams.systemParams.parametersValid != valid) || (nvmParams.motorParams.parametersValid != valid)){
 		nvmWriteConfParms(&nvmParams); //write default parameters
 	}
 

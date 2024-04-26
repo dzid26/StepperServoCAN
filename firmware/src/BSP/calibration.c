@@ -191,9 +191,9 @@ static void CalibrationTable_normalizeStartIdx(void){
 		//full electric angle in terms of calibrations points 
 		//electrical angle repeats every 4 full steps
 		//for CALIBRATION_TABLE_SIZE=50 and 200steps, full elec angle is every single cal point, for 400steps it is every half a point
-		uint16_t fullElecAngleCalPoints = (4U * CALIBRATION_TABLE_SIZE / motorParams.fullStepsPerRotation); 
+		uint16_t fullElecAngleCalPoints = (4U * CALIBRATION_TABLE_SIZE / liveMotorParams.fullStepsPerRotation); 
 		uint16_t shiftBy;
-		if(fullElecAngleCalPoints>1){
+		if(fullElecAngleCalPoints > 1U){
 			shiftBy = wrapIdx - (wrapIdx % fullElecAngleCalPoints);
 		}else{
 			shiftBy = wrapIdx;
@@ -233,7 +233,7 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		if (!preRun) {
 			delay_us(stabilizationDelay);
 			volatile int16_t calcStep = (int16_t)(electAngle / (int16_t)A4950_STEP_MICROSTEPS);
-			volatile uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)motorParams.fullStepsPerRotation);//convert to shaft angle
+			volatile uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)liveMotorParams.fullStepsPerRotation);//convert to shaft angle
 			volatile uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
 			
 			volatile uint16_t sampled = OverSampleEncoderAngle(stepOversampling);
@@ -259,12 +259,12 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 			}
 			if(!verifyOnly){
 				volatile int16_t calIdx;
-				calIdx = (calcStep / (int16_t)(uint16_t)(motorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE));
+				calIdx = (calcStep / (int16_t)(uint16_t)(liveMotorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE));
 				calIdx = (calIdx + (int16_t)CALIBRATION_TABLE_SIZE*2) % (int16_t)CALIBRATION_TABLE_SIZE; //adds 2*CALIBRATION_TABLE_SIZE, to make sure modulo gives positive value 
 				CalibrationTable_updateTableValue((uint16_t)calIdx, anglePass);
 			}
 		}
-		const uint8_t stepDivCal_q4 = (uint8_t)(((uint16_t)(CALIBRATION_TABLE_SIZE << 4U)) / motorParams.fullStepsPerRotation);
+		const uint8_t stepDivCal_q4 = (uint8_t)(((uint16_t)(CALIBRATION_TABLE_SIZE << 4U)) / liveMotorParams.fullStepsPerRotation);
 		const uint16_t microSteps = (((uint16_t)(microStep << 4U)) / stepDivCal_q4);
 		for(uint16_t i = 0; i<microSteps; ++i){	//move between measurements
 			electAngle += dir * (int32_t)(uint16_t)(A4950_STEP_MICROSTEPS/microStep);//dir can be negative on first pass depending on higher level settings
@@ -298,13 +298,13 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 
 	A4950_enable(true);
 
-	apply_current_command(0, motorParams.currentMa);
+	apply_current_command(0, liveMotorParams.currentMa);
 	delay_ms(50);
 
 	//determine first pass direction
 	int8_t dir;
 	//check if dir sign matches - on the first pass rotate the same direction as positive torque request
-	if((gearing_ratio > 0.f) == (systemParams.dirRotation == CW_ROTATION)){
+	if((gearing_ratio > 0.f) == (liveSystemParams.dirRotation == CW_ROTATION)){
 		dir = 1;
 	}else{
 		dir = -1;
