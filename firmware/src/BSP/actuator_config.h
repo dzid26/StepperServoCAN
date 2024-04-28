@@ -33,6 +33,7 @@ extern const int16_t phase_L; //uH
 extern const int16_t motor_k_bemf; // mV/(rev/s)
 
 #define Ohm_to_mOhm 1000
+#define H_to_uH 1000000
 
 //calculate actuator parameters to be used by control_api 
 extern volatile float gearing_ratio;

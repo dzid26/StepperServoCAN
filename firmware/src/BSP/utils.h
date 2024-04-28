@@ -27,4 +27,7 @@
 
 int32_t fastAbs(int32_t v);
 
+#define PI_X1024 3217U
+#define TWO_PI_X1024 6434U
+
 #endif // UTILS_H

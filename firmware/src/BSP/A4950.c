@@ -304,7 +304,7 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
  * @param U_q - quadrature voltage command - corresponds to torque generating current command + BEMF compensation 
  * @param U_d - direct voltage command - corresponds to flux generating current + current lag compesantion
  */
-void apply_volt_command(uint16_t elecAngle, int32_t U_q, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
+void apply_volt_command(uint16_t elecAngle, int32_t U_q, int32_t U_d, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
 {	
 	if (driverEnabled == false)
 	{
@@ -321,7 +321,7 @@ void apply_volt_command(uint16_t elecAngle, int32_t U_q, uint16_t curr_lim) //25
 	
 	//timer compare
 	uint16_t U_in = GetMotorVoltage_mV();
-	int32_t U_d = 0;
+
 	int32_t U_a = (cos * U_d) - (sin * U_q);
 	int32_t U_b = (sin * U_d) + (cos * U_q);
 
