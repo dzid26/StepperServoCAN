@@ -54,7 +54,7 @@ volatile int16_t closeLoopMaxDes;
 volatile int32_t currentLocation = 0;
 volatile int16_t closeLoop;
 volatile int16_t control;
-volatile int16_t Iq_ma;
+volatile int16_t control_actual;
 volatile int32_t speed_slow = 0;
 volatile int32_t loopError = 0;
 
@@ -159,7 +159,7 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 		speed_slow = 0;
 		closeLoop = 0;
 		control = 0;
-		Iq_ma = 0;
+		control_actual = 0;
 		currentLocation = 0;
 	}
 	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
@@ -448,7 +448,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 	}else{
 		control = 0;
 		closeLoop = 0;
-		Iq_ma = 0;
+		control_actual = 0;
 
 		lastError = 0;
 		iTerm_accu = 0;
@@ -516,8 +516,13 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 		int16_t U_IR_sat = (int16_t)clip(U_IR, -U_lim - U_emf_sat, U_lim - U_emf_sat);
 		U_IR_sat = (int16_t)clip(U_IR_sat, -U_lim, U_lim);
 		int16_t U_q_sat = U_IR_sat + U_emf_sat;
+		int16_t I_q_act = (int16_t)((int32_t)U_IR_sat * Ohm_to_mOhm / phase_R);
+		control_actual = I_q_act;
+
 		apply_volt_command(absoluteMicrosteps, U_q_sat, magnitude);
 	}else{
 		apply_current_command(absoluteMicrosteps, magnitude);
+		control_actual = (int16_t)clip(control, -I_MAX_A4950, I_MAX_A4950); // simplification - close to truth for low speeds
+
 	}
 }

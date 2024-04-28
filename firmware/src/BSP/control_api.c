@@ -33,15 +33,15 @@
 #include "encoder.h"
 #include "main.h"
 #include "Msg.h"
+#include "math.h"
 
-#define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
+#define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : -(x))	//shorthand for swapping direction
 
 void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
-	float newLocation = DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio));
-	
+	float newLocation = roundf(DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio)));
 	//safe conversion to INT
 	int32_t newLocation_int;
-	if (newLocation > INT32_MAX){
+	if (newLocation > INT32_MAX){ // INT32_MAX will be represented as INT32_MAX+1, but it still works when casting to int32_t
 		newLocation_int = INT32_MAX;
 	}else if (newLocation < INT32_MIN){
 		newLocation_int = INT32_MIN;
@@ -54,7 +54,7 @@ void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
 
 //sets torque [Nm] in motion control loop 
 void StepperCtrl_setFeedForwardTorque(float actuator_torque){ 
-	float Iq_feedforward = DIR_SIGN(actuator_torque * actuatorTq_to_current); //convert actuator output torque to Iq current
+	float Iq_feedforward = roundf(DIR_SIGN(actuator_torque * actuatorTq_to_current)); //convert actuator output torque to Iq current
 	//safe conversion
 	int16_t Iq_feedforward_int;
 	if(Iq_feedforward > INT16_MAX){
@@ -69,7 +69,7 @@ void StepperCtrl_setFeedForwardTorque(float actuator_torque){
 
 //sets max close loop torque [Nm] in motion control loop 
 void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error correction max torque
-	float Iq_closeloopLim = actuator_torque_cl_max * actuatorTq_to_current; //convert actuator output torque to Iq current
+	float Iq_closeloopLim = roundf(actuator_torque_cl_max * actuatorTq_to_current); //convert actuator output torque to Iq current
 	//safe conversion
 	int16_t Iq_closeloopLim_int;
 	if(Iq_closeloopLim > INT16_MAX){
@@ -126,7 +126,7 @@ float StepperCtrl_getCloseLoop(void) {
 //returns current control actuator torque
 float StepperCtrl_getControlOutput(void) {
 	int16_t ret;
-	ret = control;
+	ret = control_actual;
 	return DIR_SIGN(ret) * current_to_actuatorTq; //convert total control (mA) to actuator output torque
 }
 

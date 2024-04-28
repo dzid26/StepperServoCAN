@@ -104,6 +104,7 @@ extern volatile int16_t closeLoopMaxDes;
 extern volatile int32_t currentLocation;
 extern volatile int16_t closeLoop;
 extern volatile int16_t control;
+extern volatile int16_t control_actual;
 extern volatile int32_t speed_slow;
 extern volatile int32_t loopError;
 
