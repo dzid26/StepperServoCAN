@@ -18,6 +18,13 @@
 })
 
 
+#define clip(x, low, high) ({\
+  __typeof__(x) _x = (x); \
+  __typeof__(low) _low = (low);\
+  __typeof__(high) _high = (high);\
+  (_x > _high) ? _high : ((_x < _low) ? _low : _x);\
+  })
+
 int32_t fastAbs(int32_t v);
 
 #endif // UTILS_H

@@ -510,8 +510,13 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 		int16_t I_q = current_target;
 		int16_t U_IR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
 		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_q =(int16_t)(max(min(U_IR + U_emf, INT16_MAX), INT16_MIN));
-		apply_volt_command(absoluteMicrosteps, U_q, magnitude);
+		int32_t U_q = U_IR + U_emf;
+		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
+		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
+		int16_t U_IR_sat = (int16_t)clip(U_IR, -U_lim - U_emf_sat, U_lim - U_emf_sat);
+		U_IR_sat = (int16_t)clip(U_IR_sat, -U_lim, U_lim);
+		int16_t U_q_sat = U_IR_sat + U_emf_sat;
+		apply_volt_command(absoluteMicrosteps, U_q_sat, magnitude);
 	}else{
 		apply_current_command(absoluteMicrosteps, magnitude);
 	}

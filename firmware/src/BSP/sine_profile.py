@@ -61,8 +61,16 @@ plt.plot(x, y_cos_mod)
 #phasor plot
 plt.plot(x, (y_sin)**2+(y_cos)**2)
 plt.plot(x, y_sin_mod**2+y_cos_mod**2)
-plt.legend(['sin(x)', 'cos(x)', 'sin(x) mod', 'cos(x) mod', 'combined sin(x) cos(x)', 'combined sin(x)_mod, cos(x)_mod'])
+plt.legend(['sin(x)', 'cos(x)', 'sin(x) mod', 'cos(x) mod', 'magnitude', 'magnitude mod'])
 plt.show()
+
+#max phase voltage
+plt.plot(x, y_sin + y_cos)
+plt.plot(x, y_sin_mod + y_cos_mod)
+plt.legend(['combined sin(x) cos(x)', 'combined sin(x)_mod, cos(x)_mod'])
+plt.show()
+print("Max: " + str(max(y_sin + y_cos)))
+print("Max modded: " + str(max(y_sin_mod + y_cos_mod)))
 
 #torque circle
 plt.plot((y_sin),(y_cos))
