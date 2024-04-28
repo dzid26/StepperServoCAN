@@ -27,12 +27,10 @@
 #include "board.h"
 #include "encoder.h"
 #include "math.h"
-#include "utils.h"
+#include "motor.h"
 
 static bool StepperCtrl_simpleFeedback(int32_t error);
-static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t current_target);
 
-volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
@@ -132,7 +130,7 @@ stepCtrlError_t StepperCtrl_begin(void)
 			liveMotorParams.fullStepsPerRotation = FULLSTEPS_1_8;
 		}
 		//Motor params are now good
-		apply_current_command(0, 0); //release the motor
+		openloop_step(0, 0); //release the motor
 		nvmMirror.motorParams = liveMotorParams;
 		nvmWriteConfParms();
 	}
@@ -286,12 +284,8 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 	static uint32_t errorCount = 0;
 
 	static int32_t iTerm_accu; //iTerm memory
-	static uint16_t magnitude = 0; //static for dTerm condition check
 
-	if(enableFeedback) //todo add openloop control
-	{
-		int16_t loadAngleDesired = 0;
-		
+	if(enableFeedback){ //todo add openloop control
 		//todo add close loop intiazliation - I term with last control
 		if (enableSoftOff){
 			static uint16_t rampsteps = 0;
@@ -397,22 +391,22 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			}
 			control = closeLoop + feedForward;
 
-			// Saturate against I_MAX_A4950 - any excess subtract from integral part, but don't make it change sign
-			if(control > I_MAX_A4950){	
-				iTerm -= closeLoop - I_MAX_A4950;
+			// Saturate against MAX_CURRENT - any excess subtract from integral part, but don't make it change sign
+			if(control > MAX_CURRENT){	
+				iTerm -= closeLoop - MAX_CURRENT;
 				if(iTerm < 0){
 					iTerm = 0;
 				}
 				iTermLimited = true;
-				control = I_MAX_A4950;
+				control = MAX_CURRENT;
 			}
-			if (control < -I_MAX_A4950){
-				iTerm -= closeLoop - (-I_MAX_A4950);
+			if (control < -MAX_CURRENT){
+				iTerm -= closeLoop - (-MAX_CURRENT);
 				if(iTerm > 0){
 					iTerm = 0;
 				}
 				iTermLimited = true;
-				control = -I_MAX_A4950;
+				control = -MAX_CURRENT;
 			}
 
 			if(iTermLimited == true){ //backcalculate the accumulator
@@ -421,30 +415,20 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 
 		}else{
 			control = feedForward;
-			if(control > I_MAX_A4950){
-				control = I_MAX_A4950;
+			if(control > MAX_CURRENT){
+				control = MAX_CURRENT;
 			}
-			if (control < -I_MAX_A4950){
-				control = -I_MAX_A4950;
+			if (control < -MAX_CURRENT){
+				control = -MAX_CURRENT;
 			}
 			closeLoop = 0;
 			lastError = 0;
 
 			iTerm_accu = 0;
 		}
-		
 
-		if (control > 0)
-		{
-			loadAngleDesired =  (int16_t) angleFullStep;
-		}else if (control < 0)
-		{
-			loadAngleDesired = (int16_t) -angleFullStep;
-		}else{
-			loadAngleDesired = 0;
-		}
-		
-		StepperCtrl_desired_current_vector(loadAngleDesired, control);
+		field_oriented_control(control);
+
 	}else{
 		control = 0;
 		closeLoop = 0;
@@ -452,7 +436,6 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 
 		lastError = 0;
 		iTerm_accu = 0;
-		magnitude = 0;
 	}
 
   // error needs to exist for some time period
@@ -472,66 +455,4 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 	}
 
 	return false;
-}
-
-//calcualte target step angle and value
-static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t current_target) 
-{
-	const bool volt_control = true;
-
-	int16_t angleSensLatency = 64u; //bigger value can result in higher speed (because it fakes field weakening), but can be detrimental to motor power and efficiency
-	int16_t angleSpeedComp = (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
-
-	uint16_t absoluteAngle = 0U;
-	if (volt_control == true){ //current limit control scheme operates on basis of angle load, whereas voltage control scheme is based on Iq current which is always electrical 90deg
-		absoluteAngle = (uint16_t)(((uint32_t)(int32_t)(currentLocation + angleSpeedComp)) & ANGLE_MAX); //add load angle to current location
-	}else{
-		absoluteAngle = (uint16_t)(((uint32_t)(int32_t)(currentLocation + angleSpeedComp + loadAngle)) & ANGLE_MAX); //add load angle to current location
-	}
-	uint16_t absoluteMicrosteps = absoluteAngle * liveMotorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
-
-	//calculate microsteps phase lead for current control
-	if (volt_control == false){
-		uint16_t stepPhaseLead = 0;
-		if (speed_slow > 0){
-			stepPhaseLead = dacPhaseLead[min(((uint32_t) ( speed_slow) / ANGLE_STEPS),  PHASE_LEAD_MAX_SPEED - 1U)];
-			absoluteMicrosteps += stepPhaseLead;
-		}else{
-			stepPhaseLead = dacPhaseLead[min(((uint32_t) (-speed_slow) / ANGLE_STEPS),  PHASE_LEAD_MAX_SPEED - 1U)];
-			absoluteMicrosteps -= stepPhaseLead;
-		}
-	}
-
-	uint16_t magnitude = (uint16_t)((current_target > 0) ? current_target : -current_target); //abs
-
-	if(volt_control == true){
-		//Iq, Id, Uq, Ud per FOC nomencluture
-
-		//Qadrature axis
-		//U_q = U_IR + U_emf
-		int16_t I_q = current_target;
-		int16_t U_IR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
-		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_q = U_IR + U_emf;
-		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
-		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
-		int16_t U_IR_sat = (int16_t)clip(U_IR, -U_lim - U_emf_sat, U_lim - U_emf_sat);
-		U_IR_sat = (int16_t)clip(U_IR_sat, -U_lim, U_lim);
-		int16_t U_q_sat = U_IR_sat + U_emf_sat;
-		int16_t I_q_act = (int16_t)((int32_t)U_IR_sat * Ohm_to_mOhm / phase_R);
-		control_actual = I_q_act;
-
-		//Direct Axis
-		//U_d = I_q*ω*Rl
-		uint16_t motor_rev_to_elec_rad = (uint16_t)((uint32_t)TWO_PI_X1024 * liveMotorParams.fullStepsPerRotation / 4U / 1024U); //typically 314 (or 628 for 0.9deg motor)
-		int32_t e_rad_s = (int32_t)((int64_t)motor_rev_to_elec_rad * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_d = (int32_t)(-I_q_act) * phase_L / H_to_uH * e_rad_s; //Vd=Iq * ω*Rl
-		
-		int16_t U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
-		apply_volt_command(absoluteMicrosteps, U_q_sat, U_d_sat, magnitude);
-	}else{
-		apply_current_command(absoluteMicrosteps, magnitude);
-		control_actual = (int16_t)clip(control, -I_MAX_A4950, I_MAX_A4950); // simplification - close to truth for low speeds
-
-	}
 }

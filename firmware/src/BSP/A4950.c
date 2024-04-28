@@ -24,9 +24,6 @@
 #include "stepper_controller.h"
 #include "nonvolatile.h"
 #include "board.h"
-#include "sine.h"
-#include "encoder.h"
-#include "actuator_config.h"
 #include "utils.h"
 
 #define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
@@ -180,7 +177,7 @@ static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
 	//Make sure the PIN_A4950_INs have running timer
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
 
-	uint16_t pwm_count = min(duty >> PWM_SCALER, PWM_TIM_MAX);
+	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
 
 	//duty_A,B between 0 and PWM_MAX corresponds to 0 and v_mot
 	//quadrant1or2,3or4 - determines which phase is used
@@ -218,7 +215,7 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4)
 	//Make sure the PIN_A4950_INs are configured as PWM
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
 
-	uint16_t pwm_count = min(duty >> PWM_SCALER, PWM_TIM_MAX);
+	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
 
 	if (slow_decay)
 	{	 //electric field quadrant
@@ -258,15 +255,14 @@ void A4950_enable(bool enable)
 }
 
 
-// this is precise move and modulo of A4950_STEP_MICROSTEPS is a full step.
-// stepAngle is in A4950_STEP_MICROSTEPS units..
-// The A4950 has no idea where the motor is, so the calling function has to
-// tell the A4950 what phase to drive motor coils.
-// A4950_STEP_MICROSTEPS is 256 by default so stepAngle of 1024 is 360 degrees
-// Note you can only move up to +/-A4950_STEP_MICROSTEPS from where you
-// currently are.
-
-void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 stepAngle is 90 electrical degrees, aka full step
+/**
+ * @brief Current based phase activation
+ * 
+ * @param I_a - phase A requested current
+ * @param I_b - phase B requested current
+ * @param curr_lim - current limit applied to each phase
+ */
+void phase_current_command(int16_t I_a, int16_t I_b)
 {
 	if (driverEnabled == false)
 	{
@@ -275,16 +271,6 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
 		bridgeB(3); 	//tri state bridge outputs
 		return;
 	}
-
-	//calculate modified sine and cosine of our elecAngleStep
-	int16_t sin = sine_ripple(elecAngleStep, anticogging_factor);
-	int16_t cos = cosine_ripple(elecAngleStep, anticogging_factor);
-	
-	int32_t I_d = curr_tar;
-	// Corresponds to Park transform for Id current only
-	// If we want to produce torque, we add +/-90deg load angle to elecAngleStep in the function caller
-	int16_t I_a = (int16_t)(I_d * cos / (int32_t)SINE_MAX); //convert value with vref max corresponding to 3300mV
-	int16_t I_b = (int16_t)(I_d * sin / (int32_t)SINE_MAX); //convert value with vref max corresponding to 3300mV
 
 	set_curr(fastAbs(I_a), fastAbs(I_b));
 
@@ -298,13 +284,13 @@ void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar) //256 step
 
 //todo bridge is not fully opened when control is off?
 /**
- * @brief Voltage commutation scheme
+ * @brief Voltage based phase activation with current limit
  * 
- * @param elecAngle - current angle in electrical degrees - 360 corresponds to SINE_STEPS
- * @param U_q - quadrature voltage command - corresponds to torque generating current command + BEMF compensation 
- * @param U_d - direct voltage command - corresponds to flux generating current + current lag compesantion
+ * @param U_a - phase A requested voltage
+ * @param U_b - phase B requested voltage
+ * @param curr_lim - current limit applied to each phase
  */
-void apply_volt_command(uint16_t elecAngle, int32_t U_q, int32_t U_d, uint16_t curr_lim) //256 stepAngle is 90 electrical degrees
+void phase_voltage_command(int16_t U_a, int16_t U_b, uint16_t curr_lim)
 {	
 	if (driverEnabled == false)
 	{
@@ -313,20 +299,11 @@ void apply_volt_command(uint16_t elecAngle, int32_t U_q, int32_t U_d, uint16_t c
 		bridgeB(3); 	//tri state bridge outputs
 		return;
 	}
-	//calculate the sine and cosine of elecAngle
-	int16_t sin = sine_ripple(elecAngle, anticogging_factor);
-	int16_t cos = cosine_ripple(elecAngle, anticogging_factor);
-	
 	set_curr(curr_lim, curr_lim); 
-	
-	//timer compare
+
 	uint16_t U_in = GetMotorVoltage_mV();
-
-	int32_t U_a = (cos * U_d) - (sin * U_q);
-	int32_t U_b = (sin * U_d) + (cos * U_q);
-
-	uint16_t duty_a = (uint16_t) ((uint32_t)fastAbs(U_a) / U_in);
-	uint16_t duty_b = (uint16_t) ((uint32_t)fastAbs(U_b) / U_in);
+	uint16_t duty_a = (uint16_t) ((uint32_t)fastAbs(U_a) * PWM_TIM_MAX / U_in);
+	uint16_t duty_b = (uint16_t) ((uint32_t)fastAbs(U_b) * PWM_TIM_MAX / U_in);
 	setPWM_bridgeA(duty_a, (U_a > 0)); //PWM12
 	setPWM_bridgeB(duty_b, liveMotorParams.swapPhase ? (U_b < 0) : (U_b > 0)); //PWM34
 }

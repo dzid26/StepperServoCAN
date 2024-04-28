@@ -22,7 +22,6 @@
 #include "main.h"
 #include "can.h"
 #include "A4950.h"
-#include "sine.h"
 #include "stepper_controller.h"
 #include "utils.h"
 

@@ -27,6 +27,9 @@
 #include <assert.h>
 #include "stm32f10x.h"
 
+#include "sine.h"
+
+
 #define VOLT_DIV_RATIO(R1, R2) (((float) R2 / ((float)R1 + (float)R2)))
 #define ADC_12bit 4096
 //MCU power supply
@@ -142,6 +145,9 @@ float Get_PhaseA_Current(void);
 float Get_PhaseB_Current(void);
 
 #define MHz_to_Hz	(uint32_t)(1000000)
+#define s_to_ms 	(1000U)
+#define s_to_us 	(1000000U)
+#define us_to_ns 	(1000U)
 void Motion_task_init(uint16_t taskPeriod);
 void Serivice_task_init(void);
 

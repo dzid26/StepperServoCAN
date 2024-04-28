@@ -24,8 +24,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
-#define A4950_STEP_MICROSTEPS (uint16_t) 256U //Full step electrical angle
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
 #define VREF_SCALER	6U
 #define PWM_SCALER	3U //low vibration
@@ -35,12 +33,11 @@
 #define PHASE_LEAD_MAX_SPEED  250u //revs/s
 extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 
-#define I_MAX_A4950       (3300) //mA
+#define I_MAX_A4950       3300 //mA
 
 void A4950_enable(bool enable);
-void apply_current_command(uint16_t elecAngleStep, uint16_t curr_tar);
-void apply_volt_command(uint16_t elecAngle, int32_t U_q, int32_t U_d, uint16_t curr_lim);
-void A4954_begin(void);
+void phase_current_command(int16_t I_a, int16_t I_b);
+void phase_voltage_command(int16_t U_a, int16_t U_b, uint16_t curr_lim);
 
 extern volatile bool driverEnabled;
 

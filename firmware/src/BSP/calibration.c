@@ -22,7 +22,7 @@
 #include "calibration.h"
 #include "nonvolatile.h"
 #include "flash.h"
-#include "A4950.h"
+#include "motor.h"
 #include "encoder.h"
 #include "delay.h"
 #include "actuator_config.h"
@@ -149,11 +149,11 @@ float StepperCtrl_measureStepSize(void){
 	uint16_t stepCurrent = CALIBRATION_STEPPING_CURRENT;
 	// Measure the full step size
 	// Note we assume machine can take one step without issue///
-	apply_current_command(0, stepCurrent); //fix the stepper
+	openloop_step(0, stepCurrent); //fix the stepper
 	delay_ms(200);
 	angle1 = OverSampleEncoderAngle(100U); //angle1 - (0-65535)
 	
-	apply_current_command(A4950_STEP_MICROSTEPS, stepCurrent); //move one step 'forward'
+	openloop_step(FULLSTEP_ELECTRIC_ANGLE, stepCurrent); //move one step 'forward'
 	delay_ms(200);
 	angle2 = OverSampleEncoderAngle(100U); //angle2 - (0-65535)
 
@@ -163,7 +163,7 @@ float StepperCtrl_measureStepSize(void){
 	float deg_delta = ANGLERAW_T0_DEGREES(angle_delta);
 	
 	//move back
-	apply_current_command(0,stepCurrent);
+	openloop_step(0,stepCurrent);
 	A4950_enable(false);
 
 	return deg_delta;
@@ -219,7 +219,7 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 	const uint16_t microStepDelay = 30U;  	//[uS] controls calibration speed
 	const uint16_t stabilizationDelay = 0U; //[uS] wait for taking measurements - some medium stopping time can cause resonance, long stopping time can cause oveheat
 	const uint16_t stepOversampling = 3U;  		//measurements to take per point, note large will take some time
-	const uint16_t microStep = A4950_STEP_MICROSTEPS; //microsteping resolution in between taking measurements
+	const uint16_t microStep = FULLSTEP_ELECTRIC_ANGLE; //microsteping resolution in between taking measurements
 
 	static int32_t electAngle;//electric angle - static carry value over between passes
 	if (firstPass){
@@ -233,7 +233,7 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		bool preRun = (step < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
 		if (!preRun) {
 			delay_us(stabilizationDelay);
-			volatile int16_t calcStep = (int16_t)(electAngle / (int16_t)A4950_STEP_MICROSTEPS);
+			volatile int16_t calcStep = (int16_t)(electAngle / (int16_t)FULLSTEP_ELECTRIC_ANGLE);
 			volatile uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)liveMotorParams.fullStepsPerRotation);//convert to shaft angle
 			volatile uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
 			
@@ -268,8 +268,8 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		const uint8_t stepDivCal_q4 = (uint8_t)(((uint16_t)(CALIBRATION_TABLE_SIZE << 4U)) / liveMotorParams.fullStepsPerRotation);
 		const uint16_t microSteps = (((uint16_t)(microStep << 4U)) / stepDivCal_q4);
 		for(uint16_t i = 0; i<microSteps; ++i){	//move between measurements
-			electAngle += dir * (int32_t)(uint16_t)(A4950_STEP_MICROSTEPS/microStep);//dir can be negative on first pass depending on higher level settings
-			apply_current_command((uint16_t) electAngle, stepCurrent);
+			electAngle += dir * (int32_t)(uint16_t)(FULLSTEP_ELECTRIC_ANGLE/microStep);//dir can be negative on first pass depending on higher level settings
+			openloop_step((uint16_t) electAngle, stepCurrent);
 			delay_us(microStepDelay);
 		}
 	}
@@ -299,7 +299,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 
 	A4950_enable(true);
 
-	apply_current_command(0, CALIBRATION_STEPPING_CURRENT);
+	openloop_step(0, CALIBRATION_STEPPING_CURRENT);
 	delay_ms(50);
 
 	//determine first pass direction
@@ -312,7 +312,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	}
 	maxError = CalibrationMove(dir, verifyOnly, true);
 	//wait holding two phases (half a step) for less heat generation before triggering second pass
-	apply_current_command(A4950_STEP_MICROSTEPS/2U, CALIBRATION_STEPPING_CURRENT); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
+	openloop_step(FULLSTEP_ELECTRIC_ANGLE/2U, CALIBRATION_STEPPING_CURRENT); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
 		//second calibration pass the other direction - reduces influence of magnetic hysteresis
@@ -323,7 +323,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 		}
 	}
 	//measure new starting point
-	apply_current_command(0, 0); //release motor - 0mA
+	openloop_step(0, 0); //release motor - 0mA
 
 	return maxError;
 }
