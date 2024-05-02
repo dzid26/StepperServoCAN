@@ -28,13 +28,11 @@
 
 #include <stdint.h>
 
-extern const uint16_t rated_current; //mA
-extern const uint16_t rated_torque; //cNm
-extern const uint16_t phase_R; //mOhm
-extern const uint16_t phase_L; //uH
-extern const uint16_t motor_k_bemf; // mV/(rev/s)
+extern const int16_t phase_R; //mOhm
+extern const int16_t phase_L; //uH
+extern const int16_t motor_k_bemf; // mV/(rev/s)
 
-#define Ohm_to_mOhm 1000U
+#define Ohm_to_mOhm 1000
 
 //calculate actuator parameters to be used by control_api 
 extern volatile float gearing_ratio;

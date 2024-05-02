@@ -445,7 +445,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 		}
 
 		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		int16_t angleSensLatency = 150u;
+		int16_t angleSensLatency = 64u;
 		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
 		StepperCtrl_desired_current_vector(loadAngleSpeedComp, control);
 	
@@ -501,10 +501,11 @@ static void StepperCtrl_desired_current_vector(int16_t loadAngle, int16_t curren
 
 	uint16_t magnitude = ((current_target > 0) ? current_target : -current_target); //abs
 
-	if(volt_control){
+	if(volt_control == true){
 		//Iq, Id, Uq, Ud is FOC nomencluture
+		//U_q = U_IR + U_emf
 		int16_t I_q = current_target;
-		int16_t U_IR = (int16_t)((int32_t)I_q * (int32_t)phase_R / (int32_t)Ohm_to_mOhm);
+		int16_t U_IR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
 		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
 		int32_t U_q =(int16_t)(max(min(U_IR + U_emf, INT16_MAX), INT16_MIN));
 		apply_volt_command(absoluteMicrosteps, U_q, magnitude);

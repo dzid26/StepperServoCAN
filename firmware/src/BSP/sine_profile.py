@@ -78,6 +78,28 @@ plt.annotate('A-', (-1, 0), fontsize=12)
 plt.show()
 
 
+# BEMF rectification when nackdriving the motor
+Vfwd = 0.1 #mosfets intrinsic body diode voltage drop at no load
+plt.title("BEMF rectification")
+plt.plot(x, y_sin)
+plt.plot(x, y_cos)
+rectified = np.maximum(abs(y_sin)-Vfwd, abs(y_cos)-Vfwd)
+plt.plot(x, rectified)
+#under no load, it we will see peak stored in a capacitor, not average
+rectified_peak = x*0+max(rectified)
+plt.plot(x, rectified_peak)
+
+# Assuming perfect sine wave, average can be calculated by first integrating sin(x) between [pi/2,3/4pi]. The result is sqrt(2). 
+# Then to get average is sqrt(2)/(3/4pi-pi/2) = 2sqrt(2)/pi. 
+# But since we have a voltage drop, we reduce the integral as follows:
+# 2*(sqrt(2)-0.15*(pi/2))/pi = 0.75
+# rectified_avg = 2*(np.sqrt(2)-Vfwd*(np.pi/2))/np.pi  
+# plt.plot(x, x*0+rectified_avg)
+plt.legend(['phaseA', 'phaseB','rectified', 'rectified DC peak'])
+plt.show
+
+
+
 # %% scaling and formating to copy to c code
 y_sin_int = (y_sin * (SINE_MAX-1)).round().astype(np.int16)
 # y_sin_int_comp = y_sin_int * a4950_comp_sin
