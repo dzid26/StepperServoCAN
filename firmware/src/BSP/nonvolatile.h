@@ -29,7 +29,7 @@
 #include "flash.h"
 
 typedef struct {
-	uint16_t microsteps;
+	uint16_t fw_version;
 	RotationDir_t dirRotation;  //stores rotation direction
 	uint8_t reserved1;
 	uint16_t errorLimit;    //error limit before error pin asserts 65536==360degrees
@@ -73,7 +73,9 @@ typedef struct {
 #define PARAMETERS_FLASH_ADDR  		FLASH_PAGE62_ADDR
 #define CALIBRATION_FLASH_ADDR  	FLASH_PAGE63_ADDR
 
+// cppcheck-suppress-macro  misra-c2012-11.4 - loading values from mapped flash structure
 #define nvmFlashCalData				((FlashCalData_t*)CALIBRATION_FLASH_ADDR)
+
 
 //this is for wear leveling - sizeof(nvm_t) + 4bytes gap = 62 
 #define NONVOLATILE_STEPS			((uint32_t)62)		//! don't change, to maintain backward compatibility
@@ -82,6 +84,7 @@ typedef struct {
 
 // nvram mirror
 extern nvm_t nvmMirror;
+extern volatile uint32_t NVM_startAddress;
 
 extern volatile SystemParams_t liveSystemParams;
 extern volatile MotorParams_t liveMotorParams;

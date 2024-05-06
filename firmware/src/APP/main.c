@@ -31,6 +31,7 @@
 #include "actuator_config.h"
 #include "display.h"
 #include "delay.h"
+#include "upgrade.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -124,8 +125,8 @@ static void Begin_process(void)
 	board_init();	//set up the pins correctly on the board.
 
 	nonvolatile_begin();
-
 	validateAndInitNVMParams(); //systemParams init
+	app_upgrade_begin(); //eeprom rearangment manipulation between versions
 
 	display_begin(); //display init
 	Serivice_task_init(); //task init

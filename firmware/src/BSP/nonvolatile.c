@@ -30,7 +30,7 @@ volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 nvm_t nvmMirror;
-static uint32_t NVM_startAddress = PARAMETERS_FLASH_ADDR;
+volatile uint32_t NVM_startAddress = PARAMETERS_FLASH_ADDR;
 
 // Find nvm data actual address
 void nonvolatile_begin(void)
@@ -63,8 +63,9 @@ void nvmWriteCalTable(void *ptrData)
 }
 
 //NVM mirror - buffers NVM read/write
-void nvmMirrorInRam(void){
-	nvmMirror = *(nvm_t*)NVM_startAddress;//copy nvm from flash to ram
+static void nvmMirrorInRam(void){
+	//copy nvm from flash to ram
+	nvmMirror = *(nvm_t*)NVM_startAddress; // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
 }
 
 //Check if empty (invalid)
@@ -128,10 +129,11 @@ void validateAndInitNVMParams(void)
 	nvmMirrorInRam();
 
 	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
+		nvmMirror.systemParams.fw_version = VERSION;
+		
 		nvmMirror.pPID.Kp = .005f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 0.0f;
 		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
 
-		nvmMirror.systemParams.microsteps = 256U; //unused
 		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused
 		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
 		nvmMirror.systemParams.errorLimit = 0U;  //unused

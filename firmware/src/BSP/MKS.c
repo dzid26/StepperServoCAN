@@ -74,49 +74,6 @@ int menuTestCal(int argc, char *argv[])
 }
 
 
-
-options_t microstepOptions[] = {
-		{"1"},
-		{"2"},
-		{"4"},
-		{"8"},
-		{"16"},
-		{"32"},
-		{"64"},
-		{"128"},
-		{"256"},
-		{""}
-};
-
-int setMicrosteps(int argc, char *argv[])
-{
-	if (argc == 1)
-	{
-		uint16_t i,steps;
-		i = atol(argv[0]);
-		steps = 0x01 << i;
-		if (steps != nvmMirror.systemParams.microsteps)
-		{
-			nvmMirror.systemParams.microsteps = steps;
-			nvmWriteConfParms();
-		}
-		return i;
-	}else
-	{
-		uint16_t i,j;
-		i = nvmMirror.systemParams.microsteps;
-		for (j=0; j<9; j++)
-		{
-
-			if ((0x01<<j) == i)
-			{
-				return j;
-			}
-		}
-		return 0;
-	}
-}
-
 options_t controlLoopOptions[] = {
 		{"Simple"},
 		{"Pos PID"},
@@ -187,8 +144,6 @@ int changeDir(int argc, char *argv[])
 menuItem_t MenuMain[] = {
 		{"Calibrate", menuCalibrate, NULL},
 		{"Test Cal", menuTestCal, NULL},
-		// {"Current mA", motorCurrent, currentOptions},
-		{"Microstep", setMicrosteps, microstepOptions},
 		{"EnablePin", enablePin, enablePinOptions},
 		{"Rotation", changeDir, dirOptions},
 		{ "", NULL, NULL}
