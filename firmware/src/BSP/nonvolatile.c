@@ -131,7 +131,7 @@ void validateAndInitNVMParams(void)
 	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
 		nvmMirror.systemParams.fw_version = VERSION;
 		
-		nvmMirror.pPID.Kp = .005f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 0.0f;
+		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
 		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
 
 		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused

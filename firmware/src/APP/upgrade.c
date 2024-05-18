@@ -24,6 +24,19 @@ static void save_current_fw_version(void){
 
 void app_upgrade_begin(void){
 	uint16_t version_upgrade;
+
+	version_upgrade = 3002U;
+	if((read_previous_fw_version() < version_upgrade) && (read_current_fw_version() >= version_upgrade)){  // cppcheck-suppress  knownConditionTrueFalse
+		if (nvmMirror.pPID.Kp < 0.1f){
+			nvmMirror.pPID.Kp = 0.5f;
+		}
+		if (nvmMirror.pPID.Kd < 0.1f){
+			nvmMirror.pPID.Kd = 1.0f;
+		}
+		
+		nvmWriteConfParms();
+	}
+	
 	//upgrade v2 -> v3
 	version_upgrade = 3000U;
 	if((read_previous_fw_version() < version_upgrade) && (read_current_fw_version() >= version_upgrade)){  // cppcheck-suppress  knownConditionTrueFalse
