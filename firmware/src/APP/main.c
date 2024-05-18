@@ -130,6 +130,7 @@ static void Begin_process(void)
 
 	display_begin(); //display init
 	Serivice_task_init(); //task init
+	Motion_task_init(SAMPLING_PERIOD_uS);
 
 	display_show("StepperServoCAN", "initialization..", "", "");
 	delay_ms(10);

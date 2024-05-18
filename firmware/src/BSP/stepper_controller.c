@@ -143,7 +143,6 @@ stepCtrlError_t StepperCtrl_begin(void)
 		return STEPCTRL_NO_CAL;
 	}
 
-	Motion_task_init(SAMPLING_PERIOD_uS);
 
 	return STEPCTRL_NO_ERROR;
 }
