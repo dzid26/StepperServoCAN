@@ -25,7 +25,7 @@
   (_x > _high) ? _high : ((_x < _low) ? _low : _x);\
   })
 
-int32_t fastAbs(int32_t v);
+uint32_t fastAbs(int32_t v);
 
 #define PI_X1024 3217U
 #define TWO_PI_X1024 6434U
