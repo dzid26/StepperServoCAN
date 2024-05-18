@@ -22,7 +22,6 @@
 	@ Description:
 	Simple interface to read StepperCtrl_processMotion() global variables
 	All functions are supposed to be called from lesser priority task than StepperCtrl loop
-	Todo: if needed, create snapshot of all variables before read so all are synced
 */
 #include "control_api.h"
 #include "board.h"

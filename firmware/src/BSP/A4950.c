@@ -282,7 +282,6 @@ void phase_current_command(int16_t I_a, int16_t I_b)
 	}
 }
 
-//todo bridge is not fully opened when control is off?
 /**
  * @brief Voltage based phase activation with current limit
  * 

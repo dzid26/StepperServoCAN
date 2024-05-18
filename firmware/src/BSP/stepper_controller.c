@@ -174,7 +174,7 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		UpdateRuntimeParams();
 	}
 	
-	switch (mode) //TODO add more modes
+	switch (mode)
 	{
 	case STEPCTRL_OFF:
 		enableFeedback = false; //motor control using angle sensor feedback is off
@@ -182,7 +182,7 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		enableSoftOff = false;
 		A4950_enable(false);
 		break;
-	case STEPCTRL_FEEDBACK_POSITION_RELATIVE:
+	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
 		enableFeedback = true;
 		enableCloseLoop = true;
 		enableRelative = true;
@@ -200,7 +200,7 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		enableCloseLoop = true;
 		A4950_enable(true);
 		break;
-	case STEPCTRL_FEEDBACK_TORQUE:	//TODO
+	case STEPCTRL_FEEDBACK_TORQUE:
 		enableFeedback = true;
 		enableCloseLoop = false;
 		A4950_enable(true);
