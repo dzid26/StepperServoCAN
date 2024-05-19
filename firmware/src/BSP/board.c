@@ -52,23 +52,24 @@ static void NVIC_init(void)
 	nvic_initStructure.NVIC_IRQChannelCmd = ENABLE;
 	
 	nvic_initStructure.NVIC_IRQChannel = TIM1_BRK_IRQn;//PWM_TIM break-in
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
 
 	nvic_initStructure.NVIC_IRQChannel = TIM4_IRQn;//MOTION_TASK_TIM
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
 	
 	nvic_initStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 3;
-	nvic_initStructure.NVIC_IRQChannelSubPriority = 1;
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
 	
-	nvic_initStructure.NVIC_IRQChannel = TIM2_IRQn; //SERVICE_TASK_TIM
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 4;
-	nvic_initStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_Init(&nvic_initStructure);
 
+	nvic_initStructure.NVIC_IRQChannel = TIM2_IRQn; //SERVICE_TASK_TIM
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
 }
 
