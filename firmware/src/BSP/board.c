@@ -44,11 +44,9 @@ static void CLOCK_init(void)
 //Init NVIC
 static void NVIC_init(void)
 {
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); 
-	NVIC_SetPriority(SysTick_IRQn,15); //Not used currently
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
 	
 	NVIC_InitTypeDef nvic_initStructure;
-	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	nvic_initStructure.NVIC_IRQChannelCmd = ENABLE;
 	
 	nvic_initStructure.NVIC_IRQChannel = TIM1_BRK_IRQn;//PWM_TIM break-in
@@ -59,16 +57,20 @@ static void NVIC_init(void)
 	nvic_initStructure.NVIC_IRQChannel = TIM4_IRQn;//MOTION_TASK_TIM
 	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_Init(&nvic_initStructure);
-	
-	nvic_initStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
+	NVIC_Init(&nvic_initStructure);	
+
+	nvic_initStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn; //CAN bus
 	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
-	
+
+	nvic_initStructure.NVIC_IRQChannel = EXTI15_10_IRQn; //F1, F2 keys
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	nvic_initStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&nvic_initStructure);
 
 	nvic_initStructure.NVIC_IRQChannel = TIM2_IRQn; //SERVICE_TASK_TIM
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 4;
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
 }
@@ -122,12 +124,22 @@ static void TLE5012B_init(void)
 //Init switch IO
 static void SWITCH_init(void)
 {
-	//dip switches
+	//switches
 	GPIO_InitTypeDef  gpio_initStructure; 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    gpio_initStructure.GPIO_Pin = PIN_F1_KEY;
+    gpio_initStructure.GPIO_Pin = PIN_F1_KEY | PIN_F2_KEY;
     GPIO_Init(PIN_SW, &gpio_initStructure);
+
+	EXTI_DeInit();
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource14);
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource15);
+	EXTI_InitTypeDef EXTIInitStruct;
+	EXTIInitStruct.EXTI_Line = PIN_F1_INT | PIN_F2_INT;
+	EXTIInitStruct.EXTI_LineCmd = ENABLE;
+	EXTIInitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTIInitStruct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+	EXTI_Init(&EXTIInitStruct);
 
 	gpio_initStructure.GPIO_Pin = PIN_JP1 | PIN_JP2 | PIN_JP3;
 	GPIO_Init(GPIO_JP, &gpio_initStructure);
@@ -147,7 +159,6 @@ static void A4950_init(void)
 
 
 	//A4950 Vref pins
-	//RCC_APB2Periph_AFIO clock has to be enabled before remap
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);	//Release pins for VREF34, DIP2, DIP1
 	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);	 	//VREF_TIM
 
@@ -474,21 +485,42 @@ void adc_update_all(void){
 void board_init(void)
 {
 	CLOCK_init();
-	NVIC_init(); 
 	A4950_init();
 	Analog_init();
 	TLE5012B_init();
 	SWITCH_init();
 	LED_init();
 	CAN_begin();
+	NVIC_init(); 
 }
 
-bool F1_button_state(void)
-{
-	if (GPIO_ReadInputDataBit(PIN_SW, PIN_F1_KEY) == Bit_RESET){
-		return true; //low is pressed
+static bool F1_button;
+static bool F2_button;
+void EXTI15_10_IRQHandler(void){
+	if (EXTI_GetITStatus(PIN_F1_INT) != RESET){
+		if (GPIO_ReadInputDataBit(PIN_SW, PIN_F1_KEY) == Bit_RESET){
+			F1_button = true; //low is pressed
+		}else{
+			F1_button = false; //high is released
+		}
+		EXTI_ClearITPendingBit(PIN_F1_INT);
 	}
-	return false;
+	if (EXTI_GetITStatus(PIN_F2_INT) != RESET){
+		if (GPIO_ReadInputDataBit(PIN_SW, PIN_F2_KEY) == Bit_RESET){
+			F2_button = true; //low is pressed
+		}else{
+			F2_button = false; //high is released
+		}
+		EXTI_ClearITPendingBit(PIN_F2_INT);
+	}
+}
+
+bool F1_button_state(void){
+	return F1_button;
+}
+
+bool F2_button_state(void){
+	return F2_button;
 }
 
 //Set LED state

@@ -39,7 +39,9 @@
 //SW
 #define	PIN_SW              GPIOC
 #define	PIN_F1_KEY 			GPIO_Pin_14
+#define	PIN_F1_INT 			EXTI_Line14
 #define	PIN_F2_KEY 			GPIO_Pin_15
+#define	PIN_F2_INT 			EXTI_Line15
 #define	PIN_SW3_ENTER		PIN_F1_KEY
 
 #define	GPIO_JP             GPIOA
@@ -128,6 +130,7 @@
 void board_init(void);
 
 bool F1_button_state(void);
+bool F2_button_state(void);
 
 void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
