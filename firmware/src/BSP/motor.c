@@ -97,7 +97,7 @@ void field_oriented_control(int16_t current_target)
 		//Iq, Id, Uq, Ud per FOC nomencluture
 
 		//Qadrature axis
-		//U_q = U_IR + U_emf
+		//U_q = I_q*R + U_emf
 		int16_t U_IR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
 		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
 		int32_t U_q = U_IR + U_emf;
@@ -113,8 +113,8 @@ void field_oriented_control(int16_t current_target)
 		//U_d = I_q*ω*Rl
 		uint16_t motor_rev_to_elec_rad = (uint16_t)((uint32_t)TWO_PI_X1024 * liveMotorParams.fullStepsPerRotation / 4U / 1024U); //typically 314 (or 628 for 0.9deg motor)
 		int32_t e_rad_s = (int32_t)((int64_t)motor_rev_to_elec_rad * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_d = (int32_t)(-I_q_act) * phase_L / H_to_uH * e_rad_s; //Vd=Iq * ω*Rl
-		
+		int32_t U_d = (int32_t)((int64_t)(-I_q_act) * e_rad_s * phase_L / H_to_uH) ; //Vd=Iq * ω*Rl
+
 		int16_t U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
 		uint16_t magnitude = (uint16_t)((current_target > 0) ? I_q_act : -I_q_act); //abs
 		voltage_commutation(electricAngle, U_q_sat, U_d_sat, magnitude);
