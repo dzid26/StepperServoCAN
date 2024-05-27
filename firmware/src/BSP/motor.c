@@ -114,21 +114,18 @@ void field_oriented_control(int16_t current_target)
 		int32_t U_d = (int32_t)((int64_t)(-I_q_act) * e_rad_s * phase_L / H_to_uH) ; //Vd=Iq * ω*Rl
 
 		int32_t const max_speed = (int32_t)ANGLE_STEPS * 64; //64rev/s -> 3840rpm
-		int32_t base_speed = (int32_t)ANGLE_STEPS * U_lim / motor_k_bemf;//10rev/s@13V   - temporarily reduce by by the factor of two to be sure we start to trigger the weakening
+		int32_t base_speed = (int32_t)ANGLE_STEPS * U_lim / motor_k_bemf/2;//10rev/s@13V   - temporarily reduce by by the factor of two to be sure we start to trigger the weakening
 		int32_t above_base_speed_delta = clip(((int32_t)fastAbs(speed_slow)-base_speed), 0, max_speed); 
-		int32_t U_d_weakening = -(int32_t)((int64_t)above_base_speed_delta*U_lim/max_speed);
+		const int32_t fieldweak_coeff = 10000;
 		if(speed_slow<0){
-			U_d_weakening = -U_d_weakening;
+			// U_d_weakening = -U_d_weakening;
+			electricAngle -= above_base_speed_delta / fieldweak_coeff;
+		}else{
+			electricAngle += above_base_speed_delta / fieldweak_coeff;
 		}
-	
-		int16_t I_d = (int16_t)((int32_t)U_d_weakening * Ohm_to_mOhm / phase_R);//backcalcualte - should have opposite sign to I_q
-		int32_t U_q_I_dLw = (int32_t)((int64_t)I_d * e_rad_s * phase_L / H_to_uH);
-		// U_q_sat += U_q_I_dLw;
-		U_d +=  U_d_weakening;
-
 		int16_t U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
-		uint16_t magnitude = (uint16_t)((current_target > 0) ? I_q_act : -I_q_act); //abs
-		voltage_commutation(electricAngle, U_q_sat, U_d_sat, magnitude);
+		uint16_t magnitude = (uint16_t)((current_target > 0) ? 3000 : -3000); //abs
+		voltage_commutation(electricAngle, U_q_sat, 0, magnitude);
 	}else{
 		current_commutation(electricAngle, I_q, 0);
 		control_actual = (int16_t)clip(control, -MAX_CURRENT, MAX_CURRENT); // simplification - close to truth for low speeds
