@@ -11,10 +11,14 @@ static void inverse_park_transform(uint16_t elecAngle, int16_t Q, int16_t D, int
 	//calculate sine and cosine with ripple compensation
 	int16_t sin = sine_ripple(elecAngle, anticogging_factor);
 	int16_t cos = cosine_ripple(elecAngle, anticogging_factor);
-	
 
-	*A = (int16_t)((((int32_t)cos * D) - ((int32_t)sin * Q)) / (int32_t)SINE_MAX); //convert value with vref max corresponding to 3300mV
-	*B = (int16_t)((((int32_t)sin * D) + ((int32_t)cos * Q)) / (int32_t)SINE_MAX); //convert value with vref max corresponding to 3300mV
+	// max practical phase voltage is U_lim*sqrt(2)
+	int32_t a = ((((int32_t)cos * D) - ((int32_t)sin * Q)) / (int32_t)SINE_MAX);
+	int32_t b = ((((int32_t)sin * D) + ((int32_t)cos * Q)) / (int32_t)SINE_MAX);
+
+	//limit to int16_t (to -32V..32V)
+	*A = (int16_t)(int32_t)clip(a, INT16_MIN, INT16_MAX);
+	*B = (int16_t)(int32_t)clip(b, INT16_MIN, INT16_MAX);
 }
 
 /**
