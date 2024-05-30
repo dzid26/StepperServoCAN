@@ -115,15 +115,17 @@ void field_oriented_control(int16_t current_target)
 		int32_t e_rad_s = (int32_t)((int64_t)motor_rev_to_elec_rad * speed_slow / (int32_t)ANGLE_STEPS);
 		int32_t U_d = (int32_t)((int64_t)(-I_q_act) * e_rad_s * phase_L / H_to_uH) ; //Vd=Iq * ω*Rl
 
-		int32_t const max_speed = (int32_t)ANGLE_STEPS * 64; //64rev/s -> 3840rpm
-		int32_t base_speed = (int32_t)ANGLE_STEPS * U_lim / motor_k_bemf/2;//10rev/s@13V   - temporarily reduce by by the factor of two to be sure we start to trigger the weakening
-		int32_t above_base_speed_delta = clip(((int32_t)fastAbs(speed_slow)-base_speed), 0, max_speed); 
-		const int32_t fieldweak_coeff = 10000;
+		const int32_t fieldweak_k_bemf_reduction = 4;
+		int32_t max_speed = (int32_t)ANGLE_STEPS * U_lim / (motor_k_bemf/fieldweak_k_bemf_reduction);
+		int32_t base_speed = (int32_t)ANGLE_STEPS * U_lim / motor_k_bemf * 7/8;//10rev/s@13V
+		int32_t above_base_speed_delta = clip(((int32_t)fastAbs(speed_slow)-base_speed), 0, max_speed);
+		int32_t field_weakening_angle = (int32_t)FULLSTEP_ELECTRIC_ANGLE * above_base_speed_delta / (max_speed - base_speed);
+
 		if(speed_slow<0){
 			// U_d_weakening = -U_d_weakening;
-			electricAngle -= above_base_speed_delta / fieldweak_coeff;
+			electricAngle -= field_weakening_angle;
 		}else{
-			electricAngle += above_base_speed_delta / fieldweak_coeff;
+			electricAngle += field_weakening_angle;
 		}
 		int16_t U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
 		uint16_t magnitude = (uint16_t)((current_target > 0) ? 3000 : -3000); //abs
