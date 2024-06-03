@@ -249,14 +249,14 @@ bool StepperCtrl_processMotion(void)
 	int32_t currentLoc;
 	static int32_t lastLoc;
 	const int16_t speed_filter_tc = 128; //speed filter time constant
-	const int64_t error_filter_tc = 2; //error filter time constant - choose depending on CAN RX rate
+	const int8_t error_filter_tc = 2; //error filter time constant - choose depending on CAN RX rate
 	int32_t speed_raw;
 	int32_t error;
 	static int32_t desiredLoc_slow = 0;
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
 
 	loopError = desiredLocation - currentLoc;
-	desiredLoc_slow = (desiredLocation + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
+	desiredLoc_slow = (int32_t)(int64_t)(desiredLocation + (int64_t)(int8_t)(error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
 
 	if (enableRelative){
 		error = desiredLoc_slow;
@@ -265,7 +265,7 @@ bool StepperCtrl_processMotion(void)
 	}
 
 	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
-	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
+	speed_slow = (int32_t)(int64_t)((speed_raw + (int64_t)(int16_t)(speed_filter_tc-1) * speed_slow) / speed_filter_tc);
 
 	int32_t error_flt = errMovingAverage(error);
 
