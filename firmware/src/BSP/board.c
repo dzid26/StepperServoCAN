@@ -272,8 +272,9 @@ static void CAN_begin(void){
 	GPIO_Init(GPIOB, &gpio_initStructure);
 
 	/* Configure CAN RS pin */
-	// GPIO_Mode_IN_FLOATING for slew rate control
-	// GPIO_Mode_Out_PP for highest speed or standby mode
+	// GPIO_Mode_Out_PP low for max speed at short distances (20V/us)
+	// GPIO_Mode_IPD for slew rate control (5V/us)
+	// GPIO_Mode_Out_PP high for standby mode
 	gpio_initStructure.GPIO_Pin = GPIO_Pin_2;
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPD;
     gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
