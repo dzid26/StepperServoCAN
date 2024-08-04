@@ -13,10 +13,10 @@
 - A4950 current drivers (integrated mosfets) - **IMPORTANT** - do not back drive the motor without the [board modification](https://github.com/dzid26/RetroPilot-SERVO42B/wiki/Board-BEMF-protection-mod)
 
 ## Firmware
+- It uses Platformio build system, to configure, upload and debug the program
 - Uses ST's (old) Standard Peripheral Library (src/lib) for registers configuration
-- CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh` 
-- It uses Platformio to build, upload and debug the program
-- User can interract with Function buttons (F1 and F2) and Reset button (Rst) or via debug virtual serial, aka semihosting
+- CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh`
+- User can interact with the program using Function buttons (F1 and F2) and Reset button (Rst)
 
 ### Build and upload
 - Specify your programming dongle in `firmware/platformio.ini` - default is stlink
@@ -27,7 +27,8 @@
     platformio run
 ```
 - Upload firmware to the board by pressing Upload arrow at the status bar in VScode
-- Eeprom is not erased when flashing the firmware - any future calibration will not be lost.
+- Eeprom is not erased when flashing the firmware - any future calibration will not be lost
+- Eeprom can be erased to factory state using ST-Link tool or in Platformio activity bar ServoCAN_dev -> Custom -> Erase Flash
 
 ### Configuration
 - In `firmware/src/BSP/actuator_config.c` set:
