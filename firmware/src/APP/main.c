@@ -120,9 +120,9 @@ static void RunCalibration(void){
 volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
 static void Begin_process(void)
 {
-	update_actuator_parameters();
-
 	board_init();	//set up the pins correctly on the board.
+
+	update_actuator_parameters();
 
 	nonvolatile_begin();
 	validateAndInitNVMParams(); //systemParams init
