@@ -91,7 +91,7 @@ extern volatile PID_t vPID; //velocity PID control parameters
 //api - control states
 extern volatile bool StepperCtrl_Enabled;
 extern volatile stepCtrlError_t stepCtrlError;
-extern volatile bool enableFeedback;
+extern volatile bool enableSensored;
 extern volatile bool enableCloseLoop;
 extern volatile bool enableSoftOff;
 

@@ -35,7 +35,7 @@ volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 volatile bool StepperCtrl_Enabled = false;
-volatile bool enableFeedback = false; //motor control using sensor angle feedback scheme
+volatile bool enableSensored = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
 static volatile bool enableRelative = true;
@@ -89,7 +89,7 @@ static int32_t StepperCtrl_updateCurrentLocation(void)
 stepCtrlError_t StepperCtrl_begin(void)
 {
 	float x=9999.0f;
-	enableFeedback = false;
+	enableSensored = false;
 	currentLocation = 0;
 
 	//update the runtime storage from the NVM
@@ -177,46 +177,46 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 	switch (mode)
 	{
 	case STEPCTRL_OFF:
-		enableFeedback = false; //motor control using angle sensor feedback is off
+		enableSensored = false; //motor control using angle sensor feedback is off
 		// enableNoFeedback = false; //motor control fallback to open loop
 		enableSoftOff = false;
 		A4950_enable(false);
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = true;
 		enableRelative = true;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE:
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = true;
 		enableRelative = false;
 
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = true;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_TORQUE:
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_CURRENT:	//TODO
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = false;
 		enableSoftOff = true;
 		break;
 	default:
-		enableFeedback = false;
+		enableSensored = false;
 		enableCloseLoop = false;
 		A4950_enable(false);
 		break;
@@ -284,7 +284,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 
 	static int32_t iTerm_accu; //iTerm memory
 
-	if(enableFeedback){ //todo add openloop control
+	if(enableSensored){ //todo add openloop control
 		//todo add close loop intiazliation - I term with last control
 		if (enableSoftOff){
 			static uint16_t rampsteps = 0;

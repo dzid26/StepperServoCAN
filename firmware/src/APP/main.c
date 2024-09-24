@@ -204,7 +204,7 @@ void Service_task(void){
 
 	//go to Soft Off if motor is actively controlled but control signal is not received
 	bool comm_error = false;
-	if(enableFeedback){
+	if(enableSensored){
 		comm_error = (Check_Control_CAN_rx_validate_tick() == false);
 	}
 	if(comm_error)
