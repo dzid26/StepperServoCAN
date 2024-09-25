@@ -227,7 +227,7 @@ static void A4950_init(void)
 	GPIO_Init(PIN_A4950, &gpio_initStructure);
 
 	TIM_BDTRInitTypeDef tim_BDTRInitStructure = {0};
-	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
+	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;  // If enabled, keep EN port low to activate motor
 	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
 	TIM_BDTRConfig(PWM_TIM, &tim_BDTRInitStructure);
@@ -239,6 +239,7 @@ static void A4950_init(void)
 void TIM1_BRK_IRQHandler(void){ //PWM_TIM break-in
 	if(TIM_GetITStatus(PWM_TIM, TIM_IT_Break) != RESET) {
 		TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
+		// Break stop will not be smooth, but request soft off anyway in order not to be able to enable without requesting full off first
 		StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
 }
