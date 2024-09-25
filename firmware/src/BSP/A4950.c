@@ -89,7 +89,7 @@ inline static void bridgeA(int state)
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=1
 		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=1
-		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+10);
+		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 }
