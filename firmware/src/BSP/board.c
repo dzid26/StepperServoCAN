@@ -206,6 +206,7 @@ static void A4950_init(void)
  	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	tim_OCInitStructure.TIM_OutputNState = TIM_OutputState_Disable;
 	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	tim_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
 	tim_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset; //Motor coasting when idle is set to reset
 	tim_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
 	tim_OCInitStructure.TIM_Pulse = 0;
@@ -214,7 +215,7 @@ static void A4950_init(void)
 	TIM_OC2Init(PWM_TIM, &tim_OCInitStructure);	//CH2
 	TIM_OC3Init(PWM_TIM, &tim_OCInitStructure);	//CH3
 	TIM_OC4Init(PWM_TIM, &tim_OCInitStructure);	//CH4
-		
+
 	TIM_OC1PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
 	TIM_OC2PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
 	TIM_OC3PreloadConfig(PWM_TIM, TIM_OCPreload_Disable);
