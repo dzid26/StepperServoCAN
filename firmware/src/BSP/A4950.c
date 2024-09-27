@@ -241,8 +241,7 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4)
 
 void A4950_enable(bool enable)
 {
-	driverEnabled = enable;
-	if (driverEnabled == false)
+	if (enable == false)
 	{
 		set_curr(0,0); //turn current off
 
@@ -252,6 +251,7 @@ void A4950_enable(bool enable)
 	}else{
 		TIM_CtrlPWMOutputs(PWM_TIM, ENABLE);
 	}
+	driverEnabled = enable;
 }
 
 
