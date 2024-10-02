@@ -40,10 +40,11 @@
 BLUE LED (Function):
  - short single blink after user long presses `F1` button indicating button can be released
  - solid - waiting for user confirmation [of calibration] (either with `F1` button or Enter in Platformio OpenOCD debugger virtual serial console)
+
 RED LED (Error):
  - solid/dim/flickering - Motion task CPU overrun (shall not happen)
  - slowly blinking every 1s- encoder initialization error
- - solid with short interruption every 1s - waiting for power supply voltage to be above 8V (checks voltage every 1s)
+ - solid ~~with short interruption every 1s~~ - waiting for power supply voltage to be above 8V (checks voltage every 1s)
 ### Calibration and first run
 1. On first start default parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
