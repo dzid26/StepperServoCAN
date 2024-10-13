@@ -73,7 +73,7 @@ void StepperCtrl_setFeedForwardTorque(float actuator_torque){
 	}
 
 	if (api_allow_control) {
-		feedForward = Iq_feedforward_int;
+		StepperCtrl_setCurrent(Iq_feedforward_int);
 	}
 }
 
@@ -91,7 +91,7 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 	}
 
 	if (api_allow_control) {
-		closeLoopMaxDes = Iq_closeloopLim_int;
+		StepperCtrl_setCloseLoopCurrentLim(Iq_closeloopLim_int);
 	}
 }
 

@@ -224,6 +224,13 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 	mode_prev = mode;
 }
 
+void StepperCtrl_setCurrent(int16_t current){
+	feedForward = current;
+}
+
+void StepperCtrl_setCloseLoopCurrentLim(int16_t current){
+	closeLoopMaxDes = current;
+}
 
 #define AVG_WINDOW 8U
 static int32_t errMovingAverage(int32_t val) {

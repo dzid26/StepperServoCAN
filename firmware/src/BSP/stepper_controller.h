@@ -111,6 +111,8 @@ extern volatile int32_t loopError;
 stepCtrlError_t StepperCtrl_begin(void);
 void StepperCtrl_enable(bool enable);
 void StepperCtrl_setMotionMode(uint8_t mode);
+void StepperCtrl_setCurrent(int16_t current);
+void StepperCtrl_setCloseLoopCurrentLim(int16_t current);
 bool StepperCtrl_processMotion(void);
 
 
