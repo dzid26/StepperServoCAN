@@ -53,7 +53,7 @@ volatile int32_t currentLocation = 0;
 volatile int16_t closeLoop;
 volatile int16_t control;
 volatile int16_t control_actual;
-volatile int32_t speed_slow = 0;
+volatile int32_t speed_slow = 0; // rev/s/65536
 volatile int32_t loopError = 0;
 
 static void UpdateRuntimeParams(void)
@@ -271,7 +271,7 @@ bool StepperCtrl_processMotion(void)
 		error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 	}
 
-	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
+	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // rev/s/65536
 	speed_slow = (int32_t)(int64_t)((speed_raw + (int64_t)(int16_t)(speed_filter_tc-1) * speed_slow) / speed_filter_tc);
 
 	int32_t error_flt = errMovingAverage(error);
