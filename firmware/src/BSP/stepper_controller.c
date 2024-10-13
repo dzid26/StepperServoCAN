@@ -29,8 +29,6 @@
 #include "math.h"
 #include "motor.h"
 
-static bool StepperCtrl_simpleFeedback(int32_t error);
-
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
@@ -263,29 +261,17 @@ bool StepperCtrl_processMotion(void)
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
 
 	loopError = desiredLocation - currentLoc;
-	desiredLoc_slow = (int32_t)(int64_t)(desiredLocation + (int64_t)(int8_t)(error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
+	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // rev/s/65536
+	speed_slow = (int32_t)(int64_t)((speed_raw + (int64_t)(int16_t)(speed_filter_tc-1) * speed_slow) / speed_filter_tc);
+	lastLoc = currentLoc;
 
+	desiredLoc_slow = (int32_t)(int64_t)(desiredLocation + (int64_t)(int8_t)(error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
 	if (enableRelative){
 		error = desiredLoc_slow;
 	}else{
 		error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 	}
-
-	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // rev/s/65536
-	speed_slow = (int32_t)(int64_t)((speed_raw + (int64_t)(int16_t)(speed_filter_tc-1) * speed_slow) / speed_filter_tc);
-
 	int32_t error_flt = errMovingAverage(error);
-
-	no_error = StepperCtrl_simpleFeedback(error_flt);
-
-	lastLoc = currentLoc;
-	return no_error;
-}
-
-//this was written to do the PID loop not modeling a DC servo
-// but rather using features of stepper motor.
-static bool StepperCtrl_simpleFeedback(int32_t error)
-{
 	static int32_t lastError = 0;
 	static uint32_t errorCount = 0;
 
