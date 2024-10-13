@@ -52,4 +52,6 @@ int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
 void CalibrationTable_saveToFlash(void);
 void CalibrationTable_init(void);
 
+int8_t Estimate_motor_k_bemf();
+
 #endif

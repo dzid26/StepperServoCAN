@@ -31,9 +31,9 @@ float volatile current_to_actuatorTq;
 
 // todo move these parameters to NVRAM
 
-const int16_t phase_R = 3000;         // mOhm
-const int16_t phase_L = 3230;         // uH
-const int16_t motor_k_bemf = 1280+100; // mV/(rev/s)
+volatile int16_t phase_R = 3000;         // mOhm
+volatile int16_t phase_L = 3230;         // uH
+volatile int16_t motor_k_bemf = 1333; // mV/(rev/s)
 static float  motor_k_torque; //Nm/A
 
 // specify gearing parameters here:

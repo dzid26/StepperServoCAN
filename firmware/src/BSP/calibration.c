@@ -28,6 +28,7 @@
 #include "actuator_config.h"
 #include "main.h"
 #include "utils.h"
+#include "board.h"
 
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 
@@ -326,4 +327,63 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	openloop_step(0, 0); //release motor - 0mA
 
 	return maxError;
+}
+
+int8_t Estimate_motor_k_bemf() {
+	StepperCtrl_setMotionMode(STEPCTRL_OFF);
+	if (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE) {
+		return -1;
+	}
+	
+	// make sure U_d is 0
+	phase_L = 0;
+
+	//accelerate
+	StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
+	StepperCtrl_setCurrent(INT16_MAX);
+	delay_ms(300);
+	//measure base speed
+	uint32_t base_speed = fastAbs(speed_slow);
+	if (base_speed / ANGLE_STEPS < 1){ //require at least 1rev/s
+		// failed to accelerate sufficiently
+		StepperCtrl_setMotionMode(STEPCTRL_OFF);
+		debug_assert(0);
+		return -2;
+	}
+	uint32_t k_bemf = (uint32_t)GetMotorVoltage_mV() * ANGLE_STEPS / base_speed;
+
+	if (k_bemf > 5555U) {
+		// k_bemf not plausible
+		StepperCtrl_setMotionMode(STEPCTRL_OFF);
+		debug_assert(0);
+		return -3;
+	}
+
+	// update motor_k_bemf
+	StepperCtrl_setCurrent(MAX_CURRENT);
+	motor_k_bemf = (int16_t)k_bemf;
+
+	// make sure motor can stop at with 0Nm torque command with the new motor_k_bemf
+	// check both directions
+	for (int16_t pass = 0; pass < 2; ++pass) {
+		if (pass != 0) { //second pass
+			StepperCtrl_setCurrent(-MAX_CURRENT); //accelerate
+			delay_ms(300);
+		}
+		StepperCtrl_setCurrent(0);
+		for (int16_t i = 0; i < 10; ++i) {
+			delay_ms(100);
+			if (fastAbs(speed_slow) < base_speed * 9 / 10) {
+				break;
+				delay_ms(200);
+			}else{
+				// decay motor_k_bemf
+				motor_k_bemf = (int16_t)((int32_t)motor_k_bemf * 999 / 1000);
+			}
+		}	
+	}
+
+
+	StepperCtrl_setMotionMode(STEPCTRL_OFF);
+	return motor_k_bemf;
 }
