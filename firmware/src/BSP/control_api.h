@@ -22,6 +22,9 @@
 #define CONTROL_API_H
 
 #include <stdint.h>
+#include <stdbool.h>
+
+void apiAllowControl(bool allow);
 
 void StepperCtrl_setDesiredAngle(float deltaLocation);
 void StepperCtrl_setFeedForwardTorque(float Iq_feedforward);

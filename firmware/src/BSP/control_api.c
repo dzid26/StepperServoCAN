@@ -36,6 +36,12 @@
 
 #define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : -(x))	//shorthand for swapping direction
 
+static bool api_allow_control = false;
+
+void apiAllowControl(bool allow) {
+	api_allow_control = allow;
+}
+
 void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
 	float newLocation = roundf(DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio)));
 	//safe conversion to INT
@@ -47,8 +53,10 @@ void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
 	}else{
 		newLocation_int = (int32_t)newLocation;
 	}
-
-	desiredLocation = newLocation_int;
+	
+	if (api_allow_control) {
+		desiredLocation = newLocation_int;
+	}
 }
 
 //sets torque [Nm] in motion control loop 
@@ -63,7 +71,10 @@ void StepperCtrl_setFeedForwardTorque(float actuator_torque){
 	}else{
 		Iq_feedforward_int = (int16_t)Iq_feedforward;
 	}
-	feedForward = Iq_feedforward_int;
+
+	if (api_allow_control) {
+		feedForward = Iq_feedforward_int;
+	}
 }
 
 //sets max close loop torque [Nm] in motion control loop 
@@ -78,11 +89,17 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 	}else{
 		Iq_closeloopLim_int = (int16_t)Iq_closeloopLim;
 	}
-	closeLoopMaxDes = Iq_closeloopLim_int;
+
+	if (api_allow_control) {
+		closeLoopMaxDes = Iq_closeloopLim_int;
+	}
 }
 
 void StepperCtrl_setControlMode(uint8_t mode){ 
-	if ((stepCtrlError != STEPCTRL_NO_ERROR) || runCalibration){
+	if (stepCtrlError != STEPCTRL_NO_ERROR) {
+		return;
+	}
+	if (!api_allow_control){
 		return;
 	}
 	switch (mode){

@@ -71,6 +71,7 @@ void assert_failed(uint8_t* file, uint32_t line){
 volatile bool runCalibration = false;
 static void RunCalibration(void){
 	StepperCtrl_enable(false);
+	apiAllowControl(false);
 	runCalibration = true; //set again depending who calls the function
 
 	Set_Error_LED(true);
@@ -114,6 +115,7 @@ static void RunCalibration(void){
 
 	runCalibration = false;
 	StepperCtrl_enable(true);
+	apiAllowControl(true);
 }
 
 
@@ -173,7 +175,7 @@ static void Begin_process(void)
 
 	printf("Starting motion task\n");
 	StepperCtrl_enable(true);
-	
+	apiAllowControl(true);
 }
 
 

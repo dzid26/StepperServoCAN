@@ -14,8 +14,6 @@ void debug_assert_func(const char *file, int line, const char *func, const char 
 #endif /* DEBUG */
 
 
-extern volatile bool runCalibration; //calibration running
-
 //called from interrupt
 void Motion_task(void); 
 void Service_task(void);
