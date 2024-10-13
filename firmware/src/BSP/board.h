@@ -29,7 +29,7 @@
 
 #include "sine.h"
 
-
+#define MIN_SUPPLY_VOLTAGE	9.0f
 #define VOLT_DIV_RATIO(R1, R2) (((float) R2 / ((float)R1 + (float)R2)))
 #define ADC_12bit 4096
 //MCU power supply
