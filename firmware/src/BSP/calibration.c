@@ -329,21 +329,26 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	return maxError;
 }
 
+// Estimate motor k_bemf with no load
 int8_t Estimate_motor_k_bemf() {
 	StepperCtrl_setMotionMode(STEPCTRL_OFF);
 	if (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE) {
 		return -1;
 	}
 	
-	// make sure U_d is 0
-	phase_L = 0;
+	// make sure U_d is 0 by forcing phase_L=0 since we know there is no load
+	phase_L = 0; // todo restore/learn later
 
 	//accelerate
 	StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
 	StepperCtrl_setCurrent(INT16_MAX);
-	delay_ms(300);
-	//measure base speed
-	uint32_t base_speed = fastAbs(speed_slow);
+	//accelerate and observe (maximum) base speed
+	uint32_t base_speed = 0;
+	for (uint16_t i = 0; i < 300U; ++i) {
+		base_speed = max(base_speed, fastAbs(speed_slow));
+		delay_ms(1);
+	}
+
 	if (base_speed / ANGLE_STEPS < 1){ //require at least 1rev/s
 		// failed to accelerate sufficiently
 		StepperCtrl_setMotionMode(STEPCTRL_OFF);
@@ -373,7 +378,7 @@ int8_t Estimate_motor_k_bemf() {
 
 		StepperCtrl_setCurrent(0);
 		int16_t i = 0;
-		while ((fastAbs(speed_slow) > base_speed * 9 / 10) && (i < 10)) {
+		while ((fastAbs(speed_slow) > base_speed / 2) && (i < 100)) {
 			++i;
 			delay_ms(100);
 			// decay motor_k_bemf
@@ -381,7 +386,7 @@ int8_t Estimate_motor_k_bemf() {
 		}
 		delay_ms(200);
 	}
-
+	update_actuator_parameters();
 	StepperCtrl_setMotionMode(STEPCTRL_OFF);
 	return motor_k_bemf;
 }

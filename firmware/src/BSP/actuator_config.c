@@ -33,7 +33,8 @@ float volatile current_to_actuatorTq;
 
 volatile int16_t phase_R = 3000;         // mOhm
 volatile int16_t phase_L = 3230;         // uH
-volatile int16_t motor_k_bemf = 1333; // mV/(rev/s)
+volatile int16_t motor_k_bemf = 1380; // mV/(rev/s)
+// note, when motor_k_bemf is too low, the motor can have higher top speed when unloaded (unintentional field weakening via I_d), but power and torque will not be accurate
 static float  motor_k_torque; //Nm/A
 
 // specify gearing parameters here:
