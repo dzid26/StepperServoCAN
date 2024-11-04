@@ -370,19 +370,17 @@ int8_t Estimate_motor_k_bemf() {
 			StepperCtrl_setCurrent(-MAX_CURRENT); //accelerate
 			delay_ms(300);
 		}
-		StepperCtrl_setCurrent(0);
-		for (int16_t i = 0; i < 10; ++i) {
-			delay_ms(100);
-			if (fastAbs(speed_slow) < base_speed * 9 / 10) {
-				break;
-				delay_ms(200);
-			}else{
-				// decay motor_k_bemf
-				motor_k_bemf = (int16_t)((int32_t)motor_k_bemf * 999 / 1000);
-			}
-		}	
-	}
 
+		StepperCtrl_setCurrent(0);
+		int16_t i = 0;
+		while ((fastAbs(speed_slow) > base_speed * 9 / 10) && (i < 10)) {
+			++i;
+			delay_ms(100);
+			// decay motor_k_bemf
+			motor_k_bemf = (int16_t)((int32_t)motor_k_bemf * 999 / 1000);
+		}
+		delay_ms(200);
+	}
 
 	StepperCtrl_setMotionMode(STEPCTRL_OFF);
 	return motor_k_bemf;
