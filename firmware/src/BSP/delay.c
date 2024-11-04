@@ -21,48 +21,31 @@
 
 #include "delay.h"
 
-void delay_us (volatile uint32_t us)
-{
-	uint32_t i;
-	/**
-		* SystemCoreClock/1000000     1us
-		* SystemCoreClock/100000			10us
-		* SystemCoreClock/1000				1ms
-		*/
-	SysTick_Config (SystemCoreClock / 1000000); //1us
+// SystemCoreClock/1000000     	1us
+// SystemCoreClock/100000		10us
+// SystemCoreClock/1000			1ms
 
-	//value = 0��CTRL's bit16 will set 1
-	 for(i = 0; i < us; i++)
-			while (!((SysTick -> CTRL) & (1 << 16))); 
-	 
-	 //close SysTick tim
-	 SysTick -> CTRL &= ~SysTick_CTRL_ENABLE_Msk; //SysTick_CTRL_ENABLE_Msk,��Ϊ(1<<0)	 
+void delay_us (uint32_t us) {
+	SysTick_Config (SystemCoreClock / 1000000U); //1us
+
+	for(uint32_t i = 0U; i < us; ++i) {
+		while(((SysTick -> CTRL) & SysTick_CTRL_COUNTFLAG_Msk) == 0U);
+	}
+	//disable SysTick timer
+	SysTick -> CTRL &= ~SysTick_CTRL_ENABLE_Msk;
 }
 
-void delay_ms (volatile uint32_t ms)
-{
-		uint32_t i, t0;
-	/**
-		* SystemCoreClock/1000000     1us
-		* SystemCoreClock/100000			10us
-		* SystemCoreClock/1000				1ms
-		*/
-	SysTick_Config (SystemCoreClock / 1000); //1ms
-	
-	//value = 0��CTRL's bit16 will set 1
-	 for(i = 0; i < ms; i++)
-	 {
-			t0 = 0;
-			while (!((SysTick -> CTRL) & (1 << 16)))
-			{
-				t0++;
-				if(t0 > 20000) //1.3ms
-				{
-					break;
-				}
+void delay_ms (uint32_t ms) {
+	SysTick_Config (SystemCoreClock / 1000U); //1ms
+	for(uint32_t i = 0U; i < ms; ++i) {
+		uint16_t t0 = 0U;
+		while(((SysTick -> CTRL) & SysTick_CTRL_COUNTFLAG_Msk) == 0U){
+			++t0;
+			if(t0 > 20000U) { //1.3ms
+				break;
 			}
-	 }	 
-	 
-	 //close SysTick tim
-	 SysTick -> CTRL &= ~SysTick_CTRL_ENABLE_Msk;  
+		}
+	}
+	//disable SysTick timer
+	SysTick -> CTRL &= ~SysTick_CTRL_ENABLE_Msk;  
 }
