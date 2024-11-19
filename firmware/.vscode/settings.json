@@ -43,4 +43,7 @@
         "misc-include-cleaner",
         "readability-identifier-length"
     ],
+    "cSpell.words": [
+        "anticogging"
+    ],
 }

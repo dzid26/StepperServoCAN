@@ -27,6 +27,10 @@
 #define ACTUATOR_CONFIG_H
 
 #include <stdint.h>
+#include <stdbool.h>
+
+extern const bool USE_SIMPLE_PARAMETERS;
+extern const bool USE_VOLTAGE_CONTROL;
 
 extern volatile int16_t phase_R; //mOhm
 extern volatile int16_t phase_L; //uH

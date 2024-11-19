@@ -88,7 +88,7 @@ static uint16_t calc_electric_angle(bool volt_control){
 
 void field_oriented_control(int16_t current_target) 
 {
-	const bool volt_control = true;
+	const bool volt_control = USE_VOLTAGE_CONTROL;
 
 	uint16_t electricAngle = calc_electric_angle(volt_control);
 
