@@ -26,7 +26,7 @@
 #include "stepper_controller.h"
 
 // ----- should be set by the user --------------------------------------------------------------------------------
-const bool USE_VOLTAGE_CONTROL = true; // voltage or current control
+const bool USE_VOLTAGE_CONTROL = false; // voltage or current control - voltage control recommended for hardware v0.3
 
 // select simple or advanced parameters
 // simple parameters (rated torque and current) are usually overstated by manufacturers
@@ -36,10 +36,10 @@ const bool USE_SIMPLE_PARAMETERS = false;
 
 // SIMPLE PARAMETERS:
 const float motor_rated_current = (float) 1.3; // A
-const float motor_rated_torque =  (float) 45;  // Ncm
+const float motor_rated_torque =  (float) 28;  // Ncm
 
 // MEASURED PARAMETERS: // todo store these in NVRAM
-volatile int16_t motor_k_bemf = 1380; // mV/(rev/s) -   hold F2 to measure, use MCUViewer to see new motor_k_bemf value and update manually here
+volatile int16_t motor_k_bemf = 1360; // mV/(rev/s) -   hold F2 to measure, use MCUViewer to see new motor_k_bemf value and update manually here
 // note, when motor_k_bemf is too low, the motor can have higher top speed when unloaded (unintentional field weakening via I_d), but power and torque will not be accurate
 volatile int16_t phase_R = 2400;         // mOhm -      it's best to measure this
 volatile int16_t phase_L = 3230;         // uH -        use datasheet value or RLC meter to measure - correct value maximizes peak motor power
