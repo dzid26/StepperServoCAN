@@ -13,7 +13,7 @@ const bool USE_VOLTAGE_CONTROL = false; // voltage or current control - voltage 
 // simple parameters (rated torque and current) are usually overstated by manufacturers
 // use simple parameters if you don't want to measure motor_k_bemf
 // or use motor_k_bemf instead to get more accurate torque and current relationship
-const bool USE_SIMPLE_PARAMETERS = false;
+const bool USE_SIMPLE_PARAMETERS = true;
 
 // SIMPLE PARAMETERS:
 const float motor_rated_current = (float) 1.3; // A
