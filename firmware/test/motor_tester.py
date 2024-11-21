@@ -110,16 +110,11 @@ def CAN_tx_thread(p:Panda, bus):
   global _angle
   global _mode
   cnt_cmd = 0
-  dat = steering_msg_cmd_data(cnt_cmd, _mode, _torque, _angle)
-  p.can_send(MSG_STEERING_COMMAND_FRAME_ID, dat, bus)
-  
-  t_prev =0
   while True:
-    time.sleep(MOTOR_MSG_TS)
-    cnt_cmd += 1
-    dat = steering_msg_cmd_data(cnt_cmd % 0xF, _mode, _torque, _angle)
+    dat = steering_msg_cmd_data(cnt_cmd, _mode, _torque, _angle)
     p.can_send(MSG_STEERING_COMMAND_FRAME_ID, dat, bus)
-    
+    cnt_cmd = (cnt_cmd + 1) % 16
+    time.sleep(MOTOR_MSG_TS)
 
 def CAN_rx_thread(p, bus):
   t_status_msg_prev =0

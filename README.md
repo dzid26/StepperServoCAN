@@ -9,8 +9,8 @@
 ## Hardware
 - PCB Schematics repo [here](https://github.com/dzid26/StepperServo-hardware)
 - STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit, Cortex™-M3 CPU Core, 72MHz maximum frequency, 20k RAM, 64k Flash (but really 128k ??).
-- TLE5012 15bit magnetic (GMR) angle sensor. Also has temperature sensor.
-- A4950 current drivers (integrated mosfets) - **IMPORTANT** - do not back drive the motor without the [board modification](https://github.com/dzid26/RetroPilot-SERVO42B/wiki/Board-BEMF-protection-mod)
+- TLE5012 15bit magnetic (GMR) angle sensor. Also provides temperature sensing.
+- A4950 drivers with integrated mosfets and cureent limit 
 
 ## Firmware
 - It uses Platformio build system, to configure, upload and debug the program
@@ -41,10 +41,11 @@
 BLUE LED (Function):
  - short single blink after user long presses `F1` button indicating button can be released
  - solid - waiting for user confirmation [of calibration] (either with `F1` button or Enter in Platformio OpenOCD debugger virtual serial console)
+
 RED LED (Error):
  - solid/dim/flickering - Motion task CPU overrun (shall not happen)
  - slowly blinking every 1s- encoder initialization error
- - solid with short interruption every 1s - waiting for power supply voltage to be above 8V (checks voltage every 1s)
+ - solid ~~with short interruption every 1s~~ - waiting for power supply voltage to be above 8V (checks voltage every 1s)
 ### Calibration and first run
 1. On first start default parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
