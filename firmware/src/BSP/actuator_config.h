@@ -27,9 +27,17 @@
 #define ACTUATOR_CONFIG_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
-extern const uint16_t rated_current; //mA
-extern const uint16_t rated_torque; //cNm
+extern const bool USE_SIMPLE_PARAMETERS;
+extern const bool USE_VOLTAGE_CONTROL;
+
+extern volatile int16_t phase_R; //mOhm
+extern volatile int16_t phase_L; //uH
+extern volatile int16_t motor_k_bemf; // mV/(rev/s)
+
+#define Ohm_to_mOhm 1000
+#define H_to_uH 1000000
 
 //calculate actuator parameters to be used by control_api 
 extern volatile float gearing_ratio;

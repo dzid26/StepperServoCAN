@@ -24,19 +24,15 @@
 #include "stepper_controller.h"
 #include "nonvolatile.h"
 #include "board.h"
-#include "sine.h"
-#include "encoder.h"
-#include "actuator_config.h"
 #include "utils.h"
 
-#define MCU_VOUT mV_REF
 #define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
 
 
 // phase lead due to DAC low pass filter C=uF, R=1k; phase = -atan(2pi*f*R*C)  
 // generatePhaseLeadTable.py
 #define PHASE_LEAD_MAX_SPEED  250u //revs/s
-static const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
+const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 	0,   5,  10,  15,  20,  25,  30,  35,  40,  45,  49,  54,  58,
 	63,  67,  72,  76,  80,  84,  87,  91,  95,  98, 102, 105, 108,
 	111, 114, 117, 120, 123, 126, 128, 131, 133, 136, 138, 140, 142,
@@ -58,145 +54,255 @@ static const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 	234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 234, 235, 235,
 	235, 235, 235};
 
-volatile bool A4950_Enabled = false;
+volatile bool driverEnabled = false;
 
-//phase 1
-inline static void bridge1(int state)
+/** 
+ * Selects drive direction in current control mode
+ * Compatible with GPIO_Mode_Out_PP and GPIO_Mode_AF_PP (timer) pin configurations
+**/
+inline static void bridgeA(int state)
 {
-	if (state == 0) //Forward
+	//Make sure the PIN_A4950_INs timer is counting to 1 to emulate GPIO
+	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
+	if (state == 1) //Forward
 	{	//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
 		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
+		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare2(PWM_TIM, 0);
 	}
-	if (state == 1) //Reverse
+	if (state == 0) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0	
 		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1
+		TIM_SetCompare1(PWM_TIM, 0);
+		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 3) //Coast (off)
 	{
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
+		TIM_SetCompare1(PWM_TIM, 0);
+		TIM_SetCompare2(PWM_TIM, 0);
 	}
 	if (state == 4) //brake
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=1
 		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=1
+		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 }
 
-//phase 2
-inline static void bridge2(int state)
-{
-	if (state == 0) //Forward
+/** 
+ * Selects drive direction in current control mode
+ * Compatible with GPIO_Mode_Out_PP and GPIO_Mode_AF_PP (timer) pin configurations
+**/
+inline static void bridgeB(int state)
+{	
+	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
+	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
+	if (state == 1) //Forward
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
+		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare4(PWM_TIM, 0);
 	}
-	if (state == 1) //Reverse
+	if (state == 0) //Reverse
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
+		TIM_SetCompare3(PWM_TIM, 0);
+		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 3) //Coast (off)
 	{
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
+		TIM_SetCompare3(PWM_TIM, 0);
+		TIM_SetCompare4(PWM_TIM, 0);
 	}
 	if (state == 4) //brake
 	{
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN3=1
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN4=1
+		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
+}
+
+//return duty with a maximum value VREF_TIM_MAX
+/**
+ * @brief Calculates duty with a maximum value VREF_TIM_MAX
+ * 
+ * @param current 
+ * @return uint16_t 
+ */
+static uint16_t current_to_Vref_duty(uint16_t current)
+{
+	const uint16_t I_RS_A4950_rat = RS_A4950/I_RS_A4950_div; //mOhm to Ohm and 10x multiplier
+	uint16_t vref = current * I_RS_A4950_rat;
+
+	//limit Vref to MCU voltage
+	uint16_t mcu_volt = GetMcuVoltage_mV();
+	if(vref > mcu_volt){
+		vref = mcu_volt;
+	}
+	uint16_t vref_duty = (uint16_t)((uint32_t) vref * VREF_TIM_MAX / mcu_volt);
+	return vref_duty;
 }
 
 //Set reference voltage for the current driver regulator using PWM and RC filter
-inline static void setVREF(uint16_t VREF12, uint16_t VREF34)
+inline static void set_curr(uint16_t curr_lim_A, uint16_t curr_lim_B)
 {
-	
-	
-	//VREF12,34 between 0 and VREF_MAX corrresponds to 0 and MCU_VOUT mVolts
-	TIM_SetCompare2(VREF_TIM, VREF12);
-	TIM_SetCompare1(VREF_TIM, VREF34);
+	uint16_t vref12 = current_to_Vref_duty(curr_lim_A);
+	uint16_t vref34 = current_to_Vref_duty(curr_lim_B);
+
+	//VREF12,34 between 0 and VREF_TIM_MAX corrresponds to 0 and mcu_volt mVolts
+	TIM_SetCompare2(VREF_TIM, vref12);
+	TIM_SetCompare1(VREF_TIM, vref34);
 
 }
 
+/**
+ * @brief Set the PWM bridgeA duty cycle
+ * 
+ * @param duty - value between zero and PWM_TIM_MAX
+ * @param quadrant1or2
+ */
+static const bool slow_decay = true;
+static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
+{
+	//Make sure the PIN_A4950_INs have running timer
+	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
+
+	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
+
+	//duty_A,B between 0 and PWM_MAX corresponds to 0 and v_mot
+	//quadrant1or2,3or4 - determines which phase is used
+
+	if (slow_decay) //slow decay, zero duty is brake (phase shorted to ground ob both ends)
+	{	 //electric field quadrant
+		if (quadrant1or2)
+		{ 		//"forward slow decay"
+			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX);
+			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX - pwm_count);
+		}else{	//"reverse slow decay"
+			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX - pwm_count);
+			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX);
+		}
+	}else{	//fast decay, zero duty is coast (phase is floatinmg on both ends)
+		if (quadrant1or2)
+		{ 		//"forward fast decay"
+			TIM_SetCompare1(PWM_TIM, pwm_count);
+			TIM_SetCompare2(PWM_TIM, 0);
+		}else{	//"reverse fast decay"
+			TIM_SetCompare1(PWM_TIM, 0);
+			TIM_SetCompare2(PWM_TIM, pwm_count);
+		}
+	}
+}
+
+/**
+ * @brief Set the PWM bridgeB duty cycle
+ * 
+ * @param duty - value between zero and PWM_TIM_MAX
+ * @param quadrant3or4
+ */
+static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4)
+{
+	//Make sure the PIN_A4950_INs are configured as PWM
+	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
+
+	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
+
+	if (slow_decay)
+	{	 //electric field quadrant
+		if (quadrant3or4)
+		{		//"forward slow decay"
+			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX);
+			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX - pwm_count);
+		}else{	//"reverse slow decay"
+			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX - pwm_count);
+			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX);
+		}
+	}else{		
+		if (quadrant3or4)
+		{		//"forward fast decay
+			TIM_SetCompare3(PWM_TIM, pwm_count);
+			TIM_SetCompare4(PWM_TIM, 0);
+		}else{	//"reverse fast decay"
+			TIM_SetCompare3(PWM_TIM, 0);
+			TIM_SetCompare4(PWM_TIM, pwm_count);
+		}
+	}
+}
 
 void A4950_enable(bool enable)
 {
-	A4950_Enabled = enable;
-	
-	if (A4950_Enabled == false)
+	if (enable == false)
 	{
-		setVREF(0,0); //turn current off
-		bridge1(3); //tri state bridge outputs
-		bridge2(3); //tri state bridge outputs
+		set_curr(0,0); //turn current off
+
+		bridgeA(3); //tri state bridge outputs
+		bridgeB(3); //tri state bridge outputs
+		TIM_CtrlPWMOutputs(PWM_TIM, DISABLE);
+	}else{
+		TIM_CtrlPWMOutputs(PWM_TIM, ENABLE);
 	}
+	driverEnabled = enable;
 }
 
 
-// this is precise move and modulo of A4950_STEP_MICROSTEPS is a full step.
-// stepAngle is in A4950_STEP_MICROSTEPS units..
-// The A4950 has no idea where the motor is, so the calling function has to
-// tell the A4950 what phase to drive motor coils.
-// A4950_STEP_MICROSTEPS is 256 by default so stepAngle of 1024 is 360 degrees
-// Note you can only move up to +/-A4950_STEP_MICROSTEPS from where you
-// currently are.
-
-void A4950_move(uint16_t stepAngle, uint16_t mA) //256 stepAngle is 90 electrical degrees, aka full step
+/**
+ * @brief Current based phase activation
+ * 
+ * @param I_a - phase A requested current
+ * @param I_b - phase B requested current
+ * @param curr_lim - current limit applied to each phase
+ */
+void phase_current_command(int16_t I_a, int16_t I_b)
 {
-	uint16_t vrefY;
-	uint16_t vrefX;
-
-	uint16_t elecAngleStep;
-	int16_t sin;
-	int16_t cos;
-	
-	uint16_t stepPhaseLead = dacPhaseLead[min((uint32_t) fastAbs(speed_slow) / ANGLE_STEPS, PHASE_LEAD_MAX_SPEED - 1U)];
-	if (speed_slow > 0){
-		elecAngleStep = stepAngle + stepPhaseLead;
-	}else{
-		elecAngleStep = stepAngle - stepPhaseLead;	
-	}
-
-	if (A4950_Enabled == false)
+	if (driverEnabled == false)
 	{
-		setVREF(0,0); 	//turn current off
-		bridge1(3); 	//tri state bridge outputs
-		bridge2(3); 	//tri state bridge outputs
+		set_curr(0,0); 	//turn current off
+		bridgeA(3); 	//tri state bridge outputs
+		bridgeB(3); 	//tri state bridge outputs
 		return;
 	}
 
-	//calculate modified sine and cosine of our elecAngleStep
-	sin = sine_ripple(elecAngleStep, anticogging_factor);
-	cos = cosine_ripple(elecAngleStep, anticogging_factor);
+	set_curr(fastAbs(I_a), fastAbs(I_b));
 
-	//limit Vref to 3300mV
-	const uint16_t I_RS_A4950_rat = RS_A4950/I_RS_A4950_div; //mOhm to Ohm and 10x multiplier
-	uint16_t vref = mA * I_RS_A4950_rat;
-	if(vref > MCU_VOUT){
-		vref = MCU_VOUT;
-	}
-
-	//Modified Park transform for Iq current. Here load angle is introduced ~ +/-90 degrees which controls the direction (instead of current sign in Park)
-	vrefX = (uint16_t)((uint32_t) vref * (uint32_t)fastAbs(sin) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
-	vrefY = (uint16_t)((uint32_t) vref * (uint32_t)fastAbs(cos) / MCU_VOUT / VREF_SINE_RATIO); //convert value with vref max corresponding to 3300mV
-
-	setVREF(vrefX,vrefY); //VREF12	VREF34
-
-	if (sin < 0)
-	{
-		bridge1(1);
-	}else
-	{
-		bridge1(0);
-	}
-	if (cos < 0)
-	{	//reverse coils actuatoion if phases are swapped or reverse direction is selected
-		bridge2(motorParams.motorWiring ? 1u : 0u); 
-	}else
-	{
-		bridge2(motorParams.motorWiring ? 0u : 1u); 
+	bridgeA((I_a > 0) ? 1 : 0);
+	if(liveMotorParams.swapPhase){
+		bridgeB((I_b > 0) ? 0 : 1);
+	}else{
+		bridgeB((I_b > 0) ? 1 : 0);
 	}
 }
 
+/**
+ * @brief Voltage based phase activation with current limit
+ * 
+ * @param U_a - phase A requested voltage
+ * @param U_b - phase B requested voltage
+ * @param curr_lim - current limit applied to each phase
+ */
+void phase_voltage_command(int16_t U_a, int16_t U_b, uint16_t curr_lim)
+{	
+	if (driverEnabled == false)
+	{
+		set_curr(0,0); 	//turn current off
+		bridgeA(3); 	//tri state bridge outputs
+		bridgeB(3); 	//tri state bridge outputs
+		return;
+	}
+	set_curr(curr_lim, curr_lim); 
+
+	uint16_t U_in = GetMotorVoltage_mV();
+	uint16_t duty_a = (uint16_t)(fastAbs(U_a) * PWM_TIM_MAX / U_in);
+	uint16_t duty_b = (uint16_t)(fastAbs(U_b) * PWM_TIM_MAX / U_in);
+	setPWM_bridgeA(duty_a, (U_a > 0)); //PWM12
+	setPWM_bridgeB(duty_b, liveMotorParams.swapPhase ? (U_b < 0) : (U_b > 0)); //PWM34
+}

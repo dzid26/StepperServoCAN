@@ -21,12 +21,14 @@
  
 #include "calibration.h"
 #include "nonvolatile.h"
-#include "A4950.h"
+#include "flash.h"
+#include "motor.h"
 #include "encoder.h"
 #include "delay.h"
 #include "actuator_config.h"
 #include "main.h"
 #include "utils.h"
+#include "board.h"
 
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 
@@ -145,14 +147,14 @@ float StepperCtrl_measureStepSize(void){
 	uint16_t angle2;
 	A4950_enable(true);
 
-	uint16_t stepCurrent = I_MAX_A4950;
+	uint16_t stepCurrent = CALIBRATION_STEPPING_CURRENT;
 	// Measure the full step size
 	// Note we assume machine can take one step without issue///
-	A4950_move(0, stepCurrent); //fix the stepper
+	openloop_step(0, stepCurrent); //fix the stepper
 	delay_ms(200);
 	angle1 = OverSampleEncoderAngle(100U); //angle1 - (0-65535)
 	
-	A4950_move(A4950_STEP_MICROSTEPS, stepCurrent); //move one step 'forward'
+	openloop_step(FULLSTEP_ELECTRIC_ANGLE, stepCurrent); //move one step 'forward'
 	delay_ms(200);
 	angle2 = OverSampleEncoderAngle(100U); //angle2 - (0-65535)
 
@@ -162,7 +164,7 @@ float StepperCtrl_measureStepSize(void){
 	float deg_delta = ANGLERAW_T0_DEGREES(angle_delta);
 	
 	//move back
-	A4950_move(0,stepCurrent);
+	openloop_step(0,stepCurrent);
 	A4950_enable(false);
 
 	return deg_delta;
@@ -191,9 +193,9 @@ static void CalibrationTable_normalizeStartIdx(void){
 		//full electric angle in terms of calibrations points 
 		//electrical angle repeats every 4 full steps
 		//for CALIBRATION_TABLE_SIZE=50 and 200steps, full elec angle is every single cal point, for 400steps it is every half a point
-		uint16_t fullElecAngleCalPoints = (4U * CALIBRATION_TABLE_SIZE / motorParams.fullStepsPerRotation); 
+		uint16_t fullElecAngleCalPoints = (4U * CALIBRATION_TABLE_SIZE / liveMotorParams.fullStepsPerRotation); 
 		uint16_t shiftBy;
-		if(fullElecAngleCalPoints>1){
+		if(fullElecAngleCalPoints > 1U){
 			shiftBy = wrapIdx - (wrapIdx % fullElecAngleCalPoints);
 		}else{
 			shiftBy = wrapIdx;
@@ -214,11 +216,11 @@ static void CalibrationTable_normalizeStartIdx(void){
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
 static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
-	const uint16_t stepCurrent = I_MAX_A4950;
+	const uint16_t stepCurrent = CALIBRATION_STEPPING_CURRENT;
 	const uint16_t microStepDelay = 30U;  	//[uS] controls calibration speed
 	const uint16_t stabilizationDelay = 0U; //[uS] wait for taking measurements - some medium stopping time can cause resonance, long stopping time can cause oveheat
 	const uint16_t stepOversampling = 3U;  		//measurements to take per point, note large will take some time
-	const uint16_t microStep = A4950_STEP_MICROSTEPS; //microsteping resolution in between taking measurements
+	const uint16_t microStep = FULLSTEP_ELECTRIC_ANGLE; //microsteping resolution in between taking measurements
 
 	static int32_t electAngle;//electric angle - static carry value over between passes
 	if (firstPass){
@@ -232,8 +234,8 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 		bool preRun = (step < preRunSteps); //rotate some to stabilize hysteresis before starting actual calibration
 		if (!preRun) {
 			delay_us(stabilizationDelay);
-			volatile int16_t calcStep = (int16_t)(electAngle / (int16_t)A4950_STEP_MICROSTEPS);
-			volatile uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)motorParams.fullStepsPerRotation);//convert to shaft angle
+			volatile int16_t calcStep = (int16_t)(electAngle / (int16_t)FULLSTEP_ELECTRIC_ANGLE);
+			volatile uint16_t expectedAngle = (uint16_t)(int32_t)((int32_t)calcStep * (int32_t)ANGLE_STEPS / (int16_t)liveMotorParams.fullStepsPerRotation);//convert to shaft angle
 			volatile uint16_t cal = (CalibrationTable_getCal(expectedAngle)); //(0-65535) - this is necessary for the second pass
 			
 			volatile uint16_t sampled = OverSampleEncoderAngle(stepOversampling);
@@ -259,16 +261,16 @@ static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
 			}
 			if(!verifyOnly){
 				volatile int16_t calIdx;
-				calIdx = (calcStep / (int16_t)(uint16_t)(motorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE));
+				calIdx = (calcStep / (int16_t)(uint16_t)(liveMotorParams.fullStepsPerRotation / CALIBRATION_TABLE_SIZE));
 				calIdx = (calIdx + (int16_t)CALIBRATION_TABLE_SIZE*2) % (int16_t)CALIBRATION_TABLE_SIZE; //adds 2*CALIBRATION_TABLE_SIZE, to make sure modulo gives positive value 
 				CalibrationTable_updateTableValue((uint16_t)calIdx, anglePass);
 			}
 		}
-		const uint8_t stepDivCal_q4 = (uint8_t)(((uint16_t)(CALIBRATION_TABLE_SIZE << 4U)) / motorParams.fullStepsPerRotation);
+		const uint8_t stepDivCal_q4 = (uint8_t)(((uint16_t)(CALIBRATION_TABLE_SIZE << 4U)) / liveMotorParams.fullStepsPerRotation);
 		const uint16_t microSteps = (((uint16_t)(microStep << 4U)) / stepDivCal_q4);
 		for(uint16_t i = 0; i<microSteps; ++i){	//move between measurements
-			electAngle += dir * (int32_t)(uint16_t)(A4950_STEP_MICROSTEPS/microStep);//dir can be negative on first pass depending on higher level settings
-			A4950_move((uint16_t) electAngle, stepCurrent);
+			electAngle += dir * (int32_t)(uint16_t)(FULLSTEP_ELECTRIC_ANGLE/microStep);//dir can be negative on first pass depending on higher level settings
+			openloop_step((uint16_t) electAngle, stepCurrent);
 			delay_us(microStepDelay);
 		}
 	}
@@ -298,20 +300,20 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 
 	A4950_enable(true);
 
-	A4950_move(0, motorParams.currentMa);
+	openloop_step(0, CALIBRATION_STEPPING_CURRENT);
 	delay_ms(50);
 
 	//determine first pass direction
 	int8_t dir;
 	//check if dir sign matches - on the first pass rotate the same direction as positive torque request
-	if((gearing_ratio > 0.f) == (systemParams.dirRotation == CW_ROTATION)){
+	if((gearing_ratio > 0.f) == (liveSystemParams.dirRotation == CW_ROTATION)){
 		dir = 1;
 	}else{
 		dir = -1;
 	}
 	maxError = CalibrationMove(dir, verifyOnly, true);
 	//wait holding two phases (half a step) for less heat generation before triggering second pass
-	A4950_move(A4950_STEP_MICROSTEPS/2U, I_MAX_A4950); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
+	openloop_step(FULLSTEP_ELECTRIC_ANGLE/2U, CALIBRATION_STEPPING_CURRENT); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
 		//second calibration pass the other direction - reduces influence of magnetic hysteresis
@@ -322,7 +324,69 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 		}
 	}
 	//measure new starting point
-	A4950_move(0, 0); //release motor - 0mA
+	openloop_step(0, 0); //release motor - 0mA
 
 	return maxError;
+}
+
+// Estimate motor k_bemf with no load
+int8_t Estimate_motor_k_bemf() {
+	StepperCtrl_setMotionMode(STEPCTRL_OFF);
+	if (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE) {
+		return -1;
+	}
+	
+	// make sure U_d is 0 by forcing phase_L=0 since we know there is no load
+	phase_L = 0; // todo restore/learn later
+
+	//accelerate
+	StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
+	StepperCtrl_setCurrent(INT16_MAX);
+	//accelerate and observe (maximum) base speed
+	uint32_t base_speed = 0;
+	for (uint16_t i = 0; i < 300U; ++i) {
+		base_speed = max(base_speed, fastAbs(speed_slow));
+		delay_ms(1);
+	}
+
+	if (base_speed / ANGLE_STEPS < 1){ //require at least 1rev/s
+		// failed to accelerate sufficiently
+		StepperCtrl_setMotionMode(STEPCTRL_OFF);
+		debug_assert(0);
+		return -2;
+	}
+	uint32_t k_bemf = (uint32_t)GetMotorVoltage_mV() * ANGLE_STEPS / base_speed;
+
+	if (k_bemf > 5555U) {
+		// k_bemf not plausible
+		StepperCtrl_setMotionMode(STEPCTRL_OFF);
+		debug_assert(0);
+		return -3;
+	}
+
+	// update motor_k_bemf
+	StepperCtrl_setCurrent(MAX_CURRENT);
+	motor_k_bemf = (int16_t)k_bemf;
+
+	// make sure motor can stop at with 0Nm torque command with the new motor_k_bemf
+	// check both directions
+	for (int16_t pass = 0; pass < 2; ++pass) {
+		if (pass != 0) { //second pass
+			StepperCtrl_setCurrent(-MAX_CURRENT); //accelerate
+			delay_ms(300);
+		}
+
+		StepperCtrl_setCurrent(0);
+		int16_t i = 0;
+		while ((fastAbs(speed_slow) > base_speed / 2) && (i < 100)) {
+			++i;
+			delay_ms(100);
+			// decay motor_k_bemf
+			motor_k_bemf = (int16_t)((int32_t)motor_k_bemf * 999 / 1000);
+		}
+		delay_ms(200);
+	}
+	update_actuator_parameters();
+	StepperCtrl_setMotionMode(STEPCTRL_OFF);
+	return motor_k_bemf;
 }

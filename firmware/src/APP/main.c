@@ -31,6 +31,7 @@
 #include "actuator_config.h"
 #include "display.h"
 #include "delay.h"
+#include "upgrade.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -68,8 +69,10 @@ void assert_failed(uint8_t* file, uint32_t line){
 }
 
 volatile bool runCalibration = false;
+volatile bool runKbemfEstimation = false;
 static void RunCalibration(void){
 	StepperCtrl_enable(false);
+	apiAllowControl(false);
 	runCalibration = true; //set again depending who calls the function
 
 	Set_Error_LED(true);
@@ -113,22 +116,24 @@ static void RunCalibration(void){
 
 	runCalibration = false;
 	StepperCtrl_enable(true);
+	apiAllowControl(true);
 }
 
 
 volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
 static void Begin_process(void)
 {
-	update_actuator_parameters();
-
 	board_init();	//set up the pins correctly on the board.
 
-	nonvolatile_begin();
+	update_actuator_parameters();
 
+	nonvolatile_begin();
 	validateAndInitNVMParams(); //systemParams init
+	app_upgrade_begin(); //eeprom rearangment manipulation between versions
 
 	display_begin(); //display init
 	Serivice_task_init(); //task init
+	Motion_task_init(SAMPLING_PERIOD_uS);
 
 	display_show("StepperServoCAN", "initialization..", "", "");
 	delay_ms(10);
@@ -166,19 +171,25 @@ static void Begin_process(void)
 	}
 	Set_Error_LED(false);
 
-	display_setMenu(MenuMain);
 	printf("Initialization successful\n");
 	
 
 	printf("Starting motion task\n");
 	StepperCtrl_enable(true);
-	
+
+	apiAllowControl(true);
 }
 
 
 static void Background_process(void){
 	if(runCalibration){
 		RunCalibration();
+	}
+	if(runKbemfEstimation){
+		apiAllowControl(false);
+		Estimate_motor_k_bemf();
+		runKbemfEstimation = false;
+		apiAllowControl(true);
 	}
 }
 
@@ -203,7 +214,7 @@ void Service_task(void){
 
 	//go to Soft Off if motor is actively controlled but control signal is not received
 	bool comm_error = false;
-	if(enableFeedback){
+	if(enableSensored){
 		comm_error = (Check_Control_CAN_rx_validate_tick() == false);
 	}
 	if(comm_error)
@@ -211,9 +222,9 @@ void Service_task(void){
 		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
 
+	const uint16_t button_delay_calib = 200U;//hold 2s to trigger calibration
 	//Function button and LED processing
 	static uint16_t f1_button_count = 0; //centiseconds
-	const uint16_t button_delay_calib = 200U;//hold 2s to trigger re-calibration
 	if(F1_button_state() && (stepCtrlError == STEPCTRL_NO_ERROR)){//look for button long press
 		f1_button_count++;
 		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
@@ -225,6 +236,21 @@ void Service_task(void){
 	}
 	if(!F1_button_state()){
 		f1_button_count=0;
+	}
+
+	//Function button and LED processing
+	static uint16_t f2_button_count = 0; //centiseconds
+	if(F2_button_state() && (stepCtrlError == STEPCTRL_NO_ERROR)){//look for button long press
+		f2_button_count++;
+		StepperCtrl_setControlMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
+	}
+	if(f2_button_count == (button_delay_calib-10U))	{Set_Func_LED(true);} 	//short LED blink
+	if(	f2_button_count == button_delay_calib)		{Set_Func_LED(false);}
+	if((f2_button_count >= button_delay_calib)  && (!F2_button_state())){ 	//wait for button release
+		runKbemfEstimation = true;
+	}
+	if(!F2_button_state()){
+		f2_button_count=0;
 	}
 }
 

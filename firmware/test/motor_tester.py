@@ -124,7 +124,7 @@ def CAN_rx_thread(p, bus):
     time.sleep(MOTOR_MSG_TS/10) #read fast enough so the CAN interface buffer is cleared each loop
     t = time.time()
     can_recv = p.can_recv()
-    for address, _, dat, src in can_recv:
+    for address, dat, src in can_recv:
       if src == bus and address == MSG_STEERING_STATUS_FRAME_ID:
         if t - t_status_msg_prev > 0.0001:
           hz = 1/(t - t_status_msg_prev)

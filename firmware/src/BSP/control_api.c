@@ -22,7 +22,6 @@
 	@ Description:
 	Simple interface to read StepperCtrl_processMotion() global variables
 	All functions are supposed to be called from lesser priority task than StepperCtrl loop
-	Todo: if needed, create snapshot of all variables before read so all are synced
 */
 #include "control_api.h"
 #include "board.h"
@@ -33,28 +32,36 @@
 #include "encoder.h"
 #include "main.h"
 #include "Msg.h"
+#include "math.h"
 
-#define DIR_SIGN(x) ((systemParams.dirRotation==CW_ROTATION) ? (x) : (-x))	//shorthand for swapping direction
+#define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : -(x))	//shorthand for swapping direction
+
+static bool api_allow_control = false;
+
+void apiAllowControl(bool allow) {
+	api_allow_control = allow;
+}
 
 void StepperCtrl_setDesiredAngle(float actuator_angle_delta){
-	float newLocation = DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio));
-	
+	float newLocation = roundf(DIR_SIGN(DEGREES_TO_ANGLERAW(actuator_angle_delta * gearing_ratio)));
 	//safe conversion to INT
 	int32_t newLocation_int;
-	if (newLocation > INT32_MAX){
+	if (newLocation > INT32_MAX){ // INT32_MAX will be represented as INT32_MAX+1, but it still works when casting to int32_t
 		newLocation_int = INT32_MAX;
 	}else if (newLocation < INT32_MIN){
 		newLocation_int = INT32_MIN;
 	}else{
 		newLocation_int = (int32_t)newLocation;
 	}
-
-	desiredLocation = newLocation_int;
+	
+	if (api_allow_control) {
+		desiredLocation = newLocation_int;
+	}
 }
 
 //sets torque [Nm] in motion control loop 
 void StepperCtrl_setFeedForwardTorque(float actuator_torque){ 
-	float Iq_feedforward = DIR_SIGN(actuator_torque * actuatorTq_to_current); //convert actuator output torque to Iq current
+	float Iq_feedforward = roundf(DIR_SIGN(actuator_torque * actuatorTq_to_current)); //convert actuator output torque to Iq current
 	//safe conversion
 	int16_t Iq_feedforward_int;
 	if(Iq_feedforward > INT16_MAX){
@@ -64,12 +71,15 @@ void StepperCtrl_setFeedForwardTorque(float actuator_torque){
 	}else{
 		Iq_feedforward_int = (int16_t)Iq_feedforward;
 	}
-	feedForward = Iq_feedforward_int;
+
+	if (api_allow_control) {
+		StepperCtrl_setCurrent(Iq_feedforward_int);
+	}
 }
 
 //sets max close loop torque [Nm] in motion control loop 
 void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error correction max torque
-	float Iq_closeloopLim = actuator_torque_cl_max * actuatorTq_to_current; //convert actuator output torque to Iq current
+	float Iq_closeloopLim = roundf(actuator_torque_cl_max * actuatorTq_to_current); //convert actuator output torque to Iq current
 	//safe conversion
 	int16_t Iq_closeloopLim_int;
 	if(Iq_closeloopLim > INT16_MAX){
@@ -79,11 +89,17 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 	}else{
 		Iq_closeloopLim_int = (int16_t)Iq_closeloopLim;
 	}
-	closeLoopMaxDes = Iq_closeloopLim_int;
+
+	if (api_allow_control) {
+		StepperCtrl_setCloseLoopCurrentLim(Iq_closeloopLim_int);
+	}
 }
 
 void StepperCtrl_setControlMode(uint8_t mode){ 
-	if ((stepCtrlError != STEPCTRL_NO_ERROR) || runCalibration){
+	if (stepCtrlError != STEPCTRL_NO_ERROR) {
+		return;
+	}
+	if (!api_allow_control){
 		return;
 	}
 	switch (mode){
@@ -126,7 +142,7 @@ float StepperCtrl_getCloseLoop(void) {
 //returns current control actuator torque
 float StepperCtrl_getControlOutput(void) {
 	int16_t ret;
-	ret = control;
+	ret = control_actual;
 	return DIR_SIGN(ret) * current_to_actuatorTq; //convert total control (mA) to actuator output torque
 }
 
@@ -145,7 +161,7 @@ float StepperCtrl_getPositionError(void) {
 }
 
 
-extern volatile bool A4950_Enabled;
+extern volatile bool driverEnabled;
 extern volatile uint32_t can_err_rx_cnt;
 
 uint16_t StepperCtrl_getStatuses(void){
@@ -154,18 +170,18 @@ uint16_t StepperCtrl_getStatuses(void){
  
 	// control loop status
 	ret1 |= (StepperCtrl_Enabled ? 0x1U : 0x0U) << 0U;
-	ret1 |= (enableFeedback ? 0x1U : 0x0U) << 1U;
+	ret1 |= (enableSensored ? 0x1U : 0x0U) << 1U;
 	ret1 |= (enableSoftOff ? 0x1U : 0x0U) << 2U;
 	ret1 |= (enableCloseLoop ? 0x1U : 0x0U) << 3U;
 
 	//debug - other
-	ret2 |= (A4950_Enabled ? 0x1U : 0x0U) << 0U;
+	ret2 |= (driverEnabled ? 0x1U : 0x0U) << 0U;
 	ret2 |= (motion_task_isr_enabled ? 0x1U : 0x0U) << 1U; //here should be always 0
 
 	// actuator parameters
-	ret2 |= (motorParams.motorWiring ? 0x1U : 0x0U) << 2U;
-	ret2 |= (systemParams.dirRotation ? 0x1U : 0x0U) << 3U;
-	ret2 |= (systemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
+	ret2 |= (liveMotorParams.swapPhase ? 0x1U : 0x0U) << 2U;
+	ret2 |= (liveSystemParams.dirRotation ? 0x1U : 0x0U) << 3U;
+	ret2 |= (liveSystemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
 
 	//CAN checksum 
 	ret2 |= ((can_err_rx_cnt > 0U) ? 0x1U : 0x0U) << 5U;

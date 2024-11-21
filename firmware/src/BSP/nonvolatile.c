@@ -24,27 +24,27 @@
 #include "stepper_controller.h"
 #include "encoder.h"
 
-volatile MotorParams_t motorParams;
-volatile SystemParams_t systemParams;
-volatile PID_t sPID; //simple control loop PID parameters
+volatile MotorParams_t liveMotorParams;
+volatile SystemParams_t liveSystemParams;
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
-nvm_t nvmParams = {0};
-volatile uint32_t NVM_address = PARAMETERS_FLASH_ADDR;
+nvm_t nvmMirror;
+volatile uint32_t NVM_startAddress = PARAMETERS_FLASH_ADDR;
 
-//NVM_address
+// Find nvm data actual address
 void nonvolatile_begin(void)
 {
 	uint32_t i = ((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); //(1024/62) = 16(0~15)
 	
-	NVM_address = PARAMETERS_FLASH_ADDR;
-	
+	NVM_startAddress = PARAMETERS_FLASH_ADDR;
+
+	//search for the beginning of the last parameters structure segment (wear leveling)	
 	for(i=((FLASH_PAGE_SIZE / NONVOLATILE_STEPS) - 1); i > 0; i--)
 	{
 		if( Flash_readHalfWord( (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS)) ) != invalid )
 		{
-			NVM_address = (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS));
+			NVM_startAddress = (PARAMETERS_FLASH_ADDR + (i * NONVOLATILE_STEPS));
 			return;
 		}
 	}
@@ -62,41 +62,60 @@ void nvmWriteCalTable(void *ptrData)
 	}
 }
 
-void nvmWriteConfParms(nvm_t* ptrNVM)
-{		
+//NVM mirror - buffers NVM read/write
+static void nvmMirrorInRam(void){
+	//copy nvm from flash to ram
+	nvmMirror = *(nvm_t*)NVM_startAddress; // cppcheck-suppress  misra-c2012-11.4 - loading values from mapped flash structure
+}
+
+//Check if empty (invalid)
+bool nvmFlashCheck(uint32_t address, size_t n)
+{
+	uint32_t i;
+	for(i=0; i < n; i++)
+	{
+		if( Flash_readHalfWord( address + (i * 2) ) != invalid )
+			return false;
+	}
+	return true;
+}
+
+
+//currently only used once - after first boot
+void nvmWriteConfParms(void){
+	nvm_t* ptr_nvmMirror = &nvmMirror;
+	ptr_nvmMirror->motorParams.parametersValid  = valid;
+	ptr_nvmMirror->systemParams.parametersValid = valid;
+	
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
-	
-	ptrNVM->motorParams.parametersValid  = valid;
-	ptrNVM->SystemParams.parametersValid = valid;
-	
-	if(Flash_readHalfWord(NVM_address) != invalid && ((NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
+	//wear leveling
+	if(Flash_readHalfWord(NVM_startAddress) != invalid && ((NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
 	{
-		NVM_address += NONVOLATILE_STEPS;
+		NVM_startAddress += NONVOLATILE_STEPS;
 		
-		while( Flash_checknvmFlash(NVM_address, sizeof(nvm_t)/2U) == false )
-		{																													 
-			if( (NVM_address + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
+		while(nvmFlashCheck(NVM_startAddress, sizeof(nvm_t)/2U) == false )
+		{
+			if( (NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE))
 			{
-				NVM_address += NONVOLATILE_STEPS;
+				NVM_startAddress += NONVOLATILE_STEPS;
 			}
 			else
 			{
-				NVM_address = PARAMETERS_FLASH_ADDR;
-				Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+				NVM_startAddress = PARAMETERS_FLASH_ADDR;
+				Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptr_nvmMirror, (sizeof(nvm_t)/2U));
 				return;
 			}
 		}
-		Flash_ProgramSize(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+		Flash_ProgramSize(NVM_startAddress, (uint16_t*)ptr_nvmMirror, (sizeof(nvm_t)/2U));
 	}
 	else 
 	{
-		NVM_address = PARAMETERS_FLASH_ADDR;
-		Flash_ProgramPage(NVM_address, (uint16_t*)ptrNVM, (sizeof(nvm_t)/2U));
+		NVM_startAddress = PARAMETERS_FLASH_ADDR;
+		Flash_ProgramPage(NVM_startAddress, (uint16_t*)ptr_nvmMirror, (sizeof(nvm_t)/2U));
 	}
-	
-	motorParams = NVM->motorParams; //update motorParams
-	systemParams = NVM->SystemParams; //update systemParams
+
+	nvmMirrorInRam();
 	
 	if (state) {
 		Motion_task_enable();	
@@ -104,27 +123,33 @@ void nvmWriteConfParms(nvm_t* ptrNVM)
 	return;
 }
 
-//check the NVM and set to defaults if there is any
+//parameters first boot defaults and restore on corruption
 void validateAndInitNVMParams(void)
 {
-	if (NVM->SystemParams.parametersValid != valid) //SystemParams invalid
-	{
-		nvmParams.sPID.Kp = .5;  nvmParams.sPID.Ki = .001;  nvmParams.sPID.Kd = 2;
-		nvmParams.pPID.Kp = 1.0;  nvmParams.pPID.Ki = 0.0; 	  nvmParams.pPID.Kd = 0.0;
-		nvmParams.vPID.Kp = 2.0;  nvmParams.vPID.Ki = 1.0; 	  nvmParams.vPID.Kd = 1.0;
+	nvmMirrorInRam();
 
-		nvmParams.SystemParams.microsteps = 256; //unused
-		nvmParams.SystemParams.controllerMode = CTRL_SIMPLE;  //unused
-		nvmParams.SystemParams.dirRotation = CCW_ROTATION;
-		nvmParams.SystemParams.errorLimit = (int32_t)DEGREES_TO_ANGLERAW(1.8);  //unused
-		nvmParams.SystemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
+	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
+		nvmMirror.systemParams.fw_version = VERSION;
+		
+		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
+		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
 
-		if(NVM->motorParams.parametersValid == valid)
-		{
-			nvmParams.motorParams = NVM->motorParams;
-			nvmWriteConfParms(&nvmParams);
-		}
+		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused
+		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
+		nvmMirror.systemParams.errorLimit = 0U;  //unused
+		nvmMirror.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
 	}
-	//the motor parameters are check in the stepper_controller code
+
+	if(nvmMirror.motorParams.parametersValid != valid){
+		nvmMirror.motorParams.swapPhase = false;
+		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with swapPhase
+	}
+
+	if((nvmMirror.systemParams.parametersValid != valid) || (nvmMirror.motorParams.parametersValid != valid)){
+		nvmWriteConfParms(); //save defaults
+	}
+
+	//the motor parameters are later checked in the stepper_controller code
 	// as that there we can auto set much of them.
+
 }

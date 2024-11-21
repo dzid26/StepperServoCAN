@@ -28,9 +28,9 @@
 #define SINE_PI     ((uint16_t)256)
 #define SINE_MAX	((uint16_t)32768)
 
-int16_t sine(uint16_t angle);
-int16_t cosine(uint16_t angle);
-int16_t sine_ripple(uint16_t angle, int8_t strength);
-int16_t cosine_ripple(uint16_t angle, int8_t strength);
+int16_t sine(uint16_t electric_angle);
+int16_t cosine(uint16_t electric_angle);
+int16_t sine_ripple(uint16_t electric_angle, int8_t strength);
+int16_t cosine_ripple(uint16_t electric_angle, int8_t strength);
 
 #endif

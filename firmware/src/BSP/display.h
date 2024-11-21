@@ -22,7 +22,7 @@
 #ifndef __DISPLAY_H
 #define __DISPLAY_H
 
-#include "stdio.h"
+#include <stdio.h>
 
 typedef struct{
 	char str[15];

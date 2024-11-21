@@ -2,7 +2,7 @@
     "script": "addons/naming.py",
     "args": [
         "--private-member-variable=m[A-Z].*",
-        "--var=[_a-z].*",
+        "--var=(?:[_a-z].*|[_a-zA-Z]{1}_)",
         "--const=[_a-zA-Z].*",
         "--function=[a-zA-Z].*"
     ]

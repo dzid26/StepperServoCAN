@@ -13,10 +13,10 @@
 - A4950 drivers with integrated mosfets and cureent limit 
 
 ## Firmware
+- It uses Platformio build system, to configure, upload and debug the program
 - Uses ST's (old) Standard Peripheral Library (src/lib) for registers configuration
-- CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh` 
-- It uses Platformio to build, upload and debug the program
-- User can interract with Function buttons (F1 and F2) and Reset button (Rst) or via debug virtual serial, aka semihosting
+- CAN handling c-code is generated from dbc file using cantools. See `generate_Msg.sh`
+- User can interact with the program using Function buttons (F1 and F2) and Reset button (Rst)
 
 ### Build and upload
 - Specify your programming dongle in `firmware/platformio.ini` - default is stlink
@@ -27,7 +27,8 @@
     platformio run
 ```
 - Upload firmware to the board by pressing Upload arrow at the status bar in VScode
-- Eeprom is not erased when flashing the firmware - any future calibration will not be lost.
+- Eeprom is not erased when flashing the firmware - any future calibration will not be lost
+- Eeprom can be erased to factory state using ST-Link tool or in Platformio activity bar ServoCAN_dev -> Custom -> Erase Flash
 
 ### Configuration
 - In `firmware/src/BSP/actuator_config.c` set:
@@ -125,9 +126,19 @@ If SocketCAN interfaces are not found, the program will abort.
 ## Contributing
 - Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is preconfigured with (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode. Ask priv about the `misra_rules_set_cppcheck.txt` for cppcheck.
 
+### Debugging
+- In VScode press F5 to start debugging using Platformio
+
+The debugging session is setup to use semihosting when debugging and some debug information is printed to the *debug console*. When debugging, the motor calibration can be initiated by liong pressing F1 as usual, but then to start calibration used can press any key in the console. This is not very reliable though and sometimes calibration will start on debug events.
+
+### Signal logging
+STM32 has an ability to view and edit global variables using SWD debug interface
+- connect to debug port and launch [STMViewer](https://github.com/klonyyy/STMViewer). Load example configuration `firmware/swdio.STMViewer.cfg`
+
+
 ## BSP Firmware License 
 - The firmware is based on Misfittech project which is based on [nano_stepper](https://github.com/Misfittech/nano_stepper) project and it inherited GPL V3 license
-- I continue [GPL v3 license](https://github.com/dzid26/RetroPilot-SERVO42B/blob/openpilot_S42B/LICENSE) scheme as required for the software derivatives
+- [GPL v3 license](https://github.com/dzid26/RetroPilot-SERVO42B/blob/openpilot_S42B/LICENSE) scheme as required for the software derivatives
 - Derivatives of this software under GPLv3 license will also need to remain open source if distributed commercially.
 
 ## Atributions

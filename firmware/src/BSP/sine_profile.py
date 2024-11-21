@@ -61,8 +61,16 @@ plt.plot(x, y_cos_mod)
 #phasor plot
 plt.plot(x, (y_sin)**2+(y_cos)**2)
 plt.plot(x, y_sin_mod**2+y_cos_mod**2)
-plt.legend(['sin(x)', 'cos(x)', 'sin(x) mod', 'cos(x) mod', 'combined sin(x) cos(x)', 'combined sin(x)_mod, cos(x)_mod'])
+plt.legend(['sin(x)', 'cos(x)', 'sin(x) mod', 'cos(x) mod', 'magnitude', 'magnitude mod'])
 plt.show()
+
+#max phase voltage
+plt.plot(x, y_sin + y_cos)
+plt.plot(x, y_sin_mod + y_cos_mod)
+plt.legend(['combined sin(x) cos(x)', 'combined sin(x)_mod, cos(x)_mod'])
+plt.show()
+print("Max: " + str(max(y_sin + y_cos)))
+print("Max modded: " + str(max(y_sin_mod + y_cos_mod)))
 
 #torque circle
 plt.plot((y_sin),(y_cos))
@@ -76,6 +84,28 @@ plt.annotate('B+', (0, 1), fontsize=12)
 plt.annotate('B-', (0, -1), fontsize=12)
 plt.annotate('A-', (-1, 0), fontsize=12)
 plt.show()
+
+
+# BEMF rectification when nackdriving the motor
+Vfwd = 0.1 #mosfets intrinsic body diode voltage drop at no load
+plt.title("BEMF rectification")
+plt.plot(x, y_sin)
+plt.plot(x, y_cos)
+rectified = np.maximum(abs(y_sin)-Vfwd, abs(y_cos)-Vfwd)
+plt.plot(x, rectified)
+#under no load, it we will see peak stored in a capacitor, not average
+rectified_peak = x*0+max(rectified)
+plt.plot(x, rectified_peak)
+
+# Assuming perfect sine wave, average can be calculated by first integrating sin(x) between [pi/2,3/4pi]. The result is sqrt(2). 
+# Then to get average is sqrt(2)/(3/4pi-pi/2) = 2sqrt(2)/pi. 
+# But since we have a voltage drop, we reduce the integral as follows:
+# 2*(sqrt(2)-0.15*(pi/2))/pi = 0.75
+# rectified_avg = 2*(np.sqrt(2)-Vfwd*(np.pi/2))/np.pi  
+# plt.plot(x, x*0+rectified_avg)
+plt.legend(['phaseA', 'phaseB','rectified', 'rectified DC peak'])
+plt.show
+
 
 
 # %% scaling and formating to copy to c code

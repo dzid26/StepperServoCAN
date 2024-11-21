@@ -25,74 +25,73 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "calibration.h"
-typedef enum {
-	CW_ROTATION = 0,
-	CCW_ROTATION = 1,
-} RotationDir_t; //sizeof(RotationDir_t)=1
-
-typedef enum {
-	ERROR_PIN_MODE_ENABLE = 0, //error pin works like enable on step sticks
-	ERROR_PIN_MODE_ACTIVE_LOW_ENABLE = 1, //error pin works like enable on step sticks
-} ErrorPinMode_t; //sizeof(ErrorPinMode_t)=1
-
-typedef enum {
-	CTRL_SIMPLE = 0, //simple error controller
-	CTRL_POS_PID =1, //PID  Position controller
-	CTRL_POS_VELOCITY_PID = 2, //PID  Velocity controller
-} feedbackCtrl_t; //sizeof(feedbackCtrl_t)=1
-
-#pragma pack(4)
-typedef struct {
-	__attribute__((__aligned__(4))) float Kp;
-	__attribute__((__aligned__(4))) float Ki;
-	__attribute__((__aligned__(4))) float Kd;
-} PIDparams_t;
-
-#pragma pack(2)
-typedef struct {
-	__attribute__((__aligned__(2))) uint16_t currentMa;   //maximum current for the motor
-	__attribute__((__aligned__(2))) uint16_t currentHoldMa; //hold current for the motor
-	__attribute__((__aligned__(2))) bool motorWiring;  //forward wiring of motor or reverse
-	__attribute__((__aligned__(2))) uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
-	__attribute__((__aligned__(2))) uint16_t parametersValid;
-} MotorParams_t; //sizeof(MotorParams_t)=14
-
-#pragma pack(2)
-typedef struct {
-	__attribute__((__aligned__(2))) uint16_t microsteps;    //number of microsteps on the dir/step pin interface from host
-	__attribute__((__aligned__(2))) RotationDir_t dirRotation;  //stores rotation direction
-	__attribute__((__aligned__(2))) uint16_t errorLimit;    //error limit before error pin asserts 65536==360degrees
-	__attribute__((__aligned__(2))) ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
-	__attribute__((__aligned__(2))) feedbackCtrl_t controllerMode; //feedback mode for the controller
-	__attribute__((__aligned__(2))) uint16_t parametersValid;
-} SystemParams_t; //sizeof(SystemParams_t)=18
+#include "stepper_controller.h"
+#include "flash.h"
 
 typedef struct {
-	SystemParams_t 	SystemParams;
+	uint16_t fw_version;
+	RotationDir_t dirRotation;  //stores rotation direction
+	uint8_t reserved1;
+	uint16_t errorLimit;    //error limit before error pin asserts 65536==360degrees
+	uint16_t reserved2;
+	ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
+	feedbackCtrl_t controllerMode; //feedback mode for the controller
+	uint16_t parametersValid;
+} SystemParams_t; //sizeof(SystemParams_t)=12
+
+typedef struct {
+	uint16_t reserved1;
+	uint16_t reserved2;
+	bool     swapPhase;			// motor rotating in opposite direction to angle sensor
+	uint8_t  reserved3;
+	uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
+	uint16_t parametersValid;
+} MotorParams_t; //sizeof(MotorParams_t)=10
+
+typedef struct {
+	float Kp;
+	float Ki;
+	float Kd;
+} PIDparams_t; //2xsizeof(PIDparams_t)=12
+
+typedef struct {
+	uint32_t reserved1;
+	uint32_t reserved2;
+	uint32_t reserved3;
+} Reserved_t;
+
+#pragma pack(2) //removes 2byte padding between motorParams and pPid - this is mostly for back compatibility at this point
+typedef struct {
+	SystemParams_t 	systemParams;
 	MotorParams_t 	motorParams;
-	PIDparams_t 		sPID; //simple PID parameters
-	PIDparams_t 		pPID; //position PID parameters
-	PIDparams_t 		vPID; //velocity PID parameters
-} nvm_t;
+	PIDparams_t 	pPID; //simple PID parameters
+	PIDparams_t 	vPID; //position PID parameters
+	Reserved_t 		reserved;
+} nvm_t; //sizeof(nvm_t)=58
+#pragma pack()
 
 #define PARAMETERS_FLASH_ADDR  		FLASH_PAGE62_ADDR
 #define CALIBRATION_FLASH_ADDR  	FLASH_PAGE63_ADDR
 
-#define NVM										((nvm_t*)NVM_address)
+// cppcheck-suppress-macro  misra-c2012-11.4 - loading values from mapped flash structure
 #define nvmFlashCalData				((FlashCalData_t*)CALIBRATION_FLASH_ADDR)
 
-#define NONVOLATILE_STEPS				((uint32_t)62)		//sizeof(nvm_t) = 60
 
+//this is for wear leveling - sizeof(nvm_t) + 4bytes gap = 62 
+#define NONVOLATILE_STEPS			((uint32_t)62)		//! don't change, to maintain backward compatibility
+#define	valid						(uint16_t)0x0001
+#define invalid						(uint16_t)0xffff  // ffs are default value for unused space
 
 // nvram mirror
-extern volatile uint32_t NVM_address;
+extern nvm_t nvmMirror;
+extern volatile uint32_t NVM_startAddress;
 
-extern nvm_t nvmParams;
-extern volatile SystemParams_t systemParams;
-extern volatile MotorParams_t motorParams;
+extern volatile SystemParams_t liveSystemParams;
+extern volatile MotorParams_t liveMotorParams;
 
 void nonvolatile_begin(void);
 void nvmWriteCalTable(void *ptrData);
-void nvmWriteConfParms(nvm_t* ptrNVM);
+void nvmWriteConfParms(void);
+void validateAndInitNVMParams(void);
 
 #endif

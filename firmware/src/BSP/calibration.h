@@ -23,10 +23,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "flash.h"
 
 //changing this requires recalibration
 #define	CALIBRATION_TABLE_SIZE			50U  // 50 is enough, 100, 200 also good
+
+#define CALIBRATION_STEPPING_CURRENT	(I_MAX_A4950)
 
 #define CALIBRATION_ERROR_NOT_SET (-1) //indicated that the calibration value is not set.
 #define CALIBRATION_MIN_ERROR (2)  //the minimal expected error on our calibration 4 ~=+/0.2 degrees
@@ -50,5 +51,7 @@ uint16_t GetCorrectedAngle(uint16_t fastEncoderAngle);
 int CalibrationTable_getValue(uint16_t actualAngle, CalData_t *ptrData);
 void CalibrationTable_saveToFlash(void);
 void CalibrationTable_init(void);
+
+int8_t Estimate_motor_k_bemf();
 
 #endif

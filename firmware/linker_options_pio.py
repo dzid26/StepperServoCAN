@@ -17,13 +17,8 @@ if(env.GetBuildType()=="release"):
     )
 
 
-if(env.GetBuildType()=="debug+test"):
+if(env.GetBuildType()=="debug, test"):
     env.Append(
-    # Remove stub implementations
-    BUILD_UNFLAGS=[
-        "-lnosys",
-        "--specs=nosys.specs",
-    ],
 
     # Use the semihosted version of the syscalls
     LINKFLAGS=[

@@ -22,21 +22,18 @@
 
 #include "stepper_controller.h"
 #include "nonvolatile.h"
+#include "actuator_config.h"
 #include "A4950.h"
 #include "board.h"
 #include "encoder.h"
 #include "math.h"
-#include "utils.h"
+#include "motor.h"
 
-static bool StepperCtrl_simpleFeedback(int32_t error);
-static void StepperCtrl_moveToAngle(int16_t a, uint16_t ma);
-
-volatile PID_t sPID; //simple control loop PID parameters
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
 volatile bool StepperCtrl_Enabled = false;
-volatile bool enableFeedback = false; //motor control using sensor angle feedback scheme
+volatile bool enableSensored = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
 static volatile bool enableRelative = true;
@@ -53,58 +50,23 @@ volatile int16_t closeLoopMaxDes;
 volatile int32_t currentLocation = 0;
 volatile int16_t closeLoop;
 volatile int16_t control;
-volatile int16_t Iq_ma;
-volatile int32_t speed_slow = 0;
+volatile int16_t control_actual;
+volatile int32_t speed_slow = 0; // rev/s/65536
 volatile int32_t loopError = 0;
 
-static void StepperCtrl_updateParamsFromNVM(void)
+static void UpdateRuntimeParams(void)
 {
-	if(NVM->SystemParams.parametersValid == valid)
-	{
-		pPID.Kp = NVM->pPID.Kp * CTRL_PID_SCALING;
-		pPID.Ki = NVM->pPID.Ki * CTRL_PID_SCALING;
-		pPID.Kd = NVM->pPID.Kd * CTRL_PID_SCALING;
+	//copy nvm (flash) to ram for fast access
+	pPID.Kp = nvmMirror.pPID.Kp * CTRL_PID_SCALING;
+	pPID.Ki = nvmMirror.pPID.Ki * CTRL_PID_SCALING;
+	pPID.Kd = nvmMirror.pPID.Kd * CTRL_PID_SCALING;
 
-		vPID.Kp = NVM->vPID.Kp * CTRL_PID_SCALING;
-		vPID.Ki = NVM->vPID.Ki * CTRL_PID_SCALING;
-		vPID.Kd = NVM->vPID.Kd * CTRL_PID_SCALING;
+	vPID.Kp = nvmMirror.vPID.Kp * CTRL_PID_SCALING;
+	vPID.Ki = nvmMirror.vPID.Ki * CTRL_PID_SCALING;
+	vPID.Kd = nvmMirror.vPID.Kd * CTRL_PID_SCALING;
 
-		sPID.Kp = NVM->sPID.Kp * CTRL_PID_SCALING;
-		sPID.Ki = NVM->sPID.Ki * CTRL_PID_SCALING;
-		sPID.Kd = NVM->sPID.Kd * CTRL_PID_SCALING;
-
-		systemParams = NVM->SystemParams;
-	}else
-	{
-		pPID.Kp = nvmParams.pPID.Kp * CTRL_PID_SCALING;
-		pPID.Ki = nvmParams.pPID.Ki * CTRL_PID_SCALING;
-		pPID.Kd = nvmParams.pPID.Kd * CTRL_PID_SCALING;
-
-		vPID.Kp = nvmParams.vPID.Kp * CTRL_PID_SCALING;
-		vPID.Ki = nvmParams.vPID.Ki * CTRL_PID_SCALING;
-		vPID.Kd = nvmParams.vPID.Kd * CTRL_PID_SCALING;
-
-		sPID.Kp = nvmParams.sPID.Kp * CTRL_PID_SCALING;
-		sPID.Ki = nvmParams.sPID.Ki * CTRL_PID_SCALING;
-		sPID.Kd = nvmParams.sPID.Kd * CTRL_PID_SCALING;
-
-		systemParams = nvmParams.SystemParams;
-	}
-	//default the error pin to input, if it is an error pin the
-	// handler for this will change the pin to be an output.
-	// for bidirection error it has to handle input/output it's self as well.
-	// This is not the cleanest way to handle this...
-	// TODO implement this cleaner
-	if(NVM->motorParams.parametersValid == valid)
-	{
-		motorParams = NVM->motorParams;
-	} else
-	{
-		motorParams.fullStepsPerRotation = 200;
-
-		motorParams.currentHoldMa = 400;
-		motorParams.currentMa = 800;
-	}
+	liveSystemParams = nvmMirror.systemParams;
+	liveMotorParams = nvmMirror.motorParams;
 }
 
 
@@ -125,11 +87,11 @@ static int32_t StepperCtrl_updateCurrentLocation(void)
 stepCtrlError_t StepperCtrl_begin(void)
 {
 	float x=9999.0f;
-	enableFeedback = false;
+	enableSensored = false;
 	currentLocation = 0;
 
-	//we have to update from NVM before moving motor
-	StepperCtrl_updateParamsFromNVM(); //update the local cache from the NVM
+	//update the runtime storage from the NVM
+	UpdateRuntimeParams();
 
 	//start up encoder
 	if (false == Encoder_begin())
@@ -140,60 +102,45 @@ stepCtrlError_t StepperCtrl_begin(void)
 	//cal table init
 	CalibrationTable_init();
 
-
-	if (NVM->motorParams.parametersValid == valid)
-	{
-		//voltage check
-		if ((GetSupplyVoltage() < 9.0f) || (GetMotorVoltage() < 8.9f))
-		{
-			return STEPCTRL_NO_POWER;
-		}
-	}else
-	{
-		x = StepperCtrl_measureStepSize();
-		if (fabs(x) < 0.5f)
-		{
-			return STEPCTRL_NO_POWER; //Motor may not have power
-		}
+	//voltage check
+	if ((GetSupplyVoltage() < MIN_SUPPLY_VOLTAGE) || (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE - 0.1f)){
+		return STEPCTRL_NO_POWER;
 	}
 
 	//Checking the motor parameters
-	if (NVM->motorParams.parametersValid != valid) //NVM motor parameters are not set, we will update
+	if (liveMotorParams.fullStepsPerRotation == FULLSTEPS_NA) //motor was not identified, let's do it now
 	{
-		// power could have just been applied and step size read wrong
-		// if we are more than 200 steps/rotation which is most common
-		// lets read again just to be sure.
-		if (fabs(x) < 1.5)
-		{
-			//run step test a second time to be sure
-			x = StepperCtrl_measureStepSize();
+		
+		x = StepperCtrl_measureStepSize();
+		if (fabsf(x) < 0.5f){
+			return STEPCTRL_NO_POWER; //Motor may not have power
 		}
 
 		if (x < 0.0f)
 		{
-			motorParams.motorWiring = !motorParams.motorWiring;
+			liveMotorParams.swapPhase = !liveMotorParams.swapPhase;
 		}
-		if (fabs(x) <= 1.2)
+		if (fabsf(x) <= 1.2)
 		{
-			motorParams.fullStepsPerRotation = 400;
+			liveMotorParams.fullStepsPerRotation = FULLSTEPS_0_9;
 		}else
 		{
-			motorParams.fullStepsPerRotation = 200;
+			liveMotorParams.fullStepsPerRotation = FULLSTEPS_1_8;
 		}
 		//Motor params are now good
-		A4950_move(0, 0); //release the motor
-		nvmParams.motorParams = motorParams;
-		nvmWriteConfParms(&nvmParams);
+		openloop_step(0, 0); //release the motor
+		nvmMirror.motorParams = liveMotorParams;
+		nvmWriteConfParms();
 	}
+	assert((liveMotorParams.fullStepsPerRotation == FULLSTEPS_1_8) || (liveMotorParams.fullStepsPerRotation == FULLSTEPS_0_9));
 
-	angleFullStep = (int32_t)(ANGLE_STEPS / motorParams.fullStepsPerRotation);
+	angleFullStep = (int32_t)(ANGLE_STEPS / liveMotorParams.fullStepsPerRotation);
 
 	if (false == CalibrationTable_calValid())
 	{
 		return STEPCTRL_NO_CAL;
 	}
 
-	Motion_task_init(SAMPLING_PERIOD_uS);
 
 	return STEPCTRL_NO_ERROR;
 }
@@ -207,7 +154,7 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 		speed_slow = 0;
 		closeLoop = 0;
 		control = 0;
-		Iq_ma = 0;
+		control_actual = 0;
 		currentLocation = 0;
 	}
 	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
@@ -218,56 +165,70 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 }
 
 void StepperCtrl_setMotionMode(uint8_t mode)
-{
-	switch (mode) //TODO add more modes
+{	
+	//refresh parameters when exiting STEPCTRL_OFF state
+	static uint8_t mode_prev = STEPCTRL_OFF;
+	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
+		UpdateRuntimeParams();
+	}
+	
+	switch (mode)
 	{
 	case STEPCTRL_OFF:
-		enableFeedback = false; //motor control using angle sensor feedback is off
+		enableSensored = false; //motor control using angle sensor feedback is off
 		// enableNoFeedback = false; //motor control fallback to open loop
 		enableSoftOff = false;
 		A4950_enable(false);
 		break;
-	case STEPCTRL_FEEDBACK_POSITION_RELATIVE:
-		enableFeedback = true;
+	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
+		enableSensored = true;
 		enableCloseLoop = true;
 		enableRelative = true;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE:
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = true;
 		enableRelative = false;
 
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = true;
 		A4950_enable(true);
 		break;
-	case STEPCTRL_FEEDBACK_TORQUE:	//TODO
-		enableFeedback = true;
+	case STEPCTRL_FEEDBACK_TORQUE:
+		enableSensored = true;
 		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_CURRENT:	//TODO
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
-		enableFeedback = true;
+		enableSensored = true;
 		enableCloseLoop = false;
 		enableSoftOff = true;
 		break;
 	default:
-		enableFeedback = false;
+		enableSensored = false;
 		enableCloseLoop = false;
 		A4950_enable(false);
 		break;
 	}
+	mode_prev = mode;
 }
 
+void StepperCtrl_setCurrent(int16_t current){
+	feedForward = current;
+}
+
+void StepperCtrl_setCloseLoopCurrentLim(int16_t current){
+	closeLoopMaxDes = current;
+}
 
 #define AVG_WINDOW 8U
 static int32_t errMovingAverage(int32_t val) {
@@ -292,47 +253,31 @@ bool StepperCtrl_processMotion(void)
 	bool no_error = false;
 	int32_t currentLoc;
 	static int32_t lastLoc;
-	const int16_t speed_filter_tc = 128; //speed filter time constant
-	const int64_t error_filter_tc = 2; //error filter time constant - choose depending on CAN RX rate
+	const int16_t speed_filter_tc = 8; //speed filter time constant
+	const int8_t error_filter_tc = 2; //error filter time constant - choose depending on CAN RX rate
 	int32_t speed_raw;
 	int32_t error;
 	static int32_t desiredLoc_slow = 0;
 	currentLoc = StepperCtrl_updateCurrentLocation(); //CurrentLocation
 
 	loopError = desiredLocation - currentLoc;
-	desiredLoc_slow = (desiredLocation + (error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
+	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // rev/s/65536
+	speed_slow = (int32_t)(int64_t)((speed_raw + (int64_t)(int16_t)(speed_filter_tc-1) * speed_slow) / speed_filter_tc);
+	lastLoc = currentLoc;
 
+	desiredLoc_slow = (int32_t)(int64_t)(desiredLocation + (int64_t)(int8_t)(error_filter_tc-1) * desiredLoc_slow) / error_filter_tc;
 	if (enableRelative){
 		error = desiredLoc_slow;
 	}else{
 		error = desiredLoc_slow - currentLoc; //error is desired - PoscurrentPos
 	}
-
-	speed_raw = (currentLoc - lastLoc) * (int32_t) SAMPLING_HZ; // deg/s*360/65536
-	speed_slow = (speed_raw + (speed_filter_tc-1) * speed_slow) / speed_filter_tc; 
-
 	int32_t error_flt = errMovingAverage(error);
-
-	no_error = StepperCtrl_simpleFeedback(error_flt);
-
-	lastLoc = currentLoc;
-	return no_error;
-}
-
-//this was written to do the PID loop not modeling a DC servo
-// but rather using features of stepper motor.
-static bool StepperCtrl_simpleFeedback(int32_t error)
-{
 	static int32_t lastError = 0;
 	static uint32_t errorCount = 0;
 
-	static int32_t iTerm_accu; //iTerm memory - float to acumulate small and big errors
-	static uint16_t magnitude = 0; //static for dTerm condition check
+	static int32_t iTerm_accu; //iTerm memory
 
-	if(enableFeedback) //todo add openloop control
-	{
-		int16_t loadAngleDesired = 0;
-		
+	if(enableSensored){ //todo add openloop control
 		//todo add close loop intiazliation - I term with last control
 		if (enableSoftOff){
 			static uint16_t rampsteps = 0;
@@ -365,7 +310,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			#define PID_TERMS 3
 			int16_t maxEachTerm = closeLoopMax * PID_TERMS;
 
-			int32_t errorMax = (int32_t)maxEachTerm * CTRL_PID_SCALING / sPID.Kp;
+			int32_t errorMax = (int32_t)maxEachTerm * CTRL_PID_SCALING / pPID.Kp;
 			//protect closeLoop against overflow and unrealistic values - due to P term
 			if( error > errorMax){
 				errorSat = errorMax;
@@ -377,7 +322,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 
 			// PID - (I)ntegral term
 			iTerm_accu += errorSat;
-			int16_t iTerm = (int16_t)(iTerm_accu  * sPID.Ki / (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING); //it's safe to cast to int16_t as iTerm_accu / CTRL_PID_SCALING cannot be much bigger than maxEachTerm since last time because iTerm_accu uses limited errorSat when acumulating error
+			int16_t iTerm = (int16_t)(iTerm_accu  * pPID.Ki / (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING); //it's safe to cast to int16_t as iTerm_accu / CTRL_PID_SCALING cannot be much bigger than maxEachTerm since last time because iTerm_accu uses limited errorSat when acumulating error
 			bool iTermLimited = false;
 			//protect closeLoop against overflow and unrealistic values - due to I term
 			if (iTerm  > maxEachTerm){
@@ -394,7 +339,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			if((errorSat < (angleFullStep/4)) && (errorSat > (-angleFullStep/4))){
 				pTerm = 0;
 			}else{
-				pTerm  =  (int16_t)(errorSat * sPID.Kp / CTRL_PID_SCALING);
+				pTerm  =  (int16_t)(errorSat * pPID.Kp / CTRL_PID_SCALING);
 			}
 
 			// PID - (D)erivative term
@@ -402,7 +347,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			if(((error < angleFullStep) && (error > -angleFullStep))){
 				dTerm=0;
 			}else{
-				int32_t deltaErrorMax = (int32_t) maxEachTerm * CTRL_PID_SCALING / sPID.Kd / (int16_t)SAMPLING_PERIOD_uS;
+				int32_t deltaErrorMax = (int32_t) maxEachTerm * CTRL_PID_SCALING / pPID.Kd / (int16_t)SAMPLING_PERIOD_uS;
 				int32_t deltaError = error - lastError;
 				
 				//protect closeLoop against overflow and unrealistic values - due to D term
@@ -412,7 +357,7 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 				if (deltaError < -deltaErrorMax){
 					deltaError = -deltaErrorMax;
 				}
-				dTerm = (int16_t)(deltaError * sPID.Kd * (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING);
+				dTerm = (int16_t)(deltaError * pPID.Kd * (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING);
 			}
 			lastError = error;
 			
@@ -438,69 +383,51 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 			}
 			control = closeLoop + feedForward;
 
-			// Saturate against I_MAX_A4950 - any excess subtract from integral part, but don't make it change sign
-			if(control > I_MAX_A4950){	
-				iTerm -= closeLoop - I_MAX_A4950;
+			// Saturate against MAX_CURRENT - any excess subtract from integral part, but don't make it change sign
+			if(control > MAX_CURRENT){	
+				iTerm -= closeLoop - MAX_CURRENT;
 				if(iTerm < 0){
 					iTerm = 0;
 				}
 				iTermLimited = true;
-				control = I_MAX_A4950;
+				control = MAX_CURRENT;
 			}
-			if (control < -I_MAX_A4950){
-				iTerm -= closeLoop - (-I_MAX_A4950);
+			if (control < -MAX_CURRENT){
+				iTerm -= closeLoop - (-MAX_CURRENT);
 				if(iTerm > 0){
 					iTerm = 0;
 				}
 				iTermLimited = true;
-				control = -I_MAX_A4950;
+				control = -MAX_CURRENT;
 			}
 
 			if(iTermLimited == true){ //backcalculate the accumulator
-				iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / sPID.Ki;
+				iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / pPID.Ki;
 			}
 
 		}else{
 			control = feedForward;
-			if(control > I_MAX_A4950){
-				control = I_MAX_A4950;
+			if(control > MAX_CURRENT){
+				control = MAX_CURRENT;
 			}
-			if (control < -I_MAX_A4950){
-				control = -I_MAX_A4950;
+			if (control < -MAX_CURRENT){
+				control = -MAX_CURRENT;
 			}
 			closeLoop = 0;
 			lastError = 0;
 
-			iTerm_accu = 0.0;
-		}
-		
-
-		if (control > 0)
-		{
-			loadAngleDesired =  (int16_t) angleFullStep;
-		}else if (control < 0)
-		{
-			loadAngleDesired = (int16_t) -angleFullStep;
-		}else{
-			loadAngleDesired = 0;
+			iTerm_accu = 0;
 		}
 
-		magnitude = (uint16_t) (fastAbs(control));
+		field_oriented_control(control);
 
-		int16_t loadAngleSpeedComp;//Compensate for angle sensor delay
-		int16_t sensDelay = 90u;
-		int16_t angleSensLatency = (int16_t)SAMPLING_PERIOD_uS + sensDelay;
-		loadAngleSpeedComp = loadAngleDesired + (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
-		StepperCtrl_moveToAngle(loadAngleSpeedComp, magnitude);
-	
 	}else{
 		control = 0;
 		closeLoop = 0;
-		Iq_ma = 0;
+		control_actual = 0;
 
 		lastError = 0;
-		iTerm_accu = 0.0;
-		magnitude = 0;
+		iTerm_accu = 0;
 	}
 
   // error needs to exist for some time period
@@ -520,16 +447,4 @@ static bool StepperCtrl_simpleFeedback(int32_t error)
 	}
 
 	return false;
-}
-
-
-static void StepperCtrl_moveToAngle(int16_t loadAngle, uint16_t magnitude) 
-{
-	uint16_t absoluteAngle; //0-65535 -> 0-360
-	uint16_t absoluteMicrosteps;
-
-	absoluteAngle = (uint16_t) (((uint32_t) (currentLocation + loadAngle)) & ANGLE_MAX); //add load angle to current location
-	absoluteMicrosteps = absoluteAngle *  motorParams.fullStepsPerRotation * A4950_STEP_MICROSTEPS / ANGLE_STEPS; //2^2=8 which is a common denominator of 200 and 256
-
-	A4950_move(absoluteMicrosteps, magnitude);
 }
