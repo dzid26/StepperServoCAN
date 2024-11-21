@@ -253,7 +253,7 @@ bool StepperCtrl_processMotion(void)
 	bool no_error = false;
 	int32_t currentLoc;
 	static int32_t lastLoc;
-	const int16_t speed_filter_tc = 128; //speed filter time constant
+	const int16_t speed_filter_tc = 8; //speed filter time constant
 	const int8_t error_filter_tc = 2; //error filter time constant - choose depending on CAN RX rate
 	int32_t speed_raw;
 	int32_t error;
