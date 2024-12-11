@@ -86,10 +86,11 @@ static uint16_t calc_electric_angle(bool volt_control){
 	return electricAngle % SINE_STEPS;
 }
 
-void field_oriented_control(int16_t current_target) 
-{
+void field_oriented_control(int16_t current_target) {
+
 	const bool volt_control = USE_VOLTAGE_CONTROL;
 
+	int16_t current_actual;
 	uint16_t electricAngle = calc_electric_angle(volt_control);
 
 	int16_t I_q = current_target;
@@ -107,7 +108,7 @@ void field_oriented_control(int16_t current_target)
 		U_IR_sat = (int16_t)clip(U_IR_sat, -U_lim, U_lim);
 		int16_t U_q_sat = U_IR_sat + U_emf_sat;
 		int16_t I_q_act = (int16_t)((int32_t)U_IR_sat * Ohm_to_mOhm / phase_R);
-		control_actual = I_q_act;
+		current_actual = I_q_act;
 
 		//Direct Axis
 		//U_d = I_q*ω*Rl
@@ -120,8 +121,9 @@ void field_oriented_control(int16_t current_target)
 		voltage_commutation(electricAngle, U_q_sat, U_d_sat, magnitude);
 	}else{
 		current_commutation(electricAngle, I_q, 0);
-		control_actual = (int16_t)clip(control, -MAX_CURRENT, MAX_CURRENT); // simplification - close to truth for low speeds
+		current_actual = current_target; // simplification for higher speeds - //todo estimate or measure actual current
 
 	}
+	control_actual = current_actual;
 }
 
