@@ -88,8 +88,15 @@ static void CheckTxStatus(uint8_t transmitMailbox){
 
 
 void CAN_TransmitMotorStatus(uint32_t frame){
-  static struct Msg_steering_status_t controlStatus;
-  //populate message structure:
+  CanTxMsg txMessage;
+  txMessage.RTR=CAN_RTR_DATA;
+  txMessage.IDE=CAN_ID_STD;
+  txMessage.StdId=MSG_STEERING_STATUS_FRAME_ID;
+  txMessage.DLC=MSG_STEERING_STATUS_LENGTH;
+
+  // populate message structure:
+  struct Msg_steering_status_t controlStatus;
+  controlStatus.checksum = 0;
   controlStatus.counter = frame & 0xFU;
   controlStatus.steering_angle = Msg_steering_status_steering_angle_encode(StepperCtrl_getAngleFromEncoder());
   controlStatus.steering_speed = Msg_steering_status_steering_speed_encode(StepperCtrl_getSpeedRev());
@@ -99,24 +106,15 @@ void CAN_TransmitMotorStatus(uint32_t frame){
   controlStatus.control_status = states & 0xFFU;
   controlStatus.debug_states = (states >> 8U)  & 0xFFU;
   
-  //calculate checksum:
-  uint8_t dataTemp[8];
+  // calculate checksum:
+  uint8_t dataTemp[MSG_STEERING_STATUS_LENGTH];
   Msg_steering_status_pack(dataTemp, &controlStatus, sizeof(dataTemp));
   controlStatus.checksum = Msg_calc_checksum_8bit(dataTemp, MSG_STEERING_STATUS_LENGTH, MSG_STEERING_STATUS_FRAME_ID);
+  Msg_steering_status_pack((&txMessage)->Data, &controlStatus, sizeof(txMessage.Data)); //pack again with the checksum
 
-  //pack and transmit
-  CanTxMsg txMessage;
-  uint8_t _transmitMailbox;
-  txMessage.RTR=CAN_RTR_DATA;
-  txMessage.IDE=CAN_ID_STD;
-
-  Msg_steering_status_pack((&txMessage)->Data, &controlStatus, sizeof(txMessage.Data));
-  txMessage.StdId=MSG_STEERING_STATUS_FRAME_ID;
-  txMessage.DLC=MSG_STEERING_STATUS_LENGTH;
-  _transmitMailbox=CAN_Transmit(CAN1, &txMessage);
-  
+  // transmit
+  uint8_t _transmitMailbox=CAN_Transmit(CAN1, &txMessage);
   CheckTxStatus(_transmitMailbox);
-
 }
 
 static volatile uint16_t can_control_cmd_cnt = 0;
