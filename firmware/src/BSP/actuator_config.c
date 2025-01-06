@@ -19,7 +19,8 @@ const bool USE_SIMPLE_PARAMETERS = true;
 const float motor_rated_current = (float) 1.3; // A
 const float motor_rated_torque =  (float) 28;  // Ncm
 
-// MEASURED PARAMETERS: // todo store these in NVRAM
+// MEASURED PARAMETERS: // todo autocalibrate and store in NVRAM
+// default are for black 17HS4401S https://www.aliexpress.com/item/4001349087963.html
 volatile int16_t motor_k_bemf = 1360; // mV/(rev/s) -   hold F2 to measure, use MCUViewer to see new motor_k_bemf value and update manually here
 // note, when motor_k_bemf is too low, the motor can have higher top speed when unloaded (unintentional field weakening via I_d), but power and torque will not be accurate
 volatile int16_t phase_R = 2400;         // mOhm -      it's best to measure this
