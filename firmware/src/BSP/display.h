@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 
+#define	PIN_SW3_ENTER		PIN_F1_KEY
+
 typedef struct{
 	char str[15];
 }options_t;

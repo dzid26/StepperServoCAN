@@ -252,14 +252,14 @@ void display_process(void)
 			display_updateMenu();
 		}
 
-	if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP3) == 0 && (buttonState & 0x04) == 0)	//exit
-	{
-		buttonState |= 0x04;
-		menuActive = (bool)(!menuActive);
-	}
+	// if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP3) == 0 && (buttonState & 0x04) == 0)	//exit
+	// {
+	// 	buttonState |= 0x04;
+	// 	menuActive = (bool)(!menuActive);
+	// }
 
-	if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP3))
-	{
-		buttonState &= (~0x04);
-	}
+	// if (GPIO_ReadInputDataBit(GPIO_JP, PIN_JP3))
+	// {
+	// 	buttonState &= (~0x04);
+	// }
 }

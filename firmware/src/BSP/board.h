@@ -42,7 +42,6 @@
 #define	PIN_F1_INT 			EXTI_Line14
 #define	PIN_F2_KEY 			GPIO_Pin_15
 #define	PIN_F2_INT 			EXTI_Line15
-#define	PIN_SW3_ENTER		PIN_F1_KEY
 
 #define	GPIO_JP             GPIOA
 #define	PIN_JP1				GPIO_Pin_3
