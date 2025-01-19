@@ -215,7 +215,7 @@ static void CalibrationTable_normalizeStartIdx(void){
 // We also need to calibrate the phasing of the motor
 // to the A4950. This requires that the A4950 "step angle" of
 // zero is the first entry in the calibration table.
-static uint16_t CalibrationMove(int8_t dir, bool verifyOnly, bool firstPass){
+static uint16_t CalibrationRotation(int8_t dir, bool verifyOnly, bool firstPass){
 	const uint16_t stepCurrent = CALIBRATION_STEPPING_CURRENT;
 	const uint16_t microStepDelay = 30U;  	//[uS] controls calibration speed
 	const uint16_t stabilizationDelay = 0U; //[uS] wait for taking measurements - some medium stopping time can cause resonance, long stopping time can cause oveheat
@@ -311,13 +311,13 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 	}else{
 		dir = -1;
 	}
-	maxError = CalibrationMove(dir, verifyOnly, true);
+	maxError = CalibrationRotation(dir, verifyOnly, true);
 	//wait holding two phases (half a step) for less heat generation before triggering second pass
 	openloop_step(FULLSTEP_ELECTRIC_ANGLE/2U, CALIBRATION_STEPPING_CURRENT); //first calibration pass finishes at electAngle = 0, so adding half a step wont't ruin next pass
 	delay_ms(1000);  	//give some time before motor starts to move the other direction
 	if(!verifyOnly){
 		//second calibration pass the other direction - reduces influence of magnetic hysteresis
-		maxError = CalibrationMove(-dir, verifyOnly, false);
+		maxError = CalibrationRotation(-dir, verifyOnly, false);
 		if(maxError < CALIBRATION_MAX_ERROR){
 			CalibrationTable_normalizeStartIdx(); //this step is optional, but makes the calibration table more readable
 			CalibrationTable_saveToFlash(); //saves the calibration to flash
