@@ -68,8 +68,8 @@ void assert_failed(uint8_t* file, uint32_t line){
 	__assert_func((char*) file, (int)line, NULL, "STM32 registers");
 }
 
-volatile bool runCalibration = false;
-volatile bool runKbemfEstimation = false;
+static bool runCalibration = false;
+static bool runKbemfEstimation = false;
 static void RunCalibration(void){
 	StepperCtrl_enable(false);
 	apiAllowControl(false);

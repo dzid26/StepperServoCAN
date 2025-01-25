@@ -54,6 +54,9 @@ volatile int16_t control_actual;
 volatile int32_t speed_slow = 0; // rev/s/65536
 volatile int32_t loopError = 0;
 
+// special mode
+static bool base_speed_mode = false;
+
 static void UpdateRuntimeParams(void)
 {
 	//copy nvm (flash) to ram for fast access
@@ -171,9 +174,8 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
 		UpdateRuntimeParams();
 	}
-	
-	switch (mode)
-	{
+	base_speed_mode = false;
+	switch (mode) {
 	case STEPCTRL_OFF:
 		enableSensored = false; //motor control using angle sensor feedback is off
 		// enableNoFeedback = false; //motor control fallback to open loop
@@ -190,7 +192,6 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		enableSensored = true;
 		enableCloseLoop = true;
 		enableRelative = false;
-
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
@@ -212,6 +213,10 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		enableSensored = true;
 		enableCloseLoop = false;
 		enableSoftOff = true;
+		break;
+	case STEPCTRL_FEEDBACK_KBEMF_ADAPT:
+		base_speed_mode = true;
+		A4950_enable(true);
 		break;
 	default:
 		enableSensored = false;
@@ -277,8 +282,11 @@ bool StepperCtrl_processMotion(void)
 
 	static int32_t iTerm_accu; //iTerm memory
 
-	if(enableSensored){ //todo add openloop control
-		//todo add close loop intiazliation - I term with last control
+	if (base_speed_mode){
+		control = feedForward;
+		base_speed(control);
+	}else if(enableSensored){ //todo add openloop control
+		//todo add close loop initialization - I term with last control
 		if (enableSoftOff){
 			static uint16_t rampsteps = 0;
 			const uint8_t rampstepsMax = 1; //seconds

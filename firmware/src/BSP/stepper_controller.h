@@ -60,6 +60,8 @@ typedef	enum {
 	STEPCTRL_FEEDBACK_CURRENT=5,			//current control
 	STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF=6,	//last torque ramp off
 
+	STEPCTRL_FEEDBACK_KBEMF_ADAPT=127,		//special calibration mode
+
 	//Classical sensorless openloop
 	STEPCTRL_OPENLOOP_POSITION_RELATIVE=7,	//relative openloop positioning
 	STEPCTRL_OPENLOOP_POSITION_ABSOLUTE=8,	//absolute openloop positioning

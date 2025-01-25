@@ -86,6 +86,12 @@ static uint16_t calc_electric_angle(bool volt_control){
 	return electricAngle % SINE_STEPS;
 }
 
+void base_speed(int16_t dir) {
+	uint16_t electricAngle = calc_electric_angle(true);
+	int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
+	voltage_commutation(electricAngle, clip(dir, -1, 1) * U_lim, 0, 500U);
+}
+
 void field_oriented_control(int16_t current_target) {
 
 	const bool volt_control = USE_VOLTAGE_CONTROL;
