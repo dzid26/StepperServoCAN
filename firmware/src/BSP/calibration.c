@@ -386,7 +386,9 @@ int8_t Estimate_motor_k_bemf() {
 		}
 		delay_ms(200);
 	}
-	update_actuator_parameters();
+	if (!USE_SIMPLE_PARAMETERS && USE_VOLTAGE_CONTROL) { // don't override learnt K_bemf
+		update_actuator_parameters();
+	}
 	StepperCtrl_setMotionMode(STEPCTRL_OFF);
 	return motor_k_bemf;
 }
