@@ -402,6 +402,7 @@ static float covnert_ADC_raw_volt(uint16_t adc_raw){
 }
 
 static uint16_t  vdda_adc_mV;
+//called only once during boot up
 static void Vrefint_adc_update(void){
 	vrefint_adc = Get_ADC_raw_nextRank(ADC1);
 	assert(vrefint_adc > 1357); //VDDA above 3.5V @ 1.16V vrefint
