@@ -96,10 +96,6 @@ static void TLE5012B_init(void)
  	GPIO_Init(PIN_TLE5012B, &gpio_initStructure);
 	GPIO_SetBits(PIN_TLE5012B, PIN_TLE5012B_CS);//CS high - deselect device for now
 
-  	gpio_initStructure.GPIO_Pin = PIN_AUX_3_3;
- 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU; //aux 3.3 mosfet - On by default
- 	GPIO_Init(PIN_TLE5012B, &gpio_initStructure);
-	
 	SPI_InitTypeDef spi_initStructure;	
 	spi_initStructure.SPI_Direction = SPI_Direction_1Line_Tx;
 	spi_initStructure.SPI_Mode = SPI_Mode_Master;
@@ -141,8 +137,12 @@ static void SWITCH_init(void)
 	EXTIInitStruct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_Init(&EXTIInitStruct);
 
-	gpio_initStructure.GPIO_Pin = PIN_JP1 | PIN_JP2 | PIN_JP3;
+	gpio_initStructure.GPIO_Pin = PIN_JP1 | PIN_JP2;
 	GPIO_Init(GPIO_JP, &gpio_initStructure);
+
+  	gpio_initStructure.GPIO_Pin = PIN_AUX_3_3;
+ 	gpio_initStructure.GPIO_Mode = GPIO_Mode_IPU; //aux 3.3 mosfet - On by default
+ 	GPIO_Init(GPIOB, &gpio_initStructure);
 
 }
 

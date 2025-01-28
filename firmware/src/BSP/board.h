@@ -46,7 +46,6 @@
 #define	GPIO_JP             GPIOA
 #define	PIN_JP1				GPIO_Pin_3
 #define	PIN_JP2				GPIO_Pin_4
-#define	PIN_JP3				GPIO_Pin_5
 
 
 //A4950
