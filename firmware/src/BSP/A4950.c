@@ -26,9 +26,6 @@
 #include "board.h"
 #include "utils.h"
 
-#define I_RS_A4950_div     (1000U/10U) //mOhm to Ohm and 10x multiplier
-
-
 // phase lead due to DAC low pass filter C=uF, R=1k; phase = -atan(2pi*f*R*C)  
 // generatePhaseLeadTable.py
 #define PHASE_LEAD_MAX_SPEED  250u //revs/s
@@ -141,7 +138,7 @@ inline static void bridgeB(int state)
  */
 static uint16_t current_to_Vref_duty(uint16_t current)
 {
-	const uint16_t I_RS_A4950_rat = RS_A4950/I_RS_A4950_div; //mOhm to Ohm and 10x multiplier
+	const uint16_t I_RS_A4950_rat = RS_A4950 / ((uint16_t)Ohm_to_mOhm / I_RS_A4950_div);
 	uint16_t vref = current * I_RS_A4950_rat;
 
 	//limit Vref to MCU voltage

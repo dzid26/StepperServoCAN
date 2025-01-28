@@ -33,6 +33,7 @@
 #define PHASE_LEAD_MAX_SPEED  250u //revs/s
 extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 
+#define I_RS_A4950_div    10U  // div for A4950
 #define I_MAX_A4950       3300 //mA
 
 void A4950_enable(bool enable);
