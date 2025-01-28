@@ -3,6 +3,6 @@
 .clang_complete
 .gcc-flags.json
 misra_rules_set_cppcheck.txt
-test/eepromCals.bin
+*.bin
 .cache
 compile_commands.json
