@@ -32,7 +32,6 @@
 #include "encoder.h"
 #include "main.h"
 #include "Msg.h"
-#include "math.h"
 
 #define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : -(x))	//shorthand for swapping direction
 

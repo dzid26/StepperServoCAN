@@ -29,6 +29,7 @@
 #include "main.h"
 #include "utils.h"
 #include "board.h"
+#include <math.h>
 
 static volatile CalData_t calData[CALIBRATION_TABLE_SIZE];
 
@@ -142,7 +143,7 @@ static uint16_t CalibrationTable_getCal(uint16_t actualAngle){ //actualAngle - (
 
 
 // return is angle in degreesx100 ie 360.0 is returned as 36000
-float StepperCtrl_measureStepSize(void){
+float MeasureStepSize(void){
 	uint16_t angle1;
 	uint16_t angle2;
 	A4950_enable(true);
@@ -165,9 +166,36 @@ float StepperCtrl_measureStepSize(void){
 	
 	//move back
 	openloop_step(0,stepCurrent);
+	delay_ms(100);
+	openloop_step(0, 0); //release the motor
 	A4950_enable(false);
 
 	return deg_delta;
+}
+
+bool Learn_StepSize_WiringPolarity(void){
+	float x = MeasureStepSize();
+	if (fabsf(x) < 0.5f){
+		return false; //Motor may not have power or blocked
+	}
+
+	// detect wiring polarity
+	if (x < 0.0f){
+		// depending on wiring order, motor will rotate the other direction
+		// flip phase polarity to avoid this
+		liveMotorParams.swapPhase = !liveMotorParams.swapPhase;
+	}
+
+	// detect if the motor is 0.9 or 1.8 steps per rotation
+	if (fabsf(x) <= 1.1){
+		liveMotorParams.fullStepsPerRotation = FULLSTEPS_0_9;
+	}else{
+		liveMotorParams.fullStepsPerRotation = FULLSTEPS_1_8;
+	}
+	//Motor params are now good
+	nvmMirror.motorParams = liveMotorParams;
+	nvmWriteConfParms();
+	return true;
 }
 
 //normalize the calData starting point regardles of what angle calibration was started at
@@ -295,7 +323,7 @@ static uint16_t CalibrationRotation(int8_t dir, bool verifyOnly, bool firstPass)
 }
 
 
-uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
+uint16_t EncoderCalibrate(bool verifyOnly){
 	uint16_t maxError;
 
 	A4950_enable(true);
@@ -330,7 +358,7 @@ uint16_t StepperCtrl_calibrateEncoder(bool verifyOnly){
 }
 
 // Estimate motor k_bemf with no load
-int8_t Estimate_motor_k_bemf() {
+int8_t Estimate_motor_k_bemf(void) {
 	StepperCtrl_setMotionMode(STEPCTRL_OFF);
 	if (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE) {
 		return -1;

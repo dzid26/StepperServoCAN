@@ -41,7 +41,9 @@
     },
     "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
         "misc-include-cleaner",
-        "readability-identifier-length"
+        "readability-identifier-length",
+        "altera-unroll-loops",
+        "cppcoreguidelines-avoid-non-const-global-variables"
     ],
     "cSpell.words": [
         "anticogging"

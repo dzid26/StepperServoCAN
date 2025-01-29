@@ -46,7 +46,8 @@ typedef enum {
 	STEPCTRL_NO_ERROR=0,
 	STEPCTRL_NO_POWER=1, 	//no power to motor
 	STEPCTRL_NO_CAL=2,	 	//calibration not set
-	STEPCTRL_NO_ENCODER=3,//encoder not working
+	STEPCTRL_NO_ENCODER=3,	//encoder not working
+	STEPCTRL_NO_MOVE = 4,	//shaft hasn't moved
 } stepCtrlError_t;
 
 typedef	enum {

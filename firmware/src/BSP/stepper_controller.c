@@ -26,7 +26,6 @@
 #include "A4950.h"
 #include "board.h"
 #include "encoder.h"
-#include "math.h"
 #include "motor.h"
 
 volatile PID_t pPID; //positional current based PID control parameters
@@ -87,9 +86,7 @@ static int32_t StepperCtrl_updateCurrentLocation(void)
 }
 
 
-stepCtrlError_t StepperCtrl_begin(void)
-{
-	float x=9999.0f;
+stepCtrlError_t StepperCtrl_begin(void){
 	enableSensored = false;
 	currentLocation = 0;
 
@@ -111,29 +108,11 @@ stepCtrlError_t StepperCtrl_begin(void)
 	}
 
 	//Checking the motor parameters
-	if (liveMotorParams.fullStepsPerRotation == FULLSTEPS_NA) //motor was not identified, let's do it now
-	{
-		
-		x = StepperCtrl_measureStepSize();
-		if (fabsf(x) < 0.5f){
-			return STEPCTRL_NO_POWER; //Motor may not have power
+	if (liveMotorParams.fullStepsPerRotation == FULLSTEPS_NA){ //motor was not identified, let's do it now
+		bool success = Learn_StepSize_WiringPolarity();
+		if (!success){
+			return STEPCTRL_NO_MOVE;
 		}
-
-		if (x < 0.0f)
-		{
-			liveMotorParams.swapPhase = !liveMotorParams.swapPhase;
-		}
-		if (fabsf(x) <= 1.2)
-		{
-			liveMotorParams.fullStepsPerRotation = FULLSTEPS_0_9;
-		}else
-		{
-			liveMotorParams.fullStepsPerRotation = FULLSTEPS_1_8;
-		}
-		//Motor params are now good
-		openloop_step(0, 0); //release the motor
-		nvmMirror.motorParams = liveMotorParams;
-		nvmWriteConfParms();
 	}
 	assert((liveMotorParams.fullStepsPerRotation == FULLSTEPS_1_8) || (liveMotorParams.fullStepsPerRotation == FULLSTEPS_0_9));
 

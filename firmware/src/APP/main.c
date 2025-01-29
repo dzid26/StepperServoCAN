@@ -68,6 +68,20 @@ void assert_failed(uint8_t* file, uint32_t line){
 	__assert_func((char*) file, (int)line, NULL, "STM32 registers");
 }
 
+// confirm using a button
+// if in debug mode, use the semihosting debug console
+void User_confirmation(void){
+	(void) printf("Press any ENTER key to proceed... (Press physical RESET button to cancel)\n");
+	// delay_ms(2000); //make sure the printf above reaches the host
+	int key;
+	do{	//wait for the user
+		Set_Func_LED(true);
+		key = HostReadCharacter(); //press any key
+		// printf("  key = %c\n", key);
+	}while((!F1_button_state()) && (key == 0));
+	Set_Func_LED(false);
+}
+
 static bool runCalibration = false;
 static bool runKbemfEstimation = false;
 static void RunCalibration(void){
@@ -76,43 +90,45 @@ static void RunCalibration(void){
 	runCalibration = true; //set again depending who calls the function
 
 	Set_Error_LED(true);
+	(void) printf("Calibration routines will be performed:\n");
+	bool err0 = false;
+	do{
+		(void) printf("1. Motor type and wiring orientation detection\n");
+		(void) printf("2. Magnet offset calibration.\n");
+		User_confirmation();
+		err0 = !Learn_StepSize_WiringPolarity();
+		if (err0){
+			(void) printf("ERROR: Motor blocked or unpowered. Retrying...\n");
+		}
+	}while(err0);
 
-	bool err1 = !CalibrationTable_calValid();
+	bool err1 = false;
 	bool err2 = false;
 
 	do{//assert errors
-		err1 = !CalibrationTable_calValid();
-		
-		//print errors on after failed calibration
-		if(err1){
-			(void) printf("Calibration not set\n");
+		if (err1 || err2){
+			(void) printf("Retrying encoder calibration.\n");
+			User_confirmation(); //confirm retry
 		}
-		if (err2){
-			(void) printf("Large deviation. Reposition the magnet\n");
-			delay_ms(1000);
-		}
-		(void) printf("\n[Enter] to confirm start of the calibration..\n");
-		// delay_ms(2000); //make sure the printf above reaches the host
-		int key;
-		do{	//wait for the user
-			Set_Func_LED(true);
-			key = HostReadCharacter(); //press any key
-			// printf("  key = %c\n", key);
-		}while((!F1_button_state()) && (key == 0));
-		Set_Func_LED(false);
-
-		//print angle using fixed point
-		uint16_t max_error = StepperCtrl_calibrateEncoder(false);
+		uint16_t max_error = EncoderCalibrate(false);
 		float max_error_deg = ANGLERAW_T0_DEGREES(max_error);
+		//print angle using fixed point
 		(void) printf("Max deviation was %01u.%02u deg\n", (uint16_t)max_error_deg, (uint16_t)((uint32_t)(max_error_deg*100.0)%100U));
 
 		//assert errors
 		err1 = !CalibrationTable_calValid();
 		err2 = max_error >= CALIBRATION_MAX_ERROR;
-
+		//print errors on after failed calibration
+		if(err1){
+			(void) printf("Calibration not set\n");
+		}
+		if (err2){
+			(void) printf("ERROR: Large deviation. Reposition the magnet\n");
+			delay_ms(1000);
+		}
 	}while(err1 || err2);
 	Set_Error_LED(false);
-	(void) printf("Calibration ok\n");
+	(void) printf("Calibration OK\n");
 
 	runCalibration = false;
 	StepperCtrl_enable(true);
@@ -121,8 +137,7 @@ static void RunCalibration(void){
 
 
 volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
-static void Begin_process(void)
-{
+static void Begin_process(void){
 	board_init();	//set up the pins correctly on the board.
 
 	update_actuator_parameters();
@@ -138,29 +153,30 @@ static void Begin_process(void)
 	display_show("StepperServoCAN", "initialization..", "", "");
 	delay_ms(10);
 	stepCtrlError = STEPCTRL_NO_CAL;
-	while(STEPCTRL_NO_ERROR != stepCtrlError)
-	{
+	while(STEPCTRL_NO_ERROR != stepCtrlError){
 		Set_Error_LED(true);
 		//start controller before accepting step inputs
 		stepCtrlError = StepperCtrl_begin();
 
 		//start up encoder
-		if (STEPCTRL_NO_ENCODER == stepCtrlError)
-		{
+		if (STEPCTRL_NO_ENCODER == stepCtrlError){
 			display_show("Encoder", " Error!", "REBOOT", "");
 			//slow red blink - encoder initialization fail - power down the board
 			Set_Error_LED(false);
 			delay_ms(1000);
 			Set_Error_LED(true);
 			delay_ms(1000);
-		}else if(STEPCTRL_NO_POWER == stepCtrlError)
-		{
+		}else if(STEPCTRL_NO_POWER == stepCtrlError){
 			display_show("Waiting", "MOTOR", "POWER", "");
 			//interrupted red led (as if it is retrying) - waiting for power
 			delay_ms(1000);
 			Set_Error_LED(false);
-		}else if(STEPCTRL_NO_CAL == stepCtrlError)
-		{
+		}else if(STEPCTRL_NO_MOVE == stepCtrlError){
+			display_show("Retrying", "MOTOR", "Blocked", "");
+			//interrupted red led (as if it is retrying) - waiting for power
+			delay_ms(1000);
+			Set_Error_LED(false);
+		}else if(STEPCTRL_NO_CAL == stepCtrlError){
 			display_show("   NOT ", "Calibrated", " ", "");
 			delay_ms(2200);
 			display_process();
@@ -172,7 +188,6 @@ static void Begin_process(void)
 	Set_Error_LED(false);
 
 	printf("Initialization successful\n");
-	
 
 	printf("Starting motion task\n");
 	StepperCtrl_enable(true);
