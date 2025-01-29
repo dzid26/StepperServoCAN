@@ -268,7 +268,7 @@ void phase_current_command(int16_t I_a, int16_t I_b){
 		set_curr(fastAbs(I_a), fastAbs(I_b));
 
 		bridgeA((I_a > 0) ? 1 : 0);
-		if(liveMotorParams.swapPhase){
+		if(liveMotorParams.invertedPhase){
 			bridgeB((I_b > 0) ? 0 : 1);
 		}else{
 			bridgeB((I_b > 0) ? 1 : 0);
@@ -295,6 +295,6 @@ void phase_voltage_command(int16_t U_a, int16_t U_b, uint16_t curr_lim){
 		uint16_t duty_a = (uint16_t)(fastAbs(U_a) * PWM_TIM_MAX / U_in);
 		uint16_t duty_b = (uint16_t)(fastAbs(U_b) * PWM_TIM_MAX / U_in);
 		setPWM_bridgeA(duty_a, (U_a > 0)); //PWM12
-		setPWM_bridgeB(duty_b, liveMotorParams.swapPhase ? (U_b < 0) : (U_b > 0)); //PWM34
+		setPWM_bridgeB(duty_b, liveMotorParams.invertedPhase ? (U_b < 0) : (U_b > 0)); //PWM34
 	}
 }

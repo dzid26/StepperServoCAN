@@ -141,8 +141,8 @@ void validateAndInitNVMParams(void)
 	}
 
 	if(nvmMirror.motorParams.parametersValid != valid){
-		nvmMirror.motorParams.swapPhase = false;
-		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with swapPhase
+		nvmMirror.motorParams.invertedPhase = false;
+		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with invertedPhase
 	}
 
 	if((nvmMirror.systemParams.parametersValid != valid) || (nvmMirror.motorParams.parametersValid != valid)){

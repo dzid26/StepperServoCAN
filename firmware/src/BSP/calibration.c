@@ -183,7 +183,7 @@ bool Learn_StepSize_WiringPolarity(void){
 	if (x < 0.0f){
 		// depending on wiring order, motor will rotate the other direction
 		// flip phase polarity to avoid this
-		liveMotorParams.swapPhase = !liveMotorParams.swapPhase;
+		liveMotorParams.invertedPhase = !liveMotorParams.invertedPhase;
 	}
 
 	// detect if the motor is 0.9 or 1.8 steps per rotation
