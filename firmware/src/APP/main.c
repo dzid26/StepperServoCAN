@@ -99,6 +99,9 @@ static void RunCalibration(void){
 		err0 = !Learn_StepSize_WiringPolarity();
 		if (err0){
 			(void) printf("ERROR: Motor blocked or unpowered. Retrying...\n");
+		}else{
+			(void) printf("Phase orientation: %d\n", (uint8_t)(liveMotorParams.invertedPhase));
+			(void) printf("Motor steps: %d\n", liveMotorParams.fullStepsPerRotation);
 		}
 	}while(err0);
 
@@ -187,9 +190,9 @@ static void Begin_process(void){
 	}
 	Set_Error_LED(false);
 
-	printf("Initialization successful\n");
+	(void) printf("Initialization successful\n");
 
-	printf("Starting motion task\n");
+	(void) printf("Starting motion task\n");
 	StepperCtrl_enable(true);
 
 	apiAllowControl(true);
