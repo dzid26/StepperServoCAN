@@ -336,12 +336,9 @@ int8_t Estimate_motor_k_bemf() {
 		return -1;
 	}
 	
-	// make sure U_d is 0 by forcing phase_L=0 since we know there is no load
-	phase_L = 0; // todo restore/learn later
-
 	//accelerate
-	StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_TORQUE);
-	StepperCtrl_setCurrent(INT16_MAX);
+	StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_KBEMF_ADAPT);
+	StepperCtrl_setCurrent(MAX_CURRENT);
 	//accelerate and observe (maximum) base speed
 	uint32_t base_speed = 0;
 	for (uint16_t i = 0; i < 300U; ++i) {
@@ -365,8 +362,10 @@ int8_t Estimate_motor_k_bemf() {
 	}
 
 	// update motor_k_bemf
-	StepperCtrl_setCurrent(MAX_CURRENT);
 	motor_k_bemf = (int16_t)k_bemf;
+
+	StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_KBEMF_ADAPT);
+	StepperCtrl_setCurrent(MAX_CURRENT);
 
 	// make sure motor can stop at with 0Nm torque command with the new motor_k_bemf
 	// check both directions

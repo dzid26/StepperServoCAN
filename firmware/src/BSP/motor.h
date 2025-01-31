@@ -10,6 +10,6 @@
 #define MAX_CURRENT I_MAX_A4950
 void openloop_step(uint16_t elecAngleStep, uint16_t curr_tar);
 void field_oriented_control(int16_t current_target);
-void base_speed(int16_t dir);
+void base_speed_test(int16_t dir);
 
 #endif // MOTOR_H_

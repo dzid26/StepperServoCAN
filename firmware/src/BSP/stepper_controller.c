@@ -284,7 +284,7 @@ bool StepperCtrl_processMotion(void)
 
 	if (base_speed_mode){
 		control = feedForward;
-		base_speed(control);
+		base_speed_test(control);
 	}else if(enableSensored){ //todo add openloop control
 		//todo add close loop initialization - I term with last control
 		if (enableSoftOff){

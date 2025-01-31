@@ -86,10 +86,19 @@ static uint16_t calc_electric_angle(bool volt_control){
 	return electricAngle % SINE_STEPS;
 }
 
-void base_speed(int16_t dir) {
+void base_speed_test(int16_t dir) {
 	uint16_t electricAngle = calc_electric_angle(true);
+	const uint16_t safety_torque_limit = 500U; //mA - should not interfere with reaching full speed
+
 	int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
-	voltage_commutation(electricAngle, clip(dir, -1, 1) * U_lim, 0, 500U);
+	if (dir != 0) {
+		voltage_commutation(electricAngle, clip(dir, -1, 1) * U_lim, 0, safety_torque_limit);
+	}else{
+		// freewheeling
+		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
+		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
+		voltage_commutation(electricAngle, U_emf_sat, 0, safety_torque_limit);
+	}
 }
 
 void field_oriented_control(int16_t current_target) {
