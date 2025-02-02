@@ -380,7 +380,7 @@ int8_t Estimate_motor_k_bemf(void) {
 		debug_assert(0);
 		return -2;
 	}
-	uint32_t k_bemf = (uint32_t)GetMotorVoltage_mV() * ANGLE_STEPS / base_speed;
+	uint32_t k_bemf = (uint32_t)(GetMotorVoltage_mV()+2*BODY_DIODE_DROP_mV) * ANGLE_STEPS / base_speed;
 
 	if (k_bemf > 5555U) {
 		// k_bemf not plausible
@@ -397,19 +397,20 @@ int8_t Estimate_motor_k_bemf(void) {
 
 	// make sure motor can stop at with 0Nm torque command with the new motor_k_bemf
 	// check both directions
-	for (int16_t pass = 0; pass < 2; ++pass) {
+	int16_t i = 0;
+	for (int16_t pass = 0; pass <= 1; ++pass) {
 		if (pass != 0) { //second pass
 			StepperCtrl_setCurrent(-MAX_CURRENT); //accelerate
 			delay_ms(300);
 		}
 
 		StepperCtrl_setCurrent(0);
-		int16_t i = 0;
-		while ((fastAbs(speed_slow) > base_speed / 2) && (i < 100)) {
-			++i;
+		while ((fastAbs(speed_slow) > (base_speed * 3U / 4U)) && (i < 100)) {
+			if(pass == 0) {++i;} else {--i;}
+			debug_assert(i > 0); // if it takes longer to reduce speed on second run, that indicates board-magnet misalignment
 			delay_ms(100);
 			// decay motor_k_bemf
-			motor_k_bemf = (int16_t)((int32_t)motor_k_bemf * 999 / 1000);
+			motor_k_bemf = (int16_t)((int32_t)motor_k_bemf * 99 / 100);
 		}
 		delay_ms(200);
 	}

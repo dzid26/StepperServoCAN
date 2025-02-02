@@ -36,6 +36,8 @@ extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 #define I_RS_A4950_div    10U  // div for A4950
 #define I_MAX_A4950       3300 //mA
 
+#define BODY_DIODE_DROP_mV 430U //  intrinsic body diode voltage drop - (AT8236 has 495mV)
+
 void A4950_enable(bool enable);
 void phase_current_command(int16_t I_a, int16_t I_b);
 void phase_voltage_command(int16_t U_a, int16_t U_b, uint16_t curr_lim);
