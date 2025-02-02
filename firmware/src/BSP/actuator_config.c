@@ -43,10 +43,10 @@ float volatile current_to_actuatorTq; // Nm/mA - (ignores gearbox efficiency)
 volatile float motor_k_torque; // Nm/A
 
 // interprets motor parameters
-void update_actuator_parameters(void){
+void update_actuator_parameters(bool use_simple_params){
     gearing_ratio = motor_gearbox_ratio * final_drive_ratio;
 
-    if (USE_SIMPLE_PARAMETERS) {
+    if (use_simple_params) {
         motor_k_torque = (motor_rated_torque / 100) / motor_rated_current;
         motor_k_bemf = motor_k_torque * 1000 * 2.0f * 3.1415f;
     }else{

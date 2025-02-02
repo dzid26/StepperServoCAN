@@ -43,7 +43,7 @@ extern volatile float current_to_actuatorTq;
 
 extern const int8_t anticogging_factor;
 
-void update_actuator_parameters(void);
+void update_actuator_parameters(bool use_simple_params);
 
 
 #endif // ACTUATOR_CONFIG_H

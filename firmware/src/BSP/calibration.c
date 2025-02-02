@@ -413,9 +413,9 @@ int8_t Estimate_motor_k_bemf(void) {
 		}
 		delay_ms(200);
 	}
-	if (!USE_SIMPLE_PARAMETERS && USE_VOLTAGE_CONTROL) { // don't override learnt K_bemf
-		update_actuator_parameters();
-	}
+
+	update_actuator_parameters(false); //update torque constant
+
 	StepperCtrl_setMotionMode(STEPCTRL_OFF);
 	return motor_k_bemf;
 }
