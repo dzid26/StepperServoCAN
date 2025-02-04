@@ -68,7 +68,7 @@
 
 #define PWM_TIM             TIM1
 #define PWM_TIM_MAX         (SINE_MAX>>PWM_SCALER)
-#define PWM_TIM_MIN         1
+#define PWM_TIM_MIN         2U
 
 #define GPIO_LSS            GPIOA
 #define PIN_LSS_A           GPIO_Pin_0

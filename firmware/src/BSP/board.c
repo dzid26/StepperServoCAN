@@ -199,7 +199,7 @@ static void A4950_init(void)
 	timeBaseStructure.TIM_Period = PWM_TIM_MAX;
 	timeBaseStructure.TIM_Prescaler = 0;	//No prescaling - max cpu speed (MHz)
 	timeBaseStructure.TIM_ClockDivision = 0;
-	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
 	TIM_TimeBaseInit(PWM_TIM, &timeBaseStructure);
 
 	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;

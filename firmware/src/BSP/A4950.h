@@ -26,7 +26,7 @@
 
 //VREF_SCALER reduces PWM resolution by 2^VREF_SCALER but increases PWM freqency by 2^(VREF_SCALER-1)
 #define VREF_SCALER	6U
-#define PWM_SCALER	3U //low vibration
+#define PWM_SCALER	4U // lower numbers are audible (voltage control mode)
 #define SYS_Vin 14500U //mV
 #define V_TO_mV 1000
 
