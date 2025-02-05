@@ -213,6 +213,9 @@ static void A4950_init(void)
 
 	TIM_OC1Init(PWM_TIM, &tim_OCInitStructure);	//CH1
 	TIM_OC2Init(PWM_TIM, &tim_OCInitStructure);	//CH2
+
+	// invert second phase activation to avoid current draw in the same time
+	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
 	TIM_OC3Init(PWM_TIM, &tim_OCInitStructure);	//CH3
 	TIM_OC4Init(PWM_TIM, &tim_OCInitStructure);	//CH4
 
