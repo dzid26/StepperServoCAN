@@ -57,33 +57,29 @@ volatile bool driverEnabled = false;
  * Selects drive direction in current control mode
  * Compatible with GPIO_Mode_Out_PP and GPIO_Mode_AF_PP (timer) pin configurations
 **/
-inline static void bridgeA(int state)
-{
+inline static void bridgeA(int state){
 	//Make sure the PIN_A4950_INs timer is counting to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
-	if (state == 1) //Forward
-	{	//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
+	if (state == 1){ //Forward
+		//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
 		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare2(PWM_TIM, 0);
 	}
-	if (state == 0) //Reverse
-	{
+	if (state == 0){ //Reverse
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0	
 		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1
 		TIM_SetCompare1(PWM_TIM, 0);
 		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
-	if (state == 3) //Coast (off)
-	{
+	if (state == 3){ //Coast (off)
 		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0
 		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 		TIM_SetCompare1(PWM_TIM, 0);
 		TIM_SetCompare2(PWM_TIM, 0);
 	}
-	if (state == 4) //brake
-	{
+	if (state == 4){ //brake
 		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=1
 		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=1
 		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
@@ -95,33 +91,28 @@ inline static void bridgeA(int state)
  * Selects drive direction in current control mode
  * Compatible with GPIO_Mode_Out_PP and GPIO_Mode_AF_PP (timer) pin configurations
 **/
-inline static void bridgeB(int state)
-{	
+inline static void bridgeB(int state){
 	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
-	if (state == 1) //Forward
-	{
+	if (state == 1){ //Forward
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare4(PWM_TIM, 0);
 	}
-	if (state == 0) //Reverse
-	{
+	if (state == 0){ //Reverse
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
 		TIM_SetCompare3(PWM_TIM, 0);
 		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
-	if (state == 3) //Coast (off)
-	{
+	if (state == 3){ //Coast (off)
 		PIN_A4950->BRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
 		PIN_A4950->BRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 		TIM_SetCompare3(PWM_TIM, 0);
 		TIM_SetCompare4(PWM_TIM, 0);
 	}
-	if (state == 4) //brake
-	{
+	if (state == 4){ //brake
 		PIN_A4950->BSRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN3=1
 		PIN_A4950->BSRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN4=1
 		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
@@ -165,36 +156,34 @@ inline static void set_curr(uint16_t curr_lim_A, uint16_t curr_lim_B)
 /**
  * @brief Set the PWM bridgeA duty cycle
  * 
- * @param duty - value between zero and PWM_TIM_MAX
- * @param quadrant1or2
+ * @param duty - value between zero and PWM_TIM_MAX corresponds to 0 and v_mot
+ * @param quadrant1or2 - determines phase polarity
  */
 static const bool slow_decay = true;
-static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
-{
+static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2){
 	//Make sure the PIN_A4950_INs have running timer
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
 
 	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
 
-	//duty_A,B between 0 and PWM_MAX corresponds to 0 and v_mot
-	//quadrant1or2,3or4 - determines which phase is used
-
-	if (slow_decay) //slow decay, zero duty is brake (phase shorted to ground ob both ends)
-	{	 //electric field quadrant
-		if (quadrant1or2)
-		{ 		//"forward slow decay"
+	if (slow_decay){ //slow decay, zero duty is brake (phase shorted to ground ob both ends)
+		//electric angle quadrant
+		if (quadrant1or2){
+			// "forward slow decay"
 			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX);
 			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX - pwm_count);
-		}else{	//"reverse slow decay"
+		}else{
+			// "reverse slow decay"
 			TIM_SetCompare1(PWM_TIM, PWM_TIM_MAX - pwm_count);
 			TIM_SetCompare2(PWM_TIM, PWM_TIM_MAX);
 		}
-	}else{	//fast decay, zero duty is coast (phase is floatinmg on both ends)
-		if (quadrant1or2)
-		{ 		//"forward fast decay"
+	}else{	// fast decay, zero duty is coast (phase is floatinmg on both ends)
+		if (quadrant1or2){
+			// "forward fast decay"
 			TIM_SetCompare1(PWM_TIM, pwm_count);
 			TIM_SetCompare2(PWM_TIM, 0);
-		}else{	//"reverse fast decay"
+		}else{
+			// "reverse fast decay"
 			TIM_SetCompare1(PWM_TIM, 0);
 			TIM_SetCompare2(PWM_TIM, pwm_count);
 		}
@@ -204,32 +193,33 @@ static void setPWM_bridgeA(uint16_t duty, bool quadrant1or2)
 /**
  * @brief Set the PWM bridgeB duty cycle
  * 
- * @param duty - value between zero and PWM_TIM_MAX
- * @param quadrant3or4
+ * @param duty - value between zero and PWM_TIM_MAX corresponds to 0 and v_mot
+ * @param quadrant3or4 - determines phase polarity
  */
-static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4)
-{
+static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4){
 	//Make sure the PIN_A4950_INs are configured as PWM
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MAX);
 
 	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
 
-	if (slow_decay)
-	{	 //electric field quadrant
-		if (quadrant3or4)
-		{		//"forward slow decay"
+	if (slow_decay){
+		//electric field quadrant
+		if (quadrant3or4){
+			// "forward slow decay"
 			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX);
 			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX - pwm_count);
-		}else{	//"reverse slow decay"
+		}else{
+			// "reverse slow decay"
 			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX - pwm_count);
 			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX);
 		}
 	}else{		
-		if (quadrant3or4)
-		{		//"forward fast decay
+		if (quadrant3or4){
+			// "forward fast decay"
 			TIM_SetCompare3(PWM_TIM, pwm_count);
 			TIM_SetCompare4(PWM_TIM, 0);
-		}else{	//"reverse fast decay"
+		}else{
+			// "reverse fast decay"
 			TIM_SetCompare3(PWM_TIM, 0);
 			TIM_SetCompare4(PWM_TIM, pwm_count);
 		}
