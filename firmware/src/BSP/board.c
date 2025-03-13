@@ -206,7 +206,7 @@ static void A4950_init(void)
  	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	tim_OCInitStructure.TIM_OutputNState = TIM_OutputState_Disable;
 	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	tim_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
+	tim_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;   // this is necessary even though OCN pins are not used
 	tim_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset; //Motor coasting when idle is set to reset
 	tim_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
 	tim_OCInitStructure.TIM_Pulse = 0;
@@ -216,6 +216,7 @@ static void A4950_init(void)
 
 	// invert second phase activation to avoid current draw in the same time
 	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
+	tim_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;  // this is necessary even though OCN pins are not used
 	TIM_OC3Init(PWM_TIM, &tim_OCInitStructure);	//CH3
 	TIM_OC4Init(PWM_TIM, &tim_OCInitStructure);	//CH4
 
