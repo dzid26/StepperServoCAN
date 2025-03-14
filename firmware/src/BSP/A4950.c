@@ -56,6 +56,7 @@ volatile bool driverEnabled = false;
 /** 
  * H-bridge ON/OFF mode
  * Selects drive direction in current control mode
+ * A4950_A_IN1 | A4950_A_IN2
 **/
 inline static void bridgeA(int state){
 	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
@@ -81,6 +82,7 @@ inline static void bridgeA(int state){
 /** 
  * H-bridge ON/OFF mode
  * Selects drive direction in current control mode
+ * A4950_B_IN1 | A4950_B_IN2
 **/
 inline static void bridgeB(int state){
 	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO

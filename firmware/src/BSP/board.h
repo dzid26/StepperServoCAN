@@ -56,10 +56,10 @@
 #define RS_A4950            100U //mOhm
 
 #define PIN_A4950     		GPIOA
-#define PIN_A4950_IN1   	GPIO_Pin_8
-#define PIN_A4950_IN2   	GPIO_Pin_9
-#define PIN_A4950_IN3  		GPIO_Pin_10
-#define PIN_A4950_IN4  		GPIO_Pin_11
+#define A4950_A_IN1   	    GPIO_Pin_8
+#define A4950_A_IN2   	    GPIO_Pin_9
+#define A4950_B_IN1  		GPIO_Pin_10
+#define A4950_B_IN2  		GPIO_Pin_11
 
 #define PIN_A4950_ENABLE    GPIO_Pin_6
     

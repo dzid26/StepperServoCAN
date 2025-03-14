@@ -190,12 +190,12 @@ static void A4950_init(void)
 	//A4950 Input pins
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_AF_PP;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    gpio_initStructure.GPIO_Pin = PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4;
+    gpio_initStructure.GPIO_Pin = A4950_A_IN1|A4950_A_IN2|A4950_B_IN1|A4950_B_IN2;
     GPIO_Init(PIN_A4950, &gpio_initStructure);
 	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM1, ENABLE);//PWM_TIM
 	
 	TIM_DeInit(PWM_TIM);
-	//Init PWM_TIM - PIN_A4950_IN1|PIN_A4950_IN2|PIN_A4950_IN3|PIN_A4950_IN4
+	//Init PWM_TIM - A4950_A_IN1|A4950_A_IN2|A4950_B_IN1|A4950_B_IN2
 	timeBaseStructure.TIM_Period = PWM_TIM_MAX;
 	timeBaseStructure.TIM_Prescaler = 0;	//No prescaling - max cpu speed (MHz)
 	timeBaseStructure.TIM_ClockDivision = 0;
