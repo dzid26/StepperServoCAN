@@ -54,67 +54,50 @@ const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED] = {
 volatile bool driverEnabled = false;
 
 /** 
+ * H-bridge ON/OFF mode
  * Selects drive direction in current control mode
- * Compatible with GPIO_Mode_Out_PP and GPIO_Mode_AF_PP (timer) pin configurations
 **/
 inline static void bridgeA(int state){
-	//Make sure the PIN_A4950_INs timer is counting to 1 to emulate GPIO
+	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
 	if (state == 1){ //Forward
-		//User BRR BSRR reguisters to avoid ASSERT ehecution from HAL
-		PIN_A4950->BSRR = PIN_A4950_IN1;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=1
-		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare2(PWM_TIM, 0);
 	}
 	if (state == 0){ //Reverse
-		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0	
-		PIN_A4950->BSRR = PIN_A4950_IN2;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=1
 		TIM_SetCompare1(PWM_TIM, 0);
 		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 3){ //Coast (off)
-		PIN_A4950->BRR = PIN_A4950_IN1;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN1);		//IN1=0
-		PIN_A4950->BRR = PIN_A4950_IN2;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN2);		//IN2=0
 		TIM_SetCompare1(PWM_TIM, 0);
 		TIM_SetCompare2(PWM_TIM, 0);
 	}
 	if (state == 4){ //brake
-		PIN_A4950->BSRR = PIN_A4950_IN1;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);	//IN1=1
-		PIN_A4950->BSRR = PIN_A4950_IN2;		//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);	//IN2=1
 		TIM_SetCompare1(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare2(PWM_TIM, PWM_TIM_MIN+1);
 	}
 }
 
 /** 
+ * H-bridge ON/OFF mode
  * Selects drive direction in current control mode
- * Compatible with GPIO_Mode_Out_PP and GPIO_Mode_AF_PP (timer) pin configurations
 **/
 inline static void bridgeB(int state){
 	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
 	if (state == 1){ //Forward
-		PIN_A4950->BRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=1
-		PIN_A4950->BSRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 		TIM_SetCompare3(PWM_TIM, 0);
 		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 0){ //Reverse
-		PIN_A4950->BSRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
-		PIN_A4950->BRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=1
 		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare4(PWM_TIM, 0);
 	}
 	if (state == 3){ //Coast (off)
-		PIN_A4950->BSRR = PIN_A4950_IN3;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN3);		//IN3=0
-		PIN_A4950->BSRR = PIN_A4950_IN4;		//GPIO_ResetBits(PIN_A4950, PIN_A4950_IN4);		//IN4=0
 		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
 		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
 	if (state == 4){ //brake
-		PIN_A4950->BRR = PIN_A4950_IN3;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN1);		//IN3=1
-		PIN_A4950->BRR = PIN_A4950_IN4;	//GPIO_SetBits(PIN_A4950, PIN_A4950_IN2);		//IN4=1
 		TIM_SetCompare3(PWM_TIM, 0);
 		TIM_SetCompare4(PWM_TIM, 0);
 	}
