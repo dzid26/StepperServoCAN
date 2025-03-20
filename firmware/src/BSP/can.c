@@ -124,9 +124,9 @@ static void CAN_InterpretMesssages(CanRxMsg message) {
   	case MSG_STEERING_COMMAND_FRAME_ID: {      
       Msg_steering_command_unpack(&ControlCmds, message.Data, sizeof(message.Data));
       // Note signals may correspond to different motor sample
-      StepperCtrl_setDesiredAngle(Msg_steering_command_steer_angle_decode(ControlCmds.steer_angle));
-      StepperCtrl_setFeedForwardTorque(Msg_steering_command_steer_torque_decode(ControlCmds.steer_torque));
       StepperCtrl_setControlMode(ControlCmds.steer_mode); //set control mode
+      StepperCtrl_setFeedForwardTorque(Msg_steering_command_steer_torque_decode(ControlCmds.steer_torque));
+      StepperCtrl_setDesiredAngle(Msg_steering_command_steer_angle_decode(ControlCmds.steer_angle));
       
       //calculate checksum:
       message.Data[0] = 0; //!clear checksum - make sure which byte is checksum
