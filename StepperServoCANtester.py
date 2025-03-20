@@ -346,7 +346,7 @@ STEER_MODE_OPTIONS = [
     (0, "Off - instant 0 torque"),
     (1, "TorqueControl"),
     (2, "AngleControl"),
-    (3, "SoftOff - ramp torque to 0 in 1s")
+    (3, "SoftOff - ramp torque to 0 at constant rate")
 ]
 
 steer_mode_widget = SteerModeWidget(window, "Steer Mode:  ", STEER_MODE_OPTIONS, command=update_values)

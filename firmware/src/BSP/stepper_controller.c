@@ -265,17 +265,25 @@ bool StepperCtrl_processMotion(void)
 		control = feedForward;
 		base_speed_test(control);
 	}else if(enableSensored){ //todo add openloop control
-		//todo add close loop initialization - I term with last control
 		if (enableSoftOff){
-			static uint16_t rampsteps = 0;
-			const uint8_t rampstepsMax = 1; //seconds
-			if ((control != 0) && (rampsteps >= (SAMPLING_PERIOD_uS * rampstepsMax))){
-				(control > 0) ? control-- : control++;
-				rampsteps = 0;
-			}else if (control == 0){
+			if (control != 0) {
+				// Calculate the number of tick required to ramp down at DESIRED_TORQUE_RATE
+				#define DESIRED_TORQUE_RATE 2U // Nm/s
+				const uint16_t tick_max = ((uint16_t)SAMPLING_HZ / DESIRED_TORQUE_RATE / (uint16_t)actuatorTq_to_current);
+				// count tick between reduction
+				static uint16_t tick = 0;
+				tick++;
+				if (tick >= tick_max) {
+					if (control > 0) {
+						--control;
+					} else {
+						++control;
+					}
+					tick = 0;
+				}
+			} else {
 				A4950_enable(false);
 			}
-			rampsteps++;
 			lastError = 0;
 			closeLoop = 0;
 		}

@@ -6,3 +6,5 @@ misra_rules_set_cppcheck.txt
 *.bin
 .cache
 compile_commands.json
+*.dump
+*.ctu-info
