@@ -140,7 +140,7 @@ static void RunCalibration(void){
 
 
 volatile stepCtrlError_t stepCtrlError = STEPCTRL_NO_POWER;
-static void Begin_process(void){
+static void Begin_process(void) {
 	board_init();	//set up the pins correctly on the board.
 
 	update_actuator_parameters(USE_SIMPLE_PARAMETERS);
@@ -154,39 +154,30 @@ static void Begin_process(void){
 	Motion_task_init(SAMPLING_PERIOD_uS);
 
 	display_show("StepperServoCAN", "initialization..", "", "");
-	delay_ms(10);
-	stepCtrlError = STEPCTRL_NO_CAL;
-	while(STEPCTRL_NO_ERROR != stepCtrlError){
-		Set_Error_LED(true);
-		//start controller before accepting step inputs
-		stepCtrlError = StepperCtrl_begin();
-
-		//start up encoder
-		if (STEPCTRL_NO_ENCODER == stepCtrlError){
-			display_show("Encoder", " Error!", "REBOOT", "");
-			//slow red blink - encoder initialization fail - power down the board
+	Set_Error_LED(true);
+	delay_ms(10); // wait for power to stabilize
+	stepCtrlError = StepperCtrl_begin();
+	while(stepCtrlError != STEPCTRL_NO_ERROR) {
+		if(stepCtrlError == STEPCTRL_NO_POWER) {
+			display_show("MOTOR", "POWER", "Waiting", "");
 			Set_Error_LED(false);
-			delay_ms(1000);
-			Set_Error_LED(true);
-			delay_ms(1000);
-		}else if(STEPCTRL_NO_POWER == stepCtrlError){
-			display_show("Waiting", "MOTOR", "POWER", "");
-			//interrupted red led (as if it is retrying) - waiting for power
-			delay_ms(1000);
-			Set_Error_LED(false);
-		}else if(STEPCTRL_NO_MOVE == stepCtrlError){
-			display_show("Retrying", "MOTOR", "Blocked", "");
-			//interrupted red led (as if it is retrying) - waiting for power
-			delay_ms(1000);
-			Set_Error_LED(false);
-		}else if(STEPCTRL_NO_CAL == stepCtrlError){
-			display_show("   NOT ", "Calibrated", " ", "");
+			delay_ms(10); // short red led blink
+		}else if(stepCtrlError == STEPCTRL_NO_CAL) {
+			display_show("Encoder", " Not ", "calibrated", " ");
 			delay_ms(2200);
 			display_process();
 			RunCalibration();
-		}else{
+		}else if (stepCtrlError == STEPCTRL_NO_ENCODER) {
+			display_show("Encoder", "Init Error!", "REBOOT", "");
 			Set_Error_LED(false);
+			delay_ms(1000); // long red led blink
+		}else {
+			assert(0);
 		}
+		// Retry after ~1s:
+		Set_Error_LED(true);
+		delay_ms(1500);
+		stepCtrlError = StepperCtrl_begin();
 	}
 	Set_Error_LED(false);
 
@@ -199,7 +190,7 @@ static void Begin_process(void){
 }
 
 
-static void Background_process(void){
+static void Background_process(void) {
 	if(runCalibration){
 		RunCalibration();
 	}
@@ -222,7 +213,7 @@ void Motion_task(void){
 }
 
 //10ms task for communication and diagnostic
-void Service_task(void){
+void Service_task(void) {
 	service_task_counter++;
 
 	adc_update_all();
@@ -273,8 +264,7 @@ void Service_task(void){
 }
 
 #ifndef PIO_UNIT_TESTING 
-int main (void)
-{	
+int main (void) {
 	#ifdef DEBUG
 	initialise_monitor_handles();
 	#endif

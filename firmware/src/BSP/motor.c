@@ -69,7 +69,7 @@ static uint16_t calc_electric_angle(bool volt_control){
 	int16_t angleSpeedComp = (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
 
 	//convert load angle to electrical angle domain (0-1023 full turn)
-	uint16_t absoluteAngle = (uint16_t)(((uint32_t)(int32_t)(currentLocation + angleSpeedComp)) & ANGLE_MAX); //add load angle to current location
+	uint16_t absoluteAngle = (uint16_t)(((uint32_t)(int32_t)(currentLocation + angleSpeedComp)) & ANGLE_MAX);
 	uint16_t electricAngle = absoluteAngle * liveMotorParams.fullStepsPerRotation * FULLSTEP_ELECTRIC_ANGLE / ANGLE_STEPS;
 
 	//calculate microsteps phase lead for current control

@@ -107,22 +107,12 @@ stepCtrlError_t StepperCtrl_begin(void){
 		return STEPCTRL_NO_POWER;
 	}
 
-	//Checking the motor parameters
-	if (liveMotorParams.fullStepsPerRotation == FULLSTEPS_NA){ //motor was not identified, let's do it now
-		bool success = Learn_StepSize_WiringPolarity();
-		if (!success){
-			return STEPCTRL_NO_MOVE;
-		}
-	}
-	assert((liveMotorParams.fullStepsPerRotation == FULLSTEPS_1_8) || (liveMotorParams.fullStepsPerRotation == FULLSTEPS_0_9));
-
 	angleFullStep = (int32_t)(ANGLE_STEPS / liveMotorParams.fullStepsPerRotation);
 
-	if (false == CalibrationTable_calValid())
-	{
+	if ((liveMotorParams.fullStepsPerRotation == FULLSTEPS_NA) || (CalibrationTable_calValid() == false)) {
 		return STEPCTRL_NO_CAL;
 	}
-
+	assert((liveMotorParams.fullStepsPerRotation == FULLSTEPS_1_8) || (liveMotorParams.fullStepsPerRotation == FULLSTEPS_0_9));
 
 	return STEPCTRL_NO_ERROR;
 }
