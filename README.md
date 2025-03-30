@@ -10,7 +10,7 @@
 - PCB Schematics repo [here](https://github.com/dzid26/StepperServo-hardware)
 - STMicroelectronics' 32-bit MCU, STM32F103C8T6 ARM 32-bit, Cortex™-M3 CPU Core, 72MHz maximum frequency, 20k RAM, 64k Flash (but really 128k ??).
 - TLE5012 15bit magnetic (GMR) angle sensor. Also provides temperature sensing.
-- A4950 drivers with integrated mosfets and cureent limit 
+- A4950 drivers with integrated mosfets and current limit 
 
 ## Firmware
 - It uses Platformio build system, to configure, upload and debug the program
@@ -27,8 +27,8 @@
     platformio run
 ```
 - Upload firmware to the board by pressing Upload arrow at the status bar in VScode
-- Eeprom is not erased when flashing the firmware - any future calibration will not be lost
-- Eeprom can be erased to factory state using ST-Link tool or in Platformio activity bar ServoCAN_dev -> Custom -> Erase Flash
+- EEPROM is not erased when flashing the firmware - any future calibration will not be lost
+- EEPROM can be erased to factory state using ST-Link tool or in Platformio activity bar ServoCAN_dev -> Custom -> Erase Flash
 
 ### Configuration
 - In `firmware/src/BSP/actuator_config.c` set:
@@ -38,9 +38,9 @@
 - Depending on mounting orientation and gearing the motor rotation direction may be reversed. You can change the direction by setting `motor_gearbox_ratio` or `final_drive_ratio` to a negative value.
 
 ### LED indicators
-BLUE LED (Function):
- - short single blink after user long presses `F1` button indicating button can be released
- - solid - waiting for user confirmation [of calibration] (either with `F1` button or Enter in Platformio OpenOCD debugger virtual serial console)
+BLUE LED (Waiting for user):
+- solid - waiting for user confirmation [of the calibration] (either with `F1` button or the Enter key in Platformio Debug Console)
+- short single blink after user long presses `F1` button indicating button can be released
 
 RED LED (Error):
  - solid/dim/flickering - Motion task CPU overrun (shall not happen)
@@ -50,7 +50,7 @@ RED LED (Error):
 1. On first start default parameters are loaded to be later stored in Flash.
 2. During first start two phases are briefly actuated and based on angle sensor movement `motorParams.motorWiring` is determined automatically.
 3. Next the controller automatically waits (blue LED on) for the user to confirm sensor calibration. Press `F1` button to start calibration. The motor will be calibrated and values stored in Flash. Calibration can be repeated any time by long pressing `F1` button until first short blink of the blue LED. 
-4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affectes signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
+4. Actuator physical values (gearing, torque, current, etc) need to be specified `firmware/actuator_config.h`. It affects signal values read from CANbus to internal control. CANbus values are represented in actuator domain (i.e. considering motor gearbox). Change gearbox and final gear ratios in `firmware/actuator_config.h` file. Available parameters are `rated_current`, `rated_torque`, `motor_gearbox_ratio`, `final_drive_ratio`.
 5. Additionally, one can extract sensor calibration values (point 3) from the Flash using `readCalibration.py`:
 
     <img width="488" alt="image" src="https://github.com/dzid26/StepperServoCAN/assets/841061/5316b32f-8268-41e9-b313-c464d13543d5">
@@ -68,7 +68,7 @@ CAN Command - expect rate is 10ms
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
         - 2 - "AngleControl"- uses STEER_ANGLE signal to control absolute angle using PID close-loop and STEER_TORQUE as feedforward
-        - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for coommunication error safe mode
+        - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for communication error safe mode
     - COUNTER
     - CHECKSUM
 
@@ -124,12 +124,12 @@ git submodule update opendbc
 If SocketCAN interfaces are not found, the program will abort. 
 
 ## Contributing
-- Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is preconfigured with (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode. Ask priv about the `misra_rules_set_cppcheck.txt` for cppcheck.
+- Develop using MISRA C:2012 standard and analyzed using [Cppcheck](https://cppcheck.sourceforge.io/). Project is pre-configured with (`misra.json`) for [C/C++ Advanced Lint](https://marketplace.visualstudio.com/items?itemName=jbenden.c-cpp-flylint) and [SonarLint](https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode) to highlight violations in VScode. Ask priv about the `misra_rules_set_cppcheck.txt` for cppcheck.
 
 ### Debugging
 - In VScode press F5 to start debugging using Platformio
 
-The debugging session is setup to use semihosting when debugging and some debug information is printed to the *debug console*. When debugging, the motor calibration can be initiated by liong pressing F1 as usual, but then to start calibration used can press any key in the console. This is not very reliable though and sometimes calibration will start on debug events.
+The debugging session is setup to use semihosting when debugging and some debug information is printed to the *debug console*. When debugging, the motor calibration can be initiated by long-pressing F1 as usual, but then to start calibration user can press any key in the console. (This is not very reliable though and sometimes calibration will start on debug events).
 
 ### Signal logging
 STM32 has an ability to view and edit global variables using SWD debug interface
@@ -141,7 +141,7 @@ STM32 has an ability to view and edit global variables using SWD debug interface
 - [GPL v3 license](https://github.com/dzid26/RetroPilot-SERVO42B/blob/openpilot_S42B/LICENSE) scheme as required for the software derivatives
 - Derivatives of this software under GPLv3 license will also need to remain open source if distributed commercially.
 
-## Atributions
+## Attributions
 For initial software and hardware:
 - [Makerbase](https://makerbase.com.cn/)
 - [Misfittech](https://misfittech.net/)
