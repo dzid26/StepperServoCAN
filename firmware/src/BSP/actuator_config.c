@@ -7,30 +7,30 @@
 #include "stepper_controller.h"
 
 // ----- should be set by the user --------------------------------------------------------------------------------
-const bool USE_VOLTAGE_CONTROL = false; // voltage or current control - voltage control recommended for hardware v0.3
+const bool USE_VOLTAGE_CONTROL = true; // voltage or current control - voltage control recommended for hardware v0.3
 
 // select simple or advanced parameters
 // simple parameters (rated torque and current) are usually overstated by manufacturers
 // use simple parameters if you don't want to measure motor_k_bemf
 // or use motor_k_bemf instead to get more accurate torque and current relationship
-const bool USE_SIMPLE_PARAMETERS = true;
+const bool USE_SIMPLE_PARAMETERS = false;
 
 // SIMPLE PARAMETERS:
-const float motor_rated_current = (float) 1.3; // A
-const float motor_rated_torque =  (float) 28;  // Ncm
+const float motor_rated_current = (float) 1.5; // A
+const float motor_rated_torque =  (float) 1.16;  // Ncm
 
 // MEASURED PARAMETERS: // todo autocalibrate and store in NVRAM
 // default are for black 17HS4401S https://www.aliexpress.com/item/4001349087963.html
-volatile int16_t motor_k_bemf = 750; // mV/(rev/s) -   hold F2 to measure, use MCUViewer to see new motor_k_bemf value and update manually here
+volatile int16_t motor_k_bemf = 3888; // mV/(rev/s) -   hold F2 to measure, use MCUViewer to see new motor_k_bemf value and update manually here
 // note, when motor_k_bemf is too low, the motor can have higher top speed when unloaded (unintentional field weakening via I_d), but power and torque will not be accurate
-volatile int16_t phase_R = 2400;         // mOhm -      it's best to measure this
-volatile int16_t phase_L = 3230;         // uH -        use datasheet value or RLC meter to measure - correct value maximizes peak motor power
+volatile int16_t phase_R = 3600;         // mOhm -      it's best to measure this
+volatile int16_t phase_L = 13230;         // uH -        use datasheet value or RLC meter to measure - correct value maximizes peak motor power
 
 // specify gearing parameters here:
-const float motor_gearbox_ratio = 5.0F+(2.0F/11.0F); // gearbox ratio - enter planetary gearbox tooth calculation for best accuracy
-const float final_drive_ratio = 2.0F;                // assembly gearing ratio
+const float motor_gearbox_ratio = 1; // gearbox ratio - enter planetary gearbox tooth calculation for best accuracy
+const float final_drive_ratio = 4.0F;                // assembly gearing ratio
 
-const int8_t anticogging_factor = 30; //minimizes cogging under load - (0-127) -value to be chosen experimentally 
+const int8_t anticogging_factor = 55; //minimizes cogging under load - (0-127) -value to be chosen experimentally 
 
 // ------  end user settings --------------------------------------------------------------------------------------
 
