@@ -116,23 +116,24 @@ void field_oriented_control(int16_t current_target) {
 		//U_q = I_q*R + U_emf
 		int16_t U_IqR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
 		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_q = U_IqR + U_emf;
+
 		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
+		int32_t U_q = U_IqR + U_emf;
+		int16_t U_q_sat = (int16_t)clip(U_q, -U_lim, U_lim);
+		// estimate commanded Iq based on DC link voltage limit:
 		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
-		int16_t U_IqR_sat = (int16_t)clip(U_IqR, -U_lim - U_emf_sat, U_lim - U_emf_sat);
-		U_IqR_sat = (int16_t)clip(U_IqR_sat, -U_lim, U_lim);
-		int16_t U_q_sat = U_IqR_sat + U_emf_sat;
-		int16_t I_q_act = (int16_t)((int32_t)U_IqR_sat * Ohm_to_mOhm / phase_R);
-		current_actual = I_q_act;
+		int16_t U_IqR_sat = U_q_sat - U_emf_sat;
+		int16_t I_q_est = (int16_t)((int32_t)U_IqR_sat * Ohm_to_mOhm / phase_R);
+		current_actual = I_q_est;
 
 		//Direct Axis
 		//U_d = -I_q*ω*L
 		uint16_t motor_rev_to_elec_rad = (uint16_t)((uint32_t)TWO_PI_X1024 * liveMotorParams.fullStepsPerRotation / 4U / 1024U); //typically 314 (or 628 for 0.9deg motor)
 		int32_t e_rad_s = (int32_t)((int64_t)motor_rev_to_elec_rad * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_d = (int32_t)((int64_t)(-I_q_act) * e_rad_s * phase_L / H_to_uH) ; //Vd=Iq * ω*Rl
+		int32_t U_d = (int32_t)((int64_t)(-I_q_est) * e_rad_s * phase_L / H_to_uH) ; //Vd=Iq * ω*Rl
 
 		int16_t U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
-		uint16_t magnitude = (uint16_t)((current_target > 0) ? I_q_act : -I_q_act); //abs
+		uint16_t magnitude = (uint16_t)((current_target > 0) ? I_q_est : -I_q_est); //abs
 		voltage_commutation(electricAngle, U_q_sat, U_d_sat, magnitude);
 	}else{
 		current_commutation(electricAngle, I_q, 0);
