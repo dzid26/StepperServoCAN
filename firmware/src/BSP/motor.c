@@ -101,6 +101,11 @@ void base_speed_test(int16_t dir) {
 	}
 }
 
+volatile int16_t I_q_est = 0;
+volatile int16_t I_d_est = 0;
+volatile int16_t U_q_sat = 0;
+volatile int16_t U_d_sat = 0;
+
 void field_oriented_control(int16_t current_target) {
 
 	const bool volt_control = USE_VOLTAGE_CONTROL;
@@ -109,34 +114,43 @@ void field_oriented_control(int16_t current_target) {
 	uint16_t electricAngle = calc_electric_angle(volt_control);
 
 	int16_t I_q = current_target;
+	int16_t I_d = 0;
 	if(volt_control == true){
-		//Iq, Id, Uq, Ud per FOC nomencluture
-
-		//Qadrature axis
-		//U_q = I_q*R + U_emf
-		int16_t U_IqR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
-		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
-
+		uint16_t motor_rev_to_elec_rad = (uint16_t)((uint32_t)TWO_PI_X1024 * liveMotorParams.fullStepsPerRotation / 4U / 1024U); //typically 314 (or 628 for 0.9deg motor)
+		// electrical angle per second in radians
+		int32_t e_rad_s = (int32_t)((int64_t)motor_rev_to_elec_rad * speed_slow / (int32_t)ANGLE_STEPS);
+		// DC link voltage:
 		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
-		int32_t U_q = U_IqR + U_emf;
-		int16_t U_q_sat = (int16_t)clip(U_q, -U_lim, U_lim);
-		// estimate commanded Iq based on DC link voltage limit:
-		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
-		int16_t U_IqR_sat = U_q_sat - U_emf_sat;
-		int16_t I_q_est = (int16_t)((int32_t)U_IqR_sat * Ohm_to_mOhm / phase_R);
+
+		// Iq, Id, Uq, Ud per FOC nomencluture
+		// Qadrature axis (steady state): U_q = I_q*R + I_d*ω*L + U_emf
+		int16_t U_IqR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
+		int32_t U_IdwL = (int32_t)((int64_t)I_d * e_rad_s * phase_L / H_to_uH);
+		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
+		int32_t U_q = U_IqR + U_IdwL + U_emf;
+		U_q_sat = (int16_t)clip(U_q, -U_lim, U_lim);
+
+		// estimate commanded Iq after saturations
+		int16_t U_IdL_emf_sat = (int16_t)clip(U_emf + U_IdwL, -U_lim, U_lim);
+		int16_t U_IqR_est = U_q_sat - U_IdL_emf_sat;
+		I_q_est = (int16_t)((int32_t)U_IqR_est * Ohm_to_mOhm / phase_R);
 		current_actual = I_q_est;
 
-		//Direct Axis
-		//U_d = -I_q*ω*L
-		uint16_t motor_rev_to_elec_rad = (uint16_t)((uint32_t)TWO_PI_X1024 * liveMotorParams.fullStepsPerRotation / 4U / 1024U); //typically 314 (or 628 for 0.9deg motor)
-		int32_t e_rad_s = (int32_t)((int64_t)motor_rev_to_elec_rad * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_d = (int32_t)((int64_t)(-I_q_est) * e_rad_s * phase_L / H_to_uH) ; //Vd=Iq * ω*Rl
+		// Direct Axis (steady state): U_d = I_d*R - I_q*ω*L
+		int16_t U_IdR = (int16_t)((int32_t)I_d * phase_R / Ohm_to_mOhm);
+		int32_t U_IqwL = -(int32_t)((int64_t)I_q_est * e_rad_s * phase_L / H_to_uH);
+		int32_t U_d = U_IdR + U_IqwL;
+		U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
 
-		int16_t U_d_sat = (int16_t)(clip(U_d, -U_lim, U_lim));
-		uint16_t magnitude = (uint16_t)((current_target > 0) ? I_q_est : -I_q_est); //abs
+		// estimate I_d after saturations
+		int16_t U_IqL_sat = (int16_t)clip(U_IqwL, -U_lim, U_lim);
+		int16_t U_IdR_est = U_d_sat - U_IqL_sat;
+		I_d_est = (int16_t)((int32_t)U_IdR_est * Ohm_to_mOhm / phase_R);
+
+		uint16_t magnitude = fastAbs(I_q_est) + fastAbs(I_d_est); // approx of sqrt(I_q^2 + I_d^2)
 		voltage_commutation(electricAngle, U_q_sat, U_d_sat, magnitude);
 	}else{
-		current_commutation(electricAngle, I_q, 0);
+		current_commutation(electricAngle, I_q, I_d);
 		current_actual = current_target; // simplification for higher speeds - //todo estimate or measure actual current
 
 	}
