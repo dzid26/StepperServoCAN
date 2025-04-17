@@ -370,7 +370,7 @@ bool StepperCtrl_processMotion(void)
 
 			// Saturate against MAX_CURRENT - any excess subtract from integral part, but don't make it change sign
 			if(control > MAX_CURRENT){	
-				iTerm -= closeLoop - MAX_CURRENT;
+				iTerm -= control - MAX_CURRENT;
 				if(iTerm < 0){
 					iTerm = 0;
 				}
@@ -378,7 +378,7 @@ bool StepperCtrl_processMotion(void)
 				control = MAX_CURRENT;
 			}
 			if (control < -MAX_CURRENT){
-				iTerm -= closeLoop - (-MAX_CURRENT);
+				iTerm -= control - (-MAX_CURRENT);
 				if(iTerm > 0){
 					iTerm = 0;
 				}
