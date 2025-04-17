@@ -115,6 +115,15 @@ void field_oriented_control(int16_t current_target) {
 
 	int16_t I_q = current_target;
 	int16_t I_d = 0;
+
+	// set Id for non-regenerative braking - dumps energy into the motor
+	// which helps with changing direction under load
+	const int32_t speed_noise = 20000;
+	// detect braking:
+	if ((I_q > 0 && speed_slow <= -speed_noise) || (I_q < 0 && speed_slow >= speed_noise)) {
+		I_d = (I_q > 0) ? I_q : -I_q; // Id = |Iq| - avoids regen somewhat
+	}
+
 	if(volt_control == true){
 		uint16_t motor_rev_to_elec_rad = (uint16_t)((uint32_t)TWO_PI_X1024 * liveMotorParams.fullStepsPerRotation / 4U / 1024U); //typically 314 (or 628 for 0.9deg motor)
 		// electrical angle per second in radians
@@ -123,11 +132,10 @@ void field_oriented_control(int16_t current_target) {
 		int32_t X_wL = (int32_t)(int64_t)((int64_t)e_rad_s * phase_L / H_to_uH);
 		// DC link voltage:
 		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
-
 		// Iq, Id, Uq, Ud per FOC nomencluture
 		// Qadrature axis (steady state): U_q = I_q*R + I_d*ω*L + U_emf
 		int16_t U_IqR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
-		int32_t U_IdwL = I_d * X_wL;
+		int32_t U_IdwL = 0; //I_d * X_wL; // doesn't work well with Id = |Iq|
 		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
 		int32_t U_q = U_IqR + U_IdwL + U_emf;
 		U_q_sat = (int16_t)clip(U_q, -U_lim, U_lim);
