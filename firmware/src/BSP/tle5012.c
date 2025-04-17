@@ -108,7 +108,7 @@ bool TLE5012_begin(void)
     (void) printf("\nMagnet too weak or too strong, state: %d\n", state);
     ok = false;
   }else{
-    ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x804U);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: ON, AUTOCAL: OFF
+    ok = ok && TLE5012_WriteAndCheck(WRITE_MOD2_VALUE, 0x800U);  //Set: ANG_Range 360 15bit, ANG_DIR: CCW, PREDICT: OFF, AUTOCAL: OFF
   }
   //todo calculate CRC for crc_par register to remove S_FUSE error
   return ok;

@@ -55,6 +55,8 @@ uint16_t TLE5012_ReadAngle(void);
 // Values used to calculate 15 bit signed int sent by the sensor
 #define DELETE_BIT_15               0x7FFFU
 
+#define T_UPD                       43U // us
+#define T_ADEL                      85U // us
 
 #endif
 
