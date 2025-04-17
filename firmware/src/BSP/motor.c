@@ -64,7 +64,7 @@ void openloop_step(uint16_t elecAngleStep, uint16_t curr_tar){
  */
 static uint16_t calc_electric_angle(bool volt_control){
 	
-	const int16_t angleSensLatency = 43U + 85U;  //angle sensor delay - bigger value can result in higher speed (because it fakes field weakening), but can be detrimental to motor power and efficiency
+	const int16_t angleSensLatency = SENS_DELAY;  //angle sensor delay - bigger value can result in higher speed (because it fakes field weakening), but can be detrimental to motor power and efficiency
 
 	int16_t angleSpeedComp = (int16_t) (speed_slow * angleSensLatency / (int32_t) S_to_uS);
 

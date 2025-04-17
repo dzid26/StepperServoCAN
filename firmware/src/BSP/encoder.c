@@ -21,7 +21,6 @@
 
 #include "encoder.h"
 #include "calibration.h"
-#include "tle5012.h"
 
 bool Encoder_begin(void){
 	return TLE5012_begin();

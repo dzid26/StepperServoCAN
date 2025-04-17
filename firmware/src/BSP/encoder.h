@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "tle5012.h"
 
 #define ANGLE_STEPS 						65536U
 #define ANGLE_MAX 							65535U
@@ -34,5 +35,7 @@
 bool Encoder_begin(void);
 uint16_t ReadEncoderAngle(void);
 uint16_t OverSampleEncoderAngle(uint16_t numSamples);
+
+#define SENS_DELAY                  (T_UPD + T_ADEL) // us
 
 #endif
