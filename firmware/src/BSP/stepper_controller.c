@@ -27,6 +27,7 @@
 #include "board.h"
 #include "encoder.h"
 #include "motor.h"
+#include "utils.h"
 
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
@@ -297,28 +298,14 @@ bool StepperCtrl_processMotion(void)
 
 			int32_t errorMax = (int32_t)maxEachTerm * CTRL_PID_SCALING / pPID.Kp;
 			//protect closeLoop against overflow and unrealistic values - due to P term
-			if( error > errorMax){
-				errorSat = errorMax;
-			}else if (error < -errorMax){
-				errorSat = -errorMax;
-			}else{
-				errorSat = error;
-			}
+			errorSat = clip(error, -errorMax, errorMax);
 
 			// PID - (I)ntegral term
 			iTerm_accu += errorSat;
 			int16_t iTerm = (int16_t)(iTerm_accu  * pPID.Ki / (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING); //it's safe to cast to int16_t as iTerm_accu / CTRL_PID_SCALING cannot be much bigger than maxEachTerm since last time because iTerm_accu uses limited errorSat when acumulating error
-			bool iTermLimited = false;
-			//protect closeLoop against overflow and unrealistic values - due to I term
-			if (iTerm  > maxEachTerm){
-				iTerm = maxEachTerm;
-				iTermLimited = true;
-			}
-			if (iTerm < -maxEachTerm){
-				iTerm = -maxEachTerm;
-				iTermLimited = true;
-			}
 
+			//protect closeLoop against overflow and unrealistic values - due to I term
+			iTerm = clip(iTerm, -maxEachTerm, maxEachTerm);
 			// PID - (P)roportional term
 			// deadzone to reduce mechanical vibration of the P term
 			if((errorSat < (angleFullStep/4)) && (errorSat > (-angleFullStep/4))){
@@ -336,68 +323,28 @@ bool StepperCtrl_processMotion(void)
 				int32_t deltaError = error - lastError;
 				
 				//protect closeLoop against overflow and unrealistic values - due to D term
-				if( deltaError > deltaErrorMax){
-					deltaError = deltaErrorMax;
-				}
-				if (deltaError < -deltaErrorMax){
-					deltaError = -deltaErrorMax;
-				}
+				deltaError = clip(deltaError, -deltaErrorMax, deltaErrorMax);
 				dTerm = (int16_t)(deltaError * pPID.Kd * (int16_t)SAMPLING_PERIOD_uS / CTRL_PID_SCALING);
 			}
 			lastError = error;
-			
-			
+
 			closeLoop = pTerm + iTerm + dTerm;
 			
 			// Saturate against closeLoopMax - any excess subtract from integral part, but don't make it change sign
-			if( closeLoop > closeLoopMax){	
-				iTerm -= closeLoop - closeLoopMax;
-				if(iTerm < 0){
-					iTerm = 0;
-				}
-				iTermLimited = true;
-				closeLoop = closeLoopMax;
-			}
-			if (closeLoop < -closeLoopMax){
-				iTerm -= closeLoop - (-closeLoopMax);
-				if(iTerm > 0){
-					iTerm = 0;
-				}
-				iTermLimited = true;
-				closeLoop = -closeLoopMax;
-			}
-			control = closeLoop + feedForward;
+			int16_t closeLoopSat = clip(closeLoop, -closeLoopMax, closeLoopMax);
+			iTerm -= clip(closeLoop - closeLoopSat, -iTerm, iTerm);
 
+			// add feedforward
+			int16_t controlSum = closeLoopSat + feedForward;
+ 
 			// Saturate against MAX_CURRENT - any excess subtract from integral part, but don't make it change sign
-			if(control > MAX_CURRENT){	
-				iTerm -= control - MAX_CURRENT;
-				if(iTerm < 0){
-					iTerm = 0;
-				}
-				iTermLimited = true;
-				control = MAX_CURRENT;
-			}
-			if (control < -MAX_CURRENT){
-				iTerm -= control - (-MAX_CURRENT);
-				if(iTerm > 0){
-					iTerm = 0;
-				}
-				iTermLimited = true;
-				control = -MAX_CURRENT;
-			}
+			control = clip(controlSum, -MAX_CURRENT, MAX_CURRENT);
+			iTerm -= clip(controlSum - control, -iTerm, iTerm);
 
-			if(iTermLimited == true){ //backcalculate the accumulator
-				iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / pPID.Ki;
-			}
+			iTerm_accu = (int32_t) SAMPLING_PERIOD_uS * CTRL_PID_SCALING * iTerm / pPID.Ki;
 
 		}else{
-			control = feedForward;
-			if(control > MAX_CURRENT){
-				control = MAX_CURRENT;
-			}
-			if (control < -MAX_CURRENT){
-				control = -MAX_CURRENT;
-			}
+			control = clip(feedForward, -MAX_CURRENT, MAX_CURRENT);
 			closeLoop = 0;
 			lastError = 0;
 
