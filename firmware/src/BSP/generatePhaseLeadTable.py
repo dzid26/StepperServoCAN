@@ -15,47 +15,48 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import control
 
 # StepperServoCAN uses PWM and low pass filter as a DAC
 # It introduces phase shift and needs to be corrected
 
-# general first order low pass filter transfer function
-def H(w,wc):
-    return 1.0 / (1.0 + 1j * (w / wc))
 
+# Component values
+C = 0.1e-6  # Farads
+R = 1000    # Ohms
+fc = 1 / (2 * np.pi * R * C)  # Cutoff frequency
 
+# Create transfer function (1st order low-pass filter)
+sys = control.tf([1], [R * C, 1])
 
-C = 0.1*10**-6   #fahradas
-R = 1000        #ohms
-fc =  1/ (2*np.pi*R*C) #cut-off frequency for low pass in Hz
-
+# Frequency parameters
 STEPS = 200
 Electrical90degINT = 256
-maxSpeeed = 100 #revs/s
-revs_s = np.arange(0, maxSpeeed)
-f_Hz = revs_s * STEPS / 4          # full period every 4 steps
+maxSpeed = 100  # rev/s
+revs_s = np.arange(0, maxSpeed)
+f_Hz = revs_s * STEPS / 4  # Convert rev/s to Hz
 
-phase_deg = -np.arctan(f_Hz / fc) /2/np.pi*360
-mag = abs(H(f_Hz, fc))
-mag_dB = 20*np.log10(mag)
+# Convert frequencies to rad/s for Bode calculation
+f_rad = 2 * np.pi * f_Hz
 
-plt.figure()        # Bode plot
-plt.subplot(2,1,1)  
-plt.plot(f_Hz,mag_dB); plt.xscale('log')
-plt.subplot(2,1,2)
-plt.plot(f_Hz,phase_deg); plt.xscale('log')
+# Calculate specific points for embedded system
+mag, phase, omega = control.frequency_response(sys, f_rad)
+phase_deg = phase/2/np.pi*360
+
+# Generate Bode plot using control library's built-in plotting
+plt.figure()
+control.bode(sys, Hz=True, dB=True, deg=True, omega=f_rad)
+plt.suptitle('Bode Plot of Low-Pass Filter')
 plt.show()
 
-phase_deg_INT = (-phase_deg / 90 * Electrical90degINT).astype(int)  
-gain_inv_perc_INT = (1/mag*16).astype(int)        # 90 electrical deg per step
+# Generate integer parameters for the firmware
+phase_deg_INT = (-phase_deg / 90 * Electrical90degINT).astype(int)
+gain_inv_perc_INT = (1 / mag * 16).astype(int)
+speedINT_divider = int(maxSpeed * 65536 / len(revs_s))
 
-speedINT_divider = int(maxSpeeed * 65536 / len(revs_s))
-
-print(fc)
-print(f_Hz)
-print(repr(phase_deg_INT))
-# print(gain_inv_perc_INT)
-print(speedINT_divider)
-print(len(revs_s))
-
-
+# Print results
+print(f"Cutoff frequency: {fc:.2f} Hz")
+print("Frequencies:", f_Hz)
+print("Phase INT:", repr(phase_deg_INT))
+print("Speed divider:", speedINT_divider)
+print("Array length:", len(revs_s))
