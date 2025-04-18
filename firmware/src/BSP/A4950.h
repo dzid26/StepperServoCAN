@@ -30,7 +30,7 @@
 #define SYS_Vin 14500U //mV
 #define V_TO_mV 1000
 
-#define PHASE_LEAD_MAX_SPEED  250u //revs/s
+#define PHASE_LEAD_MAX_SPEED  100u //revs/s
 extern const uint16_t dacPhaseLead[PHASE_LEAD_MAX_SPEED];
 
 #define I_RS_A4950_div    10U  // div for A4950
