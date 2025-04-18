@@ -15,45 +15,58 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import math
-def H(w,wc):
-    return 1.0 / (1.0 + 1j * w / wc)
+import control
+
+# StepperServoCAN uses PWM and Butterworth low pass filter as a DAC
+# The filter introduces phase shift and needs to be corrected
+
+# Component values for 2nd order filter
+R1 = 2200      # 2.2k series resistor
+C1 = 10e-9     # 10nF to ground
+R2 = 100e3     # 100k series resistor
+C2 = 220e-12   # 220pF to ground
+
+fc1 = 1 / (2 * np.pi * R1 * C1)
+fc2 = 1 / (2 * np.pi * R2 * C2)
+fc = fc1 * np.sqrt(2**(1/2)-1)
+# print(f"First stage cutoff: {fc1:.2f} Hz")
+# print(f"Second stage cutoff: {fc2:.2f} Hz")
+print(f"Cutoff frequency: {fc:.2f} Hz")
 
 
 
-C = 0.1*10**-6   #fahradas
-R = 1000        #ohms
+
+# Create transfer functions for each stage
+sys1 = control.tf([1], [R1*C1, 1])       # First RC stage
+sys2 = control.tf([1], [R2*C2, 1])       # Second RC stage
+sys_total = sys1 * sys2                  # Combined 2nd order system
+
+# Frequency parameters (unchanged from original)
 STEPS = 200
 Electrical90degINT = 256
+maxSpeed = 100  # rev/s
+revs_s = np.arange(0, maxSpeed)
+f_Hz = revs_s * STEPS / 4  # Convert rev/s to Hz
 
-maxSpeeed = 250 #revs/s
-tableLength = maxSpeeed
+# Convert frequencies to rad/s for Bode calculation
+f_rad = 2 * np.pi * f_Hz
 
-revs_s = np.linspace(0, maxSpeeed, tableLength); 
+# Calculate specific points for embedded system
+mag, phase, omega = control.frequency_response(sys_total, f_rad)
+phase_deg = phase/2/np.pi*360
 
-fc =  1/ (2*np.pi*R*C) #cut-off frequency for low pass
+# Generate Bode plot using control library's built-in plotting
+plt.figure()
+control.bode(sys_total, Hz=True, dB=True, deg=True, omega=f_rad)
+plt.suptitle('Bode Plot of 2nd Order Low-Pass Filter')
+plt.show()
 
-f_Hz = revs_s * STEPS / 4          # full period every 4 steps
-phase_deg = -np.arctan(f_Hz / fc) /2/np.pi*360
-mag = abs(H(f_Hz, fc))
-mag_dB = 20*np.log10(mag)
+# Generate integer parameters for the firmware
+phase_deg_INT = (-phase_deg / 90 * Electrical90degINT).astype(int)
+gain_inv_perc_INT = (1 / mag * 16).astype(int)
+speedINT_divider = int(maxSpeed * 65536 / len(revs_s))
 
-plt.figure()        # Bode plot
-plt.subplot(2,1,1)  
-plt.plot(f_Hz,mag_dB); plt.xscale('log')
-plt.subplot(2,1,2)
-plt.plot(f_Hz,phase_deg); plt.xscale('log')
-
-phase_deg_INT = (-phase_deg / 90 * Electrical90degINT).astype(int)  
-gain_inv_perc_INT = (1/mag*16).astype(int)        # 90 electrical deg per step
-
-speedINT_divider = int(maxSpeeed * 65536 / tableLength)
-
-print(fc)
-print(f_Hz)
-print(repr(phase_deg_INT))
-# print(gain_inv_perc_INT)
-print(speedINT_divider)
-print(tableLength)
-
-
+# Print results
+# print("Frequencies:", f_Hz)
+print("Phase INT:", repr(phase_deg_INT))
+print("Array length:", len(revs_s))
