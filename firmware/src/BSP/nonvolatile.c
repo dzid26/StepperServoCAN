@@ -131,13 +131,9 @@ void validateAndInitNVMParams(void)
 
 	nvmMirrorInRam();
 
-	// this will run when eeprom is zeroed
+	// load defaults on first boot
 	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
 		nvmMirror.systemParams.fw_version = VERSION; // also set by app_upgrade_begin()
-
-		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
-		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
-
 		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused
 		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
 		nvmMirror.systemParams.errorLimit = 0U;  //unused
@@ -146,7 +142,6 @@ void validateAndInitNVMParams(void)
 		save_nvm = true;
 	}
 
-	// this will run when eeprom is zeroed
 	if(nvmMirror.motorParams.parametersValid != valid){
 		nvmMirror.motorParams.invertedPhase = false;
 		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with invertedPhase
@@ -157,10 +152,36 @@ void validateAndInitNVMParams(void)
 		save_nvm = true;
 	}
 
+	app_upgrade_begin(); // handles eeprom manipulation between versions if necessary
+
+	if(NVM_SAVE_DEFAULT_PID_PARAMS || (nvmMirror.systemParams.parametersValid != valid)) {
+		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
+		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
+		save_nvm = true;
+	}
+
+	if (NVM_SET_ENABLE_PIN_MODE >= 0) {
+		nvmMirror.systemParams.errorPinMode = NVM_SET_ENABLE_PIN_MODE;
+		save_nvm = true;
+	}
+
+	if (NVM_SET_DIR_ROTATION >= 0) {
+		nvmMirror.systemParams.dirRotation = NVM_SET_DIR_ROTATION;
+		save_nvm = true;
+	}
+
+	if(NVM_SET_MOTOR_STEPS >= 0) {
+		nvmMirror.motorParams.fullStepsPerRotation = NVM_SET_MOTOR_STEPS;
+		save_nvm = true;
+	}
+
+	if(NVM_SET_MOTOR_PHASE_ORIENTATION >= 0) {
+		nvmMirror.motorParams.invertedPhase = NVM_SET_MOTOR_PHASE_ORIENTATION;
+		save_nvm = true;
+	}
+	
+	
 	if(save_nvm){
 		nvmWriteConfParms(); //save defaults
 	}
-
-	app_upgrade_begin(); // handles eeprom manipulation between versions if necessary
-
 }

@@ -36,7 +36,7 @@ typedef struct {
 	uint16_t reserved2;
 	ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
 	feedbackCtrl_t controllerMode; //feedback mode for the controller
-	uint16_t parametersValid;
+	uint16_t parametersValid; // it's invalid when eeprom is zeroed
 } SystemParams_t; //sizeof(SystemParams_t)=12
 
 typedef struct {
