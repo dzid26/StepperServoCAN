@@ -36,7 +36,7 @@ typedef struct {
 	uint16_t reserved2;
 	ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
 	feedbackCtrl_t controllerMode; //feedback mode for the controller
-	uint16_t parametersValid; // it's invalid when eeprom is zeroed
+	uint16_t reserved3; // it's invalid when eeprom is zeroed
 } SystemParams_t; //sizeof(SystemParams_t)=12
 
 typedef struct {
@@ -45,8 +45,7 @@ typedef struct {
 	bool     invertedPhase;			// motor rotating in opposite direction to angle sensor
 	uint8_t  reserved3;
 	uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
-	uint16_t parametersValid;
-} MotorParams_t; //sizeof(MotorParams_t)=10
+} MotorParams_t; //sizeof(MotorParams_t)=8
 
 typedef struct {
 	float Kp;
@@ -64,6 +63,7 @@ typedef struct {
 typedef struct {
 	SystemParams_t 	systemParams;
 	MotorParams_t 	motorParams;
+	uint16_t parametersValid;
 	PIDparams_t 	pPID; //simple PID parameters
 	PIDparams_t 	vPID; //position PID parameters
 	Reserved_t 		reserved;

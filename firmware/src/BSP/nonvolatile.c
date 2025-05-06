@@ -85,8 +85,7 @@ bool nvmFlashCheck(uint32_t address, size_t n)
 //currently only used once - after first boot
 void nvmWriteConfParms(void){
 	nvm_t* ptr_nvmMirror = &nvmMirror;
-	ptr_nvmMirror->motorParams.parametersValid  = valid;
-	ptr_nvmMirror->systemParams.parametersValid = valid;
+	ptr_nvmMirror->parametersValid  = valid;
 	
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
@@ -132,17 +131,13 @@ void validateAndInitNVMParams(void)
 	nvmMirrorInRam();
 
 	// load defaults on first boot
-	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
+	if (nvmMirror.parametersValid != valid){ //systemParams invalid
 		nvmMirror.systemParams.fw_version = VERSION; // also set by app_upgrade_begin()
 		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused
 		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
 		nvmMirror.systemParams.errorLimit = 0U;  //unused
 		nvmMirror.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
 
-		save_nvm = true;
-	}
-
-	if(nvmMirror.motorParams.parametersValid != valid){
 		nvmMirror.motorParams.invertedPhase = false;
 		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with invertedPhase
 
@@ -154,7 +149,7 @@ void validateAndInitNVMParams(void)
 
 	app_upgrade_begin(); // handles eeprom manipulation between versions if necessary
 
-	if(NVM_SAVE_DEFAULT_PID_PARAMS || (nvmMirror.systemParams.parametersValid != valid)) {
+	if(NVM_SAVE_DEFAULT_PID_PARAMS || (nvmMirror.parametersValid != valid)) {
 		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
 		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
 		save_nvm = true;
