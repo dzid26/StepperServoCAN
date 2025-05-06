@@ -23,6 +23,7 @@
 #include "board.h"
 #include "stepper_controller.h"
 #include "encoder.h"
+#include "upgrade.h"
 
 volatile MotorParams_t liveMotorParams;
 volatile SystemParams_t liveSystemParams;
@@ -129,7 +130,7 @@ void validateAndInitNVMParams(void)
 	nvmMirrorInRam();
 
 	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
-		nvmMirror.systemParams.fw_version = VERSION;
+		nvmMirror.systemParams.fw_version = VERSION; // also set by app_upgrade_begin()
 		
 		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
 		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
@@ -151,5 +152,8 @@ void validateAndInitNVMParams(void)
 
 	//the motor parameters are later checked in the stepper_controller code
 	// as that there we can auto set much of them.
+
+	app_upgrade_begin(); // handles eeprom manipulation between versions if necessary
+
 
 }
