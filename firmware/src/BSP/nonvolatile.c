@@ -127,11 +127,14 @@ void nvmWriteConfParms(void){
 //parameters first boot defaults and restore on corruption
 void validateAndInitNVMParams(void)
 {
+	bool save_nvm = false;
+
 	nvmMirrorInRam();
 
+	// this will run when eeprom is zeroed
 	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
 		nvmMirror.systemParams.fw_version = VERSION; // also set by app_upgrade_begin()
-		
+
 		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
 		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
 
@@ -139,21 +142,25 @@ void validateAndInitNVMParams(void)
 		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
 		nvmMirror.systemParams.errorLimit = 0U;  //unused
 		nvmMirror.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
+
+		save_nvm = true;
 	}
 
+	// this will run when eeprom is zeroed
 	if(nvmMirror.motorParams.parametersValid != valid){
 		nvmMirror.motorParams.invertedPhase = false;
 		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with invertedPhase
+
+		//the motor parameters are later checked in the stepper_controller code
+		// as that there we can auto set much of them.
+
+		save_nvm = true;
 	}
 
-	if((nvmMirror.systemParams.parametersValid != valid) || (nvmMirror.motorParams.parametersValid != valid)){
+	if(save_nvm){
 		nvmWriteConfParms(); //save defaults
 	}
 
-	//the motor parameters are later checked in the stepper_controller code
-	// as that there we can auto set much of them.
-
 	app_upgrade_begin(); // handles eeprom manipulation between versions if necessary
-
 
 }
