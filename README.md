@@ -83,6 +83,8 @@ Actuator will report back its status every 10ms:
     - TEMPERATURE (C)
     - DEBUG_STATES
 
+CAN ids can be customized and stored in eeprom by temporarily setting build_flags in `firmaware/platformio.ini`, e.g. `NVM_SET_CAN_STATUS_ID=0x11`, `NVM_SET_CAN_COMMAND_ID=0x12` and flashing the firmware and then reverting back to `-1`.
+
 ### Interfacing with Openpilot
 Reference implementation can be found in my bmw openpilot [repo](https://github.com/dzid26/openpilot-for-BMW-E8x-E9x/commit/51c692dd7e5940be8e6e8ddbfb46321120918d4e):
 - `opendbc/` - make sure [ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc#L77-L92) is copied here

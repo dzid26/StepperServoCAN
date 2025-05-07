@@ -316,14 +316,6 @@ static void CAN_begin(void){
 	}
 	
 	CAN_Init(CAN1, &can_initStructure);
-
-	//setup filters
-	CAN_MsgsFiltersSetup();
-	//enable receive interrupt
-	CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
-	CAN_ITConfig(CAN1, CAN_IT_FF0, ENABLE); 
-	CAN_ITConfig(CAN1, CAN_IT_FOV0, ENABLE); 
-
 }
 
 static void Vrefint_adc_update(void);

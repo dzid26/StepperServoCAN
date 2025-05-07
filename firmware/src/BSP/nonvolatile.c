@@ -24,6 +24,7 @@
 #include "stepper_controller.h"
 #include "encoder.h"
 #include "upgrade.h"
+#include "Msg.h"
 
 volatile MotorParams_t liveMotorParams;
 volatile SystemParams_t liveSystemParams;
@@ -140,9 +141,11 @@ void validateAndInitNVMParams(void)
 
 		nvmMirror.motorParams.invertedPhase = false;
 		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with invertedPhase
-
 		//the motor parameters are later checked in the stepper_controller code
 		// as that there we can auto set much of them.
+
+		nvmMirror.can.cmdId = MSG_STEERING_COMMAND_FRAME_ID;
+		nvmMirror.can.statusID = MSG_STEERING_STATUS_FRAME_ID;
 
 		save_nvm = true;
 	}
@@ -175,6 +178,15 @@ void validateAndInitNVMParams(void)
 		save_nvm = true;
 	}
 	
+	if(NVM_SET_CAN_COMMAND_ID > 0) {
+		nvmMirror.can.cmdId = NVM_SET_CAN_COMMAND_ID;
+		save_nvm = true;
+	}
+
+	if(NVM_SET_CAN_STATUS_ID > 0) {
+		nvmMirror.can.statusID = NVM_SET_CAN_STATUS_ID;
+		save_nvm = true;
+	}
 	
 	if(save_nvm){
 		nvmWriteConfParms(); //save defaults

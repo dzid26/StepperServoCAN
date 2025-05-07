@@ -147,6 +147,8 @@ static void Begin_process(void) {
 	nonvolatile_begin();
 	validateAndInitNVMParams(); //systemParams init
 
+	CAN_MsgsFiltersSetup(); // can id filters
+
 	display_begin(); //display init
 	Serivice_task_init(); //task init
 	Motion_task_init(SAMPLING_PERIOD_uS);

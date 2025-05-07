@@ -54,10 +54,11 @@ typedef struct {
 } PIDparams_t; //2xsizeof(PIDparams_t)=12
 
 typedef struct {
+	uint16_t cmdId;
+	uint16_t statusID;
 	uint32_t reserved1;
 	uint32_t reserved2;
-	uint32_t reserved3;
-} Reserved_t;
+} CANparams_t;
 
 #pragma pack(2) //removes 2byte padding between motorParams and pPid - this is mostly for back compatibility at this point
 typedef struct {
@@ -66,7 +67,7 @@ typedef struct {
 	uint16_t parametersValid;
 	PIDparams_t 	pPID; //simple PID parameters
 	PIDparams_t 	vPID; //position PID parameters
-	Reserved_t 		reserved;
+	CANparams_t 	can;
 } nvm_t; //sizeof(nvm_t)=58
 #pragma pack()
 

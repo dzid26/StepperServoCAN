@@ -11,6 +11,7 @@ or w,s, keys - control torque dynamically like in a game - supported even over S
 s,d step angle in angle mode
 m - change control mode 
 """
+import cmd
 from panda import Panda  # install https://github.com/commaai/panda
 
 import binascii
@@ -22,7 +23,7 @@ import threading
 import subprocess
 import sys
 
-# from Msg.h which is from ocelot_controls.dbc
+# from Msg.h which is from ocelot_controls.dbc - default ids:
 MSG_STEERING_COMMAND_FRAME_ID = 0x22e
 MSG_STEERING_STATUS_FRAME_ID = 0x22f
 motor_bus_speed = 500  #StepperServoCAN baudrate 500kbps
@@ -97,7 +98,7 @@ def rise_and_decay(value:float, delta:float, max_min_limit:float):
 
   return value
 
-def CAN_tx_thread(p:Panda, bus):
+def CAN_tx_thread(p:Panda, bus, addr):
   print("Starting CAN TX thread...")
   global _torque
   global _angle
@@ -105,11 +106,11 @@ def CAN_tx_thread(p:Panda, bus):
   cnt_cmd = 0
   while True:
     dat = steering_msg_cmd_data(cnt_cmd, _mode, _torque, _angle)
-    p.can_send(MSG_STEERING_COMMAND_FRAME_ID, dat, bus)
+    p.can_send(addr, dat, bus)
     cnt_cmd = (cnt_cmd + 1) % 16
     time.sleep(MOTOR_MSG_TS)
 
-def CAN_rx_thread(p, bus):
+def CAN_rx_thread(p, bus, addr):
   t_status_msg_prev =0
   print("Starting CAN RX thread...")
   p.can_clear(bus)     #flush the buffers
@@ -118,7 +119,7 @@ def CAN_rx_thread(p, bus):
     t = time.time()
     can_recv = p.can_recv()
     for address, dat, src in can_recv:
-      if src == bus and address == MSG_STEERING_STATUS_FRAME_ID:
+      if src == bus and address == addr:
         if t - t_status_msg_prev > 0.0001:
           hz = 1/(t - t_status_msg_prev)
         else:
@@ -184,7 +185,7 @@ def print_cmd_state():
     clear_last_line()
     print(f"Angle:{_angle:4.2f}, FeedForward torque: {_torque:3.2f}\n")
 
-def motor_tester(bus):
+def motor_tester(bus, cmd_addr, status_addr):
   panda = Panda()
   panda.set_heartbeat_disabled()
   panda.set_can_speed_kbps(bus, motor_bus_speed)
@@ -200,7 +201,7 @@ def motor_tester(bus):
   print("\nRequesting motor OFF mode...")
   dat = steering_msg_cmd_data(modes["OFF"], 0, 0.0, 0.0)
   print('Sent:' + ''.join('\\x{:02x}'.format(b) for b in dat)) ##b"\x30\x00\x00\x00\x00"
-  panda.can_send(MSG_STEERING_COMMAND_FRAME_ID, dat, bus)
+  panda.can_send(cmd_addr, dat, bus)
   
   global _torque
   global _angle
@@ -209,8 +210,8 @@ def motor_tester(bus):
   _angle = 0.0
 
   key_queue = queue.Queue(maxsize=2) #key buffer
-  tx_t = threading.Thread(target=CAN_tx_thread, args=(panda, bus), daemon=True)
-  rx_t = threading.Thread(target=CAN_rx_thread, args=(panda, bus), daemon=True)
+  tx_t = threading.Thread(target=CAN_tx_thread, args=(panda, bus, cmd_addr), daemon=True)
+  rx_t = threading.Thread(target=CAN_rx_thread, args=(panda, bus, status_addr), daemon=True)
 
   _mode = modes['OFF']
 
@@ -286,7 +287,9 @@ def motor_tester(bus):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Simple motor tester-runner with numeric or game lile controls",
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument("--bus", type=int, help="CAN bus id to which motor is connected", default=2)
+  parser.add_argument("--bus", type=int, help="CAN bus to which motor is connected", default=2)
+  parser.add_argument("--cmd_addr", type=int, help="CAN msg id for the steering command", default=MSG_STEERING_COMMAND_FRAME_ID)
+  parser.add_argument("--status_addr", type=int, help="CAN message id for the motor steering status", default=MSG_STEERING_STATUS_FRAME_ID)
   args = parser.parse_args()
   print("Killing pandad to release USB...")
   try: # useful if run on Comma device
@@ -294,4 +297,4 @@ if __name__ == "__main__":
     subprocess.run(['/path/to/pandad', '--args-if-any'])
   except:
     pass
-  motor_tester(args.bus)
+  motor_tester(args.bus, args.cmd_addr, args.status_addr)

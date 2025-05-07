@@ -23,6 +23,7 @@
 #include "control_api.h"
 #include "Msg.h"
 #include "board.h"
+#include "nonvolatile.h"
 
 static volatile uint32_t can_rx_cnt = 0;      // cppcheck-suppress  misra-c2012-8.9
 static volatile uint32_t can_tx_cnt = 0;      // cppcheck-suppress  misra-c2012-8.9
@@ -39,7 +40,7 @@ void CAN_MsgsFiltersSetup() {
 	CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_16bit;
 	CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdList;
 	//IdList mode - fields below can store list of 4 receiving IDs.  STID requires << 5 
-	CAN_FilterInitStructure.CAN_FilterIdHigh =MSG_STEERING_COMMAND_FRAME_ID << CAN_STID_SHIFT;
+	CAN_FilterInitStructure.CAN_FilterIdHigh = nvmMirror.can.cmdId << CAN_STID_SHIFT; // default MSG_STEERING_COMMAND_FRAME_ID
 	CAN_FilterInitStructure.CAN_FilterIdLow = 0x700 << CAN_STID_SHIFT; //TODO add servicing message
 	CAN_FilterInitStructure.CAN_FilterMaskIdHigh = 0x0000 << CAN_STID_SHIFT;
 	CAN_FilterInitStructure.CAN_FilterMaskIdLow= 0x0000 << CAN_STID_SHIFT;
@@ -48,6 +49,11 @@ void CAN_MsgsFiltersSetup() {
 	CAN_FilterInitStructure.CAN_FilterActivation=ENABLE;
 
 	CAN_FilterInit(&CAN_FilterInitStructure);
+
+	//enable receive interrupt
+	CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
+	CAN_ITConfig(CAN1, CAN_IT_FF0, ENABLE); 
+	CAN_ITConfig(CAN1, CAN_IT_FOV0, ENABLE); 
 	}
 
 // Return checksum is lower byte of added lower and upper 
@@ -90,7 +96,7 @@ void CAN_TransmitMotorStatus(uint32_t frame) {
 	CanTxMsg txMessage;
 	txMessage.RTR=CAN_RTR_DATA;
 	txMessage.IDE=CAN_ID_STD;
-	txMessage.StdId=MSG_STEERING_STATUS_FRAME_ID;
+	txMessage.StdId=nvmMirror.can.statusID; // default MSG_STEERING_STATUS_FRAME_ID
 	txMessage.DLC=MSG_STEERING_STATUS_LENGTH;
 
 	// populate message structure:
@@ -108,7 +114,7 @@ void CAN_TransmitMotorStatus(uint32_t frame) {
 	// calculate checksum:
 	uint8_t dataTemp[MSG_STEERING_STATUS_LENGTH];
 	Msg_steering_status_pack(dataTemp, &controlStatus, sizeof(dataTemp));
-	controlStatus.checksum = Msg_calc_checksum_8bit(dataTemp, MSG_STEERING_STATUS_LENGTH, MSG_STEERING_STATUS_FRAME_ID);
+	controlStatus.checksum = Msg_calc_checksum_8bit(dataTemp, MSG_STEERING_STATUS_LENGTH, nvmMirror.can.statusID);
 	Msg_steering_status_pack((&txMessage)->Data, &controlStatus, sizeof(txMessage.Data)); //pack again with the checksum
 
 	// transmit
@@ -119,27 +125,25 @@ void CAN_TransmitMotorStatus(uint32_t frame) {
 static volatile uint16_t can_control_cmd_cnt = 0;
 struct Msg_steering_command_t ControlCmds;
 static void CAN_InterpretMesssages(CanRxMsg message) { 
-	switch (message.StdId){
-		case MSG_STEERING_COMMAND_FRAME_ID: {      
-			Msg_steering_command_unpack(&ControlCmds, message.Data, sizeof(message.Data));
-			// Note signals may correspond to different motor sample
-			StepperCtrl_setControlMode(ControlCmds.steer_mode); //set control mode
-			StepperCtrl_setFeedForwardTorque(Msg_steering_command_steer_torque_decode(ControlCmds.steer_torque));
-			StepperCtrl_setDesiredAngle(Msg_steering_command_steer_angle_decode(ControlCmds.steer_angle));
-			
-			//calculate checksum:
-			message.Data[0] = 0; //!clear checksum - make sure which byte is checksum
-			uint8_t checksum = Msg_calc_checksum_8bit(message.Data, MSG_STEERING_COMMAND_LENGTH, MSG_STEERING_COMMAND_FRAME_ID);
-			#ifdef IGNORE_CAN_CHECKSUM
-				ControlCmds.checksum = checksum;
-			#endif
-			if (ControlCmds.checksum == checksum){
-				can_control_cmd_cnt++; //if this counter is not incremented, the error will be raised
-			} else {
-				can_err_rx_cnt++;
-			}
-			// todo also check counter is rolling by 1
+	if(message.StdId == nvmMirror.can.cmdId) {
+		Msg_steering_command_unpack(&ControlCmds, message.Data, sizeof(message.Data));
+		// Note signals may correspond to different motor sample
+		StepperCtrl_setControlMode(ControlCmds.steer_mode); //set control mode
+		StepperCtrl_setFeedForwardTorque(Msg_steering_command_steer_torque_decode(ControlCmds.steer_torque));
+		StepperCtrl_setDesiredAngle(Msg_steering_command_steer_angle_decode(ControlCmds.steer_angle));
+
+		//calculate checksum:
+		message.Data[0] = 0; //!clear checksum - make sure which byte is checksum
+		uint8_t checksum = Msg_calc_checksum_8bit(message.Data, MSG_STEERING_COMMAND_LENGTH, nvmMirror.can.cmdId);
+		#ifdef IGNORE_CAN_CHECKSUM
+			ControlCmds.checksum = checksum;
+		#endif
+		if (ControlCmds.checksum == checksum){
+			can_control_cmd_cnt++; //if this counter is not incremented, the error will be raised
+		} else {
+			can_err_rx_cnt++;
 		}
+		// todo also check counter is rolling by 1
 	}
 }
 
