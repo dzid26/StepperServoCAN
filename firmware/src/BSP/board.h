@@ -43,9 +43,13 @@
 #define	PIN_F2_KEY 			GPIO_Pin_15
 #define	PIN_F2_INT 			EXTI_Line15
 
+#define	GPIO_JUMPERS        GPIOA
+#define	PIN_ID1				GPIO_Pin_3
+#define	PIN_ID2				GPIO_Pin_4
+// todo remove
 #define	GPIO_JP             GPIOA
-#define	PIN_JP1				GPIO_Pin_3
-#define	PIN_JP2				GPIO_Pin_4
+#define	PIN_JP1				PIN_ID1
+#define	PIN_JP2				PIN_ID2
 
 
 //A4950
@@ -129,9 +133,9 @@ void board_init(void);
 
 bool F1_button_state(void);
 bool F2_button_state(void);
-
 void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
+uint8_t Get_jumpers_config(void);
 
 void adc_update_all(void);
 

@@ -159,8 +159,21 @@ def validate_input(input_str, min_value, max_value):
     # If we get here, the input was invalid, so return None
     return None
 
+# Add a function to update the message ID
+def update_msg_id(event=None):
+    global message_id
+
+    # Get the message ID from the widget and convert to integer
+    message_id_str = msg_id_var.get()
+    if message_id_str.startswith("0x") or message_id_str.startswith("0X"):
+        message_id = int(message_id_str, 16)  # Convert from hex
+    else:
+        message_id = int(message_id_str)  # Convert from decimal
+
 # Function to update torque and angle from widget values
 def update_values():
+    update_msg_id()
+
     # Use global variables to update torque and angle values
     global torque, angle
 
@@ -188,7 +201,7 @@ def update_values():
 
 # Function to encode and send the CAN message
 def update_message():
-    global msg, data, counter, torque, angle
+    global msg, data, counter, torque, angle, message_id
 
     # Calculate new counter value
     counter = counter + 1
@@ -206,7 +219,7 @@ def update_message():
 
     # Calculate checksum for the STEERING_COMMAND message
     lent = len(data)
-    checksum = msg_calc_checksum_8bit(data, lent, 558)
+    checksum = msg_calc_checksum_8bit(data, lent, message_id)  # Use configurable message ID
 
     # Encode the data field with new checksum
     data = msg.encode({
@@ -218,14 +231,14 @@ def update_message():
     })
 
 def send_message(can_bus: can.bus.BusABC):
-    global can_enabled
+    global can_enabled, message_id
 
     last_exec_time = time.monotonic()  # current time in seconds since some arbitrary reference point
     loop_count = 0
     last_print_time = time.monotonic()
     while can_enabled:
         # Create a message using the "torque" dbc object
-        message = can.Message(arbitration_id=msg.frame_id, data=data, is_extended_id=False)
+        message = can.Message(arbitration_id=message_id, data=data, is_extended_id=False)
  
         # Update the STEERING_COMMAND message values and send to the bus
         update_message()
@@ -325,10 +338,18 @@ window.geometry("360x250")  # Set window width and height
 selected_backend = tk.StringVar(window)
 selected_backend.set('pcan')
 
+# Add a new widget for the Message ID
+msg_id_var = tk.StringVar(value=hex(msg.frame_id))  # Set default value from msg.frame_id in hex
+msg_id_widget = tk.Entry(window, textvariable=msg_id_var)
+update_msg_id()
+msg_id_widget.bind('<Return>', update_msg_id)  # Bind Enter key
+msg_id_widget.bind('<FocusOut>', update_msg_id)  # Bind focus out event
+
 can_interface_selector = ttk.Combobox(window, values=[*sorted(can.interfaces.VALID_INTERFACES)], textvariable=selected_backend)
 can_interface_selector.bind("<<ComboboxSelected>>", interface_selected)
 
-can_label = tk.Label(window, text="CAN interface:       ")
+can_interface_label = tk.Label(window, text="CAN interface:       ")
+msg_id_label = tk.Label(window, text="CAN ID:       ")
 torque_label = tk.Label(window, text="Steer Torque:       ")
 angle_label = tk.Label(window, text="Steer Angle:       ")
 
@@ -352,16 +373,18 @@ STEER_MODE_OPTIONS = [
 steer_mode_widget = SteerModeWidget(window, "Steer Mode:  ", STEER_MODE_OPTIONS, command=update_values)
 
 # Add a button to update torque/angle values
-send_button = tk.Button(window, text='Update Torque/Angle value', command=update_values)
+update_button = tk.Button(window, text='Update Torque/Angle value', command=update_values)
 
 # Place the labels and widgets using grid
-can_label.grid(row=0, column=0, sticky="w")  # set sticky to "w" for left alignment
+can_interface_label.grid(row=0, column=0, sticky="w")  # set sticky to "w" for left alignment
 can_interface_selector.grid(row=0, column=1, sticky="w")
-torque_label.grid(row=1, column=0, sticky="w")  # set sticky to "w" for left alignment
-torque_widget.grid(row=1, column=1, sticky="w")
-angle_label.grid(row=2, column=0, sticky="w")  # set sticky to "w" for left alignment
-angle_widget.grid(row=2, column=1, sticky="w")
-send_button.grid(row=9, column=0, columnspan=2, pady=(10, 0))
+msg_id_label.grid(row=1, column=0, sticky="w")  # set sticky to "w" for left alignment
+msg_id_widget.grid(row=1, column=1, sticky="w")
+torque_label.grid(row=2, column=0, sticky="w")  # set sticky to "w" for left alignment
+torque_widget.grid(row=2, column=1, sticky="w")
+angle_label.grid(row=3, column=0, sticky="w")  # set sticky to "w" for left alignment
+angle_widget.grid(row=3, column=1, sticky="w")
+update_button.grid(row=9, column=0, columnspan=2, pady=(10, 0))
 
 # Function for closing the program elegantly
 def on_closing():

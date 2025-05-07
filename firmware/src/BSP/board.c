@@ -137,7 +137,7 @@ static void SWITCH_init(void)
 	EXTIInitStruct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_Init(&EXTIInitStruct);
 
-	gpio_initStructure.GPIO_Pin = PIN_JP1 | PIN_JP2;
+	gpio_initStructure.GPIO_Pin = PIN_ID1 | PIN_ID2;
 	GPIO_Init(GPIO_JP, &gpio_initStructure);
 
   	gpio_initStructure.GPIO_Pin = PIN_AUX_3_3;
@@ -316,14 +316,6 @@ static void CAN_begin(void){
 	}
 	
 	CAN_Init(CAN1, &can_initStructure);
-
-	//setup filters
-	CAN_MsgsFiltersSetup();
-	//enable receive interrupt
-	CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
-	CAN_ITConfig(CAN1, CAN_IT_FF0, ENABLE); 
-	CAN_ITConfig(CAN1, CAN_IT_FOV0, ENABLE); 
-
 }
 
 static void Vrefint_adc_update(void);
@@ -543,6 +535,16 @@ void Set_Func_LED(bool state)
 void Set_Error_LED(bool state)
 {
 	GPIO_WriteBit(GPIO_LED_RED, PIN_LED_RED, (BitAction)(state));
+}
+
+//Get jumpers config
+uint8_t Get_jumpers_config(void)
+{
+    uint8_t bit2 = GPIO_ReadInputDataBit(GPIO_JUMPERS, PIN_ID1) == Bit_RESET;
+    uint8_t bit1 = GPIO_ReadInputDataBit(GPIO_JUMPERS, PIN_ID2) == Bit_RESET;
+
+	uint8_t val = (uint8_t)(bit1 << 1U) | bit2;
+    return val;
 }
 
 #define MOTION_TASK_TIM TIM4

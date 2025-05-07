@@ -3,6 +3,7 @@
 
 #include "calibration.h"
 #include "encoder.h"
+#include "Msg.h"
 
 uint16_t read_previous_fw_version(void){
 	uint16_t version = nvmMirror.systemParams.fw_version;
@@ -24,6 +25,15 @@ static void save_current_fw_version(void){
 
 void app_upgrade_begin(void){
 	uint16_t version_upgrade;
+
+	version_upgrade = 4000U;
+	if((read_previous_fw_version() < version_upgrade) && (read_current_fw_version() >= version_upgrade)){  // cppcheck-suppress  knownConditionTrueFalse
+		nvmMirror.can.cmdId = MSG_STEERING_COMMAND_FRAME_ID;
+		nvmMirror.can.statusID = MSG_STEERING_STATUS_FRAME_ID;
+
+		nvmWriteConfParms();
+	}
+
 
 	version_upgrade = 3002U;
 	if((read_previous_fw_version() < version_upgrade) && (read_current_fw_version() >= version_upgrade)){  // cppcheck-suppress  knownConditionTrueFalse

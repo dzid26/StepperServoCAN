@@ -36,7 +36,7 @@ typedef struct {
 	uint16_t reserved2;
 	ErrorPinMode_t errorPinMode;  //is error pin used for enable, error, or bidirectional
 	feedbackCtrl_t controllerMode; //feedback mode for the controller
-	uint16_t parametersValid;
+	uint16_t reserved3; // it's invalid when eeprom is zeroed
 } SystemParams_t; //sizeof(SystemParams_t)=12
 
 typedef struct {
@@ -45,8 +45,7 @@ typedef struct {
 	bool     invertedPhase;			// motor rotating in opposite direction to angle sensor
 	uint8_t  reserved3;
 	uint16_t fullStepsPerRotation; //how many full steps per rotation is the motor
-	uint16_t parametersValid;
-} MotorParams_t; //sizeof(MotorParams_t)=10
+} MotorParams_t; //sizeof(MotorParams_t)=8
 
 typedef struct {
 	float Kp;
@@ -55,18 +54,20 @@ typedef struct {
 } PIDparams_t; //2xsizeof(PIDparams_t)=12
 
 typedef struct {
+	uint16_t cmdId;
+	uint16_t statusID;
 	uint32_t reserved1;
 	uint32_t reserved2;
-	uint32_t reserved3;
-} Reserved_t;
+} CANparams_t;
 
 #pragma pack(2) //removes 2byte padding between motorParams and pPid - this is mostly for back compatibility at this point
 typedef struct {
 	SystemParams_t 	systemParams;
 	MotorParams_t 	motorParams;
+	uint16_t parametersValid;
 	PIDparams_t 	pPID; //simple PID parameters
 	PIDparams_t 	vPID; //position PID parameters
-	Reserved_t 		reserved;
+	CANparams_t 	can;
 } nvm_t; //sizeof(nvm_t)=58
 #pragma pack()
 

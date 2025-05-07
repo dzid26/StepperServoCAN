@@ -23,6 +23,8 @@
 #include "board.h"
 #include "stepper_controller.h"
 #include "encoder.h"
+#include "upgrade.h"
+#include "Msg.h"
 
 volatile MotorParams_t liveMotorParams;
 volatile SystemParams_t liveSystemParams;
@@ -84,8 +86,7 @@ bool nvmFlashCheck(uint32_t address, size_t n)
 //currently only used once - after first boot
 void nvmWriteConfParms(void){
 	nvm_t* ptr_nvmMirror = &nvmMirror;
-	ptr_nvmMirror->motorParams.parametersValid  = valid;
-	ptr_nvmMirror->systemParams.parametersValid = valid;
+	ptr_nvmMirror->parametersValid  = valid;
 	
 	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
@@ -126,30 +127,68 @@ void nvmWriteConfParms(void){
 //parameters first boot defaults and restore on corruption
 void validateAndInitNVMParams(void)
 {
+	bool save_nvm = false;
+
 	nvmMirrorInRam();
 
-	if (nvmMirror.systemParams.parametersValid != valid){ //systemParams invalid
-		nvmMirror.systemParams.fw_version = VERSION;
-		
-		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
-		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
-
+	// load defaults on first boot
+	if (nvmMirror.parametersValid != valid){ //systemParams invalid
+		nvmMirror.systemParams.fw_version = VERSION; // also set by app_upgrade_begin()
 		nvmMirror.systemParams.controllerMode = CTRL_TORQUE;  //unused
 		nvmMirror.systemParams.dirRotation = CCW_ROTATION;
 		nvmMirror.systemParams.errorLimit = 0U;  //unused
 		nvmMirror.systemParams.errorPinMode = ERROR_PIN_MODE_ACTIVE_LOW_ENABLE;  //default to !enable pin
-	}
 
-	if(nvmMirror.motorParams.parametersValid != valid){
 		nvmMirror.motorParams.invertedPhase = false;
 		nvmMirror.motorParams.fullStepsPerRotation = FULLSTEPS_NA; //it will be detected along with invertedPhase
+		//the motor parameters are later checked in the stepper_controller code
+		// as that there we can auto set much of them.
+
+		nvmMirror.can.cmdId = MSG_STEERING_COMMAND_FRAME_ID;
+		nvmMirror.can.statusID = MSG_STEERING_STATUS_FRAME_ID;
+
+		save_nvm = true;
 	}
 
-	if((nvmMirror.systemParams.parametersValid != valid) || (nvmMirror.motorParams.parametersValid != valid)){
+	app_upgrade_begin(); // handles eeprom manipulation between versions if necessary
+
+	if(NVM_SAVE_DEFAULT_PID_PARAMS || (nvmMirror.parametersValid != valid)) {
+		nvmMirror.pPID.Kp = .5f;  nvmMirror.pPID.Ki = .0002f;  nvmMirror.pPID.Kd = 1.0f;  //range: 0-7.99 when CTRL_PID_SCALING=4096
+		nvmMirror.vPID.Kp = 2.0f;   nvmMirror.vPID.Ki = 1.0f; 	 nvmMirror.vPID.Kd = 1.0f;
+		save_nvm = true;
+	}
+
+	if (NVM_SET_ENABLE_PIN_MODE >= 0) {
+		nvmMirror.systemParams.errorPinMode = (ErrorPinMode_t)NVM_SET_ENABLE_PIN_MODE;
+		save_nvm = true;
+	}
+
+	if (NVM_SET_DIR_ROTATION >= 0) {
+		nvmMirror.systemParams.dirRotation = (RotationDir_t)NVM_SET_DIR_ROTATION;
+		save_nvm = true;
+	}
+
+	if(NVM_SET_MOTOR_STEPS >= 0) {
+		nvmMirror.motorParams.fullStepsPerRotation = (uint16_t)NVM_SET_MOTOR_STEPS;
+		save_nvm = true;
+	}
+
+	if(NVM_SET_MOTOR_PHASE_ORIENTATION >= 0) {
+		nvmMirror.motorParams.invertedPhase = (bool)NVM_SET_MOTOR_PHASE_ORIENTATION;
+		save_nvm = true;
+	}
+	
+	if(NVM_SET_CAN_COMMAND_ID > 0) {
+		nvmMirror.can.cmdId = (uint16_t)NVM_SET_CAN_COMMAND_ID;
+		save_nvm = true;
+	}
+
+	if(NVM_SET_CAN_STATUS_ID > 0) {
+		nvmMirror.can.statusID = (uint16_t)NVM_SET_CAN_STATUS_ID;
+		save_nvm = true;
+	}
+	
+	if(save_nvm){
 		nvmWriteConfParms(); //save defaults
 	}
-
-	//the motor parameters are later checked in the stepper_controller code
-	// as that there we can auto set much of them.
-
 }
