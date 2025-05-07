@@ -1,0 +1,44 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "PlatformIO",
+			"task": "Build",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build",
+			"label": "PlatformIO: Build",
+			"options": {
+				"shell": {
+					"executable": "platformio",
+					"args": [
+						"-j",
+						"4"
+					]
+				}
+			}
+		},
+		{	"hide": true,
+			"type": "shell",
+			"command": "openocd -f openocd/scripts/interface/stlink.cfg -c 'set CPUTAPID 0' -f target/stm32f1x.cfg",
+			"args": [],
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "OpenOCD (Allow semihosting output)"
+		},
+		{
+			"type": "shell",
+			"command": "cd .. && py ./StepperServoCanGUI.py",
+			"label": "StepperServoCANtester",
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"command": "cd ./test && py readCalibration.py",
+			"label": "readCalibration",
+			"problemMatcher": []
+		}
+	]
+}
