@@ -24,7 +24,7 @@
 extern CAN_TypeDef hcan;
 
 void CAN_TransmitMotorStatus(uint32_t frame);
-void CAN_MsgsFiltersSetup(void);
+void CAN_Setup(void);
 bool Check_Control_CAN_rx_validate_tick(void);
 
 extern volatile uint32_t can_err_rx_cnt;

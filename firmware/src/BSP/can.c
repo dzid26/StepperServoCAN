@@ -25,6 +25,9 @@
 #include "board.h"
 #include "nonvolatile.h"
 
+static uint16_t can_command_id;
+static uint16_t can_status_id;
+
 static volatile uint32_t can_rx_cnt = 0;      // cppcheck-suppress  misra-c2012-8.9
 static volatile uint32_t can_tx_cnt = 0;      // cppcheck-suppress  misra-c2012-8.9
 volatile uint32_t can_err_rx_cnt = 0;
@@ -41,7 +44,7 @@ void CAN_MsgsFiltersSetup() {
 	CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_16bit;
 	CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdList;
 	//IdList mode - fields below can store list of 4 receiving IDs.  STID requires << 5 
-	CAN_FilterInitStructure.CAN_FilterIdHigh = nvmMirror.can.cmdId << CAN_STID_SHIFT; // default MSG_STEERING_COMMAND_FRAME_ID
+	CAN_FilterInitStructure.CAN_FilterIdHigh = can_command_id << CAN_STID_SHIFT; // default MSG_STEERING_COMMAND_FRAME_ID
 	CAN_FilterInitStructure.CAN_FilterIdLow = 0x700 << CAN_STID_SHIFT; //TODO add servicing message
 	CAN_FilterInitStructure.CAN_FilterMaskIdHigh = 0x0000 << CAN_STID_SHIFT;
 	CAN_FilterInitStructure.CAN_FilterMaskIdLow= 0x0000 << CAN_STID_SHIFT;
@@ -56,6 +59,13 @@ void CAN_MsgsFiltersSetup() {
 	CAN_ITConfig(CAN1, CAN_IT_FF0, ENABLE); 
 	CAN_ITConfig(CAN1, CAN_IT_FOV0, ENABLE); 
 	}
+
+void CAN_Setup(void) {
+	can_command_id = nvmMirror.can.cmdId;
+	can_status_id = nvmMirror.can.statusID;
+
+	CAN_MsgsFiltersSetup();
+}
 
 // Return checksum is lower byte of added lower and upper 
 // bytes of 16bit sum of data values and message id
@@ -97,7 +107,7 @@ void CAN_TransmitMotorStatus(uint32_t frame) {
 	CanTxMsg txMessage;
 	txMessage.RTR=CAN_RTR_DATA;
 	txMessage.IDE=CAN_ID_STD;
-	txMessage.StdId=nvmMirror.can.statusID; // default MSG_STEERING_STATUS_FRAME_ID
+	txMessage.StdId=can_status_id; // default MSG_STEERING_STATUS_FRAME_ID
 	txMessage.DLC=MSG_STEERING_STATUS_LENGTH;
 
 	// populate message structure:
@@ -115,7 +125,7 @@ void CAN_TransmitMotorStatus(uint32_t frame) {
 	// calculate checksum:
 	uint8_t dataTemp[MSG_STEERING_STATUS_LENGTH];
 	Msg_steering_status_pack(dataTemp, &controlStatus, sizeof(dataTemp));
-	controlStatus.checksum = Msg_calc_checksum_8bit(dataTemp, MSG_STEERING_STATUS_LENGTH, nvmMirror.can.statusID);
+	controlStatus.checksum = Msg_calc_checksum_8bit(dataTemp, MSG_STEERING_STATUS_LENGTH, can_status_id);
 	Msg_steering_status_pack((&txMessage)->Data, &controlStatus, sizeof(txMessage.Data)); //pack again with the checksum
 
 	// transmit
@@ -126,7 +136,7 @@ void CAN_TransmitMotorStatus(uint32_t frame) {
 static volatile uint16_t can_control_cmd_cnt = 0;
 struct Msg_steering_command_t ControlCmds;
 static void CAN_InterpretMesssages(CanRxMsg message) { 
-	if(message.StdId == nvmMirror.can.cmdId) {
+	if(message.StdId == can_command_id) {
 		Msg_steering_command_unpack(&ControlCmds, message.Data, sizeof(message.Data));
 		// Note signals may correspond to different motor sample
 		StepperCtrl_setControlMode(ControlCmds.steer_mode); //set control mode
@@ -135,7 +145,7 @@ static void CAN_InterpretMesssages(CanRxMsg message) {
 
 		//calculate checksum:
 		message.Data[0] = 0; //!clear checksum - make sure which byte is checksum
-		uint8_t checksum = Msg_calc_checksum_8bit(message.Data, MSG_STEERING_COMMAND_LENGTH, nvmMirror.can.cmdId);
+		uint8_t checksum = Msg_calc_checksum_8bit(message.Data, MSG_STEERING_COMMAND_LENGTH, can_command_id);
 		#ifdef IGNORE_CAN_CHECKSUM
 			ControlCmds.checksum = checksum;
 		#endif
