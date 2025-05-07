@@ -30,6 +30,7 @@ static volatile uint32_t can_tx_cnt = 0;      // cppcheck-suppress  misra-c2012-
 volatile uint32_t can_err_rx_cnt = 0;
 static volatile uint32_t can_err_tx_cnt = 0;  // cppcheck-suppress  misra-c2012-8.9
 static volatile uint32_t can_overflow_cnt = 0;// cppcheck-suppress  misra-c2012-8.9
+static volatile uint8_t can_err_tx_last = 0;  // cppcheck-suppress  misra-c2012-8.9
 
 #define CAN_STID_SHIFT 5U
 void CAN_MsgsFiltersSetup() {
@@ -83,8 +84,8 @@ static void CheckTxStatus(uint8_t transmitMailbox) {
 		i++;
 		if((status == CAN_TxStatus_Failed) || (i >= 0xFFU)) {
 			can_err_tx_cnt++;
-			volatile uint8_t error = CAN_GetLastErrorCode(CAN1);
-			assert((error == CAN_ErrorCode_NoErr) || (error == CAN_ErrorCode_ACKErr));//CAN_ErrorCode_ACKErr is allowed since it can happen if there is no CAN receivers on the bus
+			can_err_tx_last = CAN_GetLastErrorCode(CAN1);
+			assert((can_err_tx_last == CAN_ErrorCode_NoErr) || (can_err_tx_last == CAN_ErrorCode_ACKErr)); //CAN_ErrorCode_ACKErr is allowed since it can happen if there is no CAN receivers on the bus
 			return;
 		}
 	}
