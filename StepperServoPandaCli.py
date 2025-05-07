@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """
+Control motor using Comma's Panda (locally or over ssh). 
+(Needs to be flashed with non-release firmare to allow SAFETY_ALLOUTPUT)
+
 For greatest compatibility this script doesn't depend non-built-in modules - 
 except for the USB CAN interface (Panda) and it can be run on PC or Comma device. 
 Keyboard input values 1,2,3,4... to set torque value
@@ -19,21 +22,11 @@ import threading
 import subprocess
 import sys
 
-
-def heartbeat_thread(p):
-  while True:
-    try:
-      p.send_heartbeat()
-      time.sleep(0.1)
-    except:
-      break
-      raise
-
 # from Msg.h which is from ocelot_controls.dbc
 MSG_STEERING_COMMAND_FRAME_ID = 0x22e
 MSG_STEERING_STATUS_FRAME_ID = 0x22f
 motor_bus_speed = 500  #StepperServoCAN baudrate 500kbps
-MOTOR_MSG_TS = 0.008 #10Hz
+MOTOR_MSG_TS = 0.008 # <10Hz
 MAX_TORQUE = 9
 MAX_ANGLE = 4095
 
@@ -193,14 +186,13 @@ def print_cmd_state():
 
 def motor_tester(bus):
   panda = Panda()
+  panda.set_heartbeat_disabled()
   panda.set_can_speed_kbps(bus, motor_bus_speed)
   # Now set the panda from its default of SAFETY_SILENT (read only) to SAFETY_ALLOUTPUT
   print("Setting Panda to All Output mode...")
   panda.set_safety_mode(Panda.SAFETY_ALLOUTPUT)
   print("Enable all pandas busses...") #in case panda was sleeping
   panda.set_power_save(False) #enable all the busses
-  print("Enable panda usb heartbeat..") #so it doesn't stop
-  _thread.start_new_thread(heartbeat_thread, (panda,))
 
   #Request off control mode first - in case motor
   # or was in SoftOff fault mode
@@ -296,9 +288,10 @@ if __name__ == "__main__":
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument("--bus", type=int, help="CAN bus id to which motor is connected", default=2)
   args = parser.parse_args()
-  print("Killing boardd to release USB...")
-  try: #useful if run on EON
-    subprocess.run(['pkill', '-f', 'boardd'])
+  print("Killing pandad to release USB...")
+  try: # useful if run on Comma device
+    subprocess.run(['pkill', '-9', '-f', 'pandad'])
+    subprocess.run(['/path/to/pandad', '--args-if-any'])
   except:
     pass
   motor_tester(args.bus)
