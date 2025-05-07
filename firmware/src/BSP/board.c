@@ -543,7 +543,7 @@ uint8_t Get_jumpers_config(void)
     uint8_t bit2 = GPIO_ReadInputDataBit(GPIO_JUMPERS, PIN_ID1) == Bit_RESET;
     uint8_t bit1 = GPIO_ReadInputDataBit(GPIO_JUMPERS, PIN_ID2) == Bit_RESET;
 
-	uint8_t val = (bit1 << 1U) | bit2;
+	uint8_t val = (uint8_t)(bit1 << 1U) | bit2;
     return val;
 }
 

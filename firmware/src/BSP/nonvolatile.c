@@ -159,32 +159,32 @@ void validateAndInitNVMParams(void)
 	}
 
 	if (NVM_SET_ENABLE_PIN_MODE >= 0) {
-		nvmMirror.systemParams.errorPinMode = NVM_SET_ENABLE_PIN_MODE;
+		nvmMirror.systemParams.errorPinMode = (ErrorPinMode_t)NVM_SET_ENABLE_PIN_MODE;
 		save_nvm = true;
 	}
 
 	if (NVM_SET_DIR_ROTATION >= 0) {
-		nvmMirror.systemParams.dirRotation = NVM_SET_DIR_ROTATION;
+		nvmMirror.systemParams.dirRotation = (RotationDir_t)NVM_SET_DIR_ROTATION;
 		save_nvm = true;
 	}
 
 	if(NVM_SET_MOTOR_STEPS >= 0) {
-		nvmMirror.motorParams.fullStepsPerRotation = NVM_SET_MOTOR_STEPS;
+		nvmMirror.motorParams.fullStepsPerRotation = (uint16_t)NVM_SET_MOTOR_STEPS;
 		save_nvm = true;
 	}
 
 	if(NVM_SET_MOTOR_PHASE_ORIENTATION >= 0) {
-		nvmMirror.motorParams.invertedPhase = NVM_SET_MOTOR_PHASE_ORIENTATION;
+		nvmMirror.motorParams.invertedPhase = (bool)NVM_SET_MOTOR_PHASE_ORIENTATION;
 		save_nvm = true;
 	}
 	
 	if(NVM_SET_CAN_COMMAND_ID > 0) {
-		nvmMirror.can.cmdId = NVM_SET_CAN_COMMAND_ID;
+		nvmMirror.can.cmdId = (uint16_t)NVM_SET_CAN_COMMAND_ID;
 		save_nvm = true;
 	}
 
 	if(NVM_SET_CAN_STATUS_ID > 0) {
-		nvmMirror.can.statusID = NVM_SET_CAN_STATUS_ID;
+		nvmMirror.can.statusID = (uint16_t)NVM_SET_CAN_STATUS_ID;
 		save_nvm = true;
 	}
 	

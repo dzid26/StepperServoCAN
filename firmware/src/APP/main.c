@@ -224,7 +224,7 @@ void Service_task(void) {
 	//go to Soft Off if motor is actively controlled but control signal is not received
 	bool comm_error = false;
 	if(enableSensored){
-		comm_error = (Check_Control_CAN_rx_validate_tick() == false);
+		comm_error = (CAN_rx_validate_tick() == false);
 	}
 	if(comm_error)
 	{	//once SOFT_TORQUE_OFF is set, the motor will not be controlled until STEPCTRL_OFF is requested
