@@ -25,6 +25,7 @@
 #include "board.h"
 #include "nonvolatile.h"
 
+const uint8_t n_base_msgs = 3U; // there are two currently but assume three for the future
 static uint16_t can_command_id;
 static uint16_t can_status_id;
 
@@ -63,6 +64,11 @@ void CAN_MsgsFiltersSetup() {
 void CAN_Setup(void) {
 	can_command_id = nvmMirror.can.cmdId;
 	can_status_id = nvmMirror.can.statusID;
+
+	// shift can ids according to jumper configuration
+	uint8_t can_config = Get_jumpers_config();
+	can_command_id = can_command_id + n_base_msgs * can_config;
+	can_status_id = can_status_id + n_base_msgs * can_config;
 
 	CAN_MsgsFiltersSetup();
 }
