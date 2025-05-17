@@ -17,7 +17,7 @@ const bool USE_SIMPLE_PARAMETERS = false;
 
 // SIMPLE PARAMETERS:
 const float motor_rated_current = (float) 1.5; // A
-const float motor_rated_torque =  (float) 1.16;  // Ncm
+const float motor_rated_torque =  (float) 116;  // Ncm
 
 // MEASURED PARAMETERS: // todo autocalibrate and store in NVRAM
 // default are for black 17HS4401S https://www.aliexpress.com/item/4001349087963.html
