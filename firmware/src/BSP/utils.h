@@ -30,11 +30,13 @@ __extension__ ({\
   })
 
 uint32_t fastAbs(int32_t v);
+#define PI 3.1415f
 
 #define PI_X1024 3217U
 #define TWO_PI_X1024 6434U
 
 #define Ohm_to_mOhm 1000
 #define H_to_uH 1000000
+#define V_to_mV 1000
 
 #endif // UTILS_H

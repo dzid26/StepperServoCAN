@@ -5,6 +5,7 @@
 
 #include "actuator_config.h"
 #include "stepper_controller.h"
+#include "utils.h"
 
 // ----- should be set by the user --------------------------------------------------------------------------------
 const bool USE_VOLTAGE_CONTROL = false; // voltage or current control - voltage control recommended for hardware v0.3
@@ -48,15 +49,15 @@ void update_actuator_parameters(bool use_simple_params){
 
     if (use_simple_params) {
         motor_k_torque = (motor_rated_torque / 100) / motor_rated_current;
-        motor_k_bemf = motor_k_torque * 1000 * 2.0f * 3.1415f;
+        motor_k_bemf = motor_k_torque * (V_to_mV * 2 * PI);
     }else{
         // motor torque and BEMF constant are directly correlated
         // this is the easiest way to get precise torque / current relationship without a load cell
         // as long as magnetic saturation doesn't not occur (usually below rated current), the relationship is simply:
         // k_torque[Nm/A] = k_bemf[V/rad/s]
-        motor_k_torque = (float)motor_k_bemf / 1000 / 2 / 3.1415f;
+        motor_k_torque = (float)motor_k_bemf / (V_to_mV * 2 * PI);
     }
-    current_to_actuatorTq = motor_k_torque / 1000 * gearing_ratio;
+    current_to_actuatorTq = motor_k_torque / V_to_mV * gearing_ratio;
     actuatorTq_to_current = 1 / current_to_actuatorTq;
 
 
