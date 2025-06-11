@@ -18,7 +18,7 @@ const bool USE_SIMPLE_PARAMETERS = true;
 
 // SIMPLE PARAMETERS:
 const float motor_rated_current = (float) 1.3; // A
-const float motor_rated_torque =  (float) 28;  // Ncm
+const float motor_rated_hold_torque =  (float) 39;  // Ncm - (values in datasheets represents both phases energized with rated current AND are often inflated for small motors)
 
 // MEASURED PARAMETERS: // todo autocalibrate and store in NVRAM
 // default are for black 17HS4401S https://www.aliexpress.com/item/4001349087963.html
@@ -48,7 +48,7 @@ void update_actuator_parameters(bool use_simple_params){
     gearing_ratio = motor_gearbox_ratio * final_drive_ratio;
 
     if (use_simple_params) {
-        motor_k_torque = (motor_rated_torque / 100) / motor_rated_current;
+        motor_k_torque = (motor_rated_hold_torque / (SQRT2 * 100)) / motor_rated_current;
         motor_k_bemf = motor_k_torque * (V_to_mV * 2 * PI);
     }else{
         // motor torque and BEMF constant are directly correlated

@@ -30,6 +30,8 @@ __extension__ ({\
   })
 
 uint32_t fastAbs(int32_t v);
+
+#define SQRT2 1.41421f
 #define PI 3.1415f
 
 #define PI_X1024 3217U
