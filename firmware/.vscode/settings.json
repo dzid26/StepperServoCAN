@@ -43,7 +43,8 @@
         "misc-include-cleaner",
         "readability-identifier-length",
         "altera-unroll-loops",
-        "cppcoreguidelines-avoid-non-const-global-variables"
+        "cppcoreguidelines-avoid-non-const-global-variables",
+        "bugprone-narrowing-conversions"
     ],
     "cSpell.words": [
         "anticogging"
