@@ -32,27 +32,26 @@
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
+volatile int32_t angleFullStep = ANGLE_STEPS / FULLSTEPS_1_8;	// rev/65536
+
 volatile bool StepperCtrl_Enabled = false;
 volatile bool enableSensored = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
 static volatile bool enableRelative = true;
-volatile int32_t angleFullStep = 327;
-
-volatile int32_t zeroAngleOffset = 0;
 
 //api - commanded
-volatile int32_t desiredLocation;
-volatile int16_t feedForward;
-volatile int16_t closeLoopMaxDes;
+volatile int32_t desiredLocation;	// rev/65536
+volatile int16_t feedForward;		// mA
+volatile int16_t closeLoopMaxDes;	// mA
 
 //api - measured
-volatile int32_t currentLocation = 0;
-volatile int16_t closeLoop;
-volatile int16_t control;
-volatile int16_t control_actual;
-volatile int32_t speed_slow = 0; // rev/s/65536
-volatile int32_t loopError = 0;
+volatile int32_t currentLocation = 0; // rev/65536
+volatile int16_t closeLoop;			// mA
+volatile int16_t control;			// mA
+volatile int16_t control_actual;	// mA
+volatile int32_t speed_slow = 0; 	// rev/s/65536
+volatile int32_t loopError = 0;		// rev/65536
 
 // special mode
 static bool base_speed_mode = false;
@@ -137,8 +136,7 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 	StepperCtrl_Enabled = enable;
 }
 
-void StepperCtrl_setMotionMode(uint8_t mode)
-{	
+void StepperCtrl_setMotionMode(uint8_t mode) {
 	//refresh parameters when exiting STEPCTRL_OFF state
 	static uint8_t mode_prev = STEPCTRL_OFF;
 	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
