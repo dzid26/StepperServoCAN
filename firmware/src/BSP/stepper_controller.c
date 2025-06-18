@@ -135,17 +135,21 @@ void StepperCtrl_enable(bool enable) {
 }
 
 void StepperCtrl_setMotionMode(uint8_t mode) {
+	Motion_task_disable(); // block motion task
+
 	//refresh parameters when exiting STEPCTRL_OFF state
 	static uint8_t mode_prev = STEPCTRL_OFF;
 	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
 		UpdateRuntimeParams();
 	}
+	enableSoftOff = false;
+	enableCloseLoop = false;
+	enableRelative = false;
 	base_speed_mode = false;
+
 	switch (mode) {
 	case STEPCTRL_OFF:
 		enableSensored = false; //motor control using angle sensor feedback is off
-		// enableNoFeedback = false; //motor control fallback to open loop
-		enableSoftOff = false;
 		A4950_enable(false);
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
@@ -157,7 +161,6 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE:
 		enableSensored = true;
 		enableCloseLoop = true;
-		enableRelative = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
@@ -167,17 +170,14 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 		break;
 	case STEPCTRL_FEEDBACK_TORQUE:
 		enableSensored = true;
-		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_CURRENT:	//TODO
 		enableSensored = true;
-		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
 		enableSensored = true;
-		enableCloseLoop = false;
 		enableSoftOff = true;
 		break;
 	case STEPCTRL_FEEDBACK_KBEMF_ADAPT:
@@ -189,13 +189,17 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 		break;
 	}
 	mode_prev = mode;
+
+	if (controlsEnabled) {
+		Motion_task_enable(); // resume motion task
+	}
 }
 
-void StepperCtrl_setCurrent(int16_t current){
+void StepperCtrl_setCurrent(int16_t current) {
 	feedForward = current;
 }
 
-void StepperCtrl_setCloseLoopCurrentLim(int16_t current){
+void StepperCtrl_setCloseLoopCurrentLim(int16_t current) {
 	closeLoopMaxDes = current;
 }
 
