@@ -34,7 +34,7 @@ volatile PID_t vPID; //velocity PID control parameters
 
 volatile int32_t angleFullStep = ANGLE_STEPS / FULLSTEPS_1_8;	// rev/65536
 
-volatile bool StepperCtrl_Enabled = false;
+volatile bool controlsEnabled = false;
 volatile bool enableSensored = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
@@ -117,10 +117,9 @@ stepCtrlError_t StepperCtrl_begin(void){
 	return STEPCTRL_NO_ERROR;
 }
 
-void StepperCtrl_enable(bool enable) //enables feedback sensor processing StepperCtrl_processMotion()
-{
-	if(StepperCtrl_Enabled == true && enable == false)
-	{
+// enables feedback sensor processing StepperCtrl_processMotion()
+void StepperCtrl_enable(bool enable) {
+	if(controlsEnabled == true && enable == false) {
 		Motion_task_disable();
 		//reset globals:
 		speed_slow = 0;
@@ -129,11 +128,10 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 		control_actual = 0;
 		currentLocation = 0;
 	}
-	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
-	{
+	if(controlsEnabled == false && enable == true) {
 		Motion_task_enable();
 	}
-	StepperCtrl_Enabled = enable;
+	controlsEnabled = enable;
 }
 
 void StepperCtrl_setMotionMode(uint8_t mode) {
