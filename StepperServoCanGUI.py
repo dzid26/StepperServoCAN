@@ -197,7 +197,7 @@ def update_values():
     # If the input is invalid, set the angle to zero and show an error message
     if angle is None:
         angle = 0
-        messagebox.showerror("Error", "Angle value should be between -180 and 180")
+        messagebox.showerror("Error", "Angle value should be between {} and {}".format(MIN_ANGLE, MAX_ANGLE))
 
 # Function to encode and send the CAN message
 def update_message():
@@ -264,13 +264,13 @@ def send_message(can_bus: can.bus.BusABC):
 
 # Define a class named SteerModeWidget
 class SteerModeWidget:
-    def __init__(self, master, label_text, options_list, command):
+    def __init__(self, master, label_text, options_list, row, command):
         # Create an instance variable of type tk.IntVar to store the selected value
         self.var = tk.IntVar()
         
         # Create a Label widget with the specified label text and place it in the parent widget using the grid geometry manager
         self.label = tk.Label(master, text=label_text)
-        self.label.grid(row=3, column=0, sticky="w")  # set sticky to "w" for left alignment
+        self.label.grid(row=row, column=0, sticky="w")  # set sticky to "w" for left alignment
         
         # Create a set of radio buttons, one for each option in the options list
         self.buttons = []
@@ -281,7 +281,7 @@ class SteerModeWidget:
             )
             
             # Place the radio button in the parent widget using the grid geometry manager, and set sticky to "w" for left alignment
-            button.grid(row=3+idx, column=1, sticky="w")
+            button.grid(row=row+idx, column=1, sticky="w")
             
             # Add the radio button to the list of buttons
             self.buttons.append(button)
@@ -332,7 +332,7 @@ window = tk.Tk()
 window.title("StepperServoCAN Tester")
 
 # Set window width and height to custom values
-window.geometry("360x250")  # Set window width and height
+window.geometry("360x259")  # Set window width and height
 
 # Create labels for the widgets
 selected_backend = tk.StringVar(window)
@@ -370,7 +370,7 @@ STEER_MODE_OPTIONS = [
     (3, "SoftOff - ramp torque to 0 at constant rate")
 ]
 
-steer_mode_widget = SteerModeWidget(window, "Steer Mode:  ", STEER_MODE_OPTIONS, command=update_values)
+
 
 # Add a button to update torque/angle values
 update_button = tk.Button(window, text='Update Torque/Angle value', command=update_values)
@@ -384,7 +384,8 @@ torque_label.grid(row=2, column=0, sticky="w")  # set sticky to "w" for left ali
 torque_widget.grid(row=2, column=1, sticky="w")
 angle_label.grid(row=3, column=0, sticky="w")  # set sticky to "w" for left alignment
 angle_widget.grid(row=3, column=1, sticky="w")
-update_button.grid(row=9, column=0, columnspan=2, pady=(10, 0))
+steer_mode_widget = SteerModeWidget(window, "Steer Mode:  ", STEER_MODE_OPTIONS, row=4, command=update_values)
+update_button.grid(row=4+len(STEER_MODE_OPTIONS), column=0, columnspan=2, pady=(10, 0))
 
 # Function for closing the program elegantly
 def on_closing():
