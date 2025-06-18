@@ -34,18 +34,20 @@ volatile PID_t vPID; //velocity PID control parameters
 
 volatile int32_t angleFullStep = ANGLE_STEPS / FULLSTEPS_1_8;	// rev/65536
 
-volatile bool controlsEnabled = false;
-volatile bool enableSensored = false; //motor control using sensor angle feedback scheme
-volatile bool enableCloseLoop = false; //true if control uses PID
-volatile bool enableSoftOff = false; //true if soft off is enabled
-static volatile bool enableRelative = true;
+// control states
+volatile bool controlsActive = false;	// actuator is active
+volatile bool enableSensored = false;  	// sensor angle feedback scheme
+volatile bool enableCloseLoop = false; 	// position control
+volatile bool enableSoftOff = false;   	// torque ramp down is enabled
+static bool base_speed_test_mode = false;
+static volatile bool enableRelative = false;
 
-//api - commanded
+//api - commanded values
 volatile int32_t desiredLocation;	// rev/65536
 volatile int16_t feedForward;		// mA
 volatile int16_t closeLoopMaxDes;	// mA
 
-//api - measured
+//api - control values
 volatile int32_t currentLocation = 0; // rev/65536
 volatile int16_t closeLoop;			// mA
 volatile int16_t control;			// mA
@@ -54,10 +56,8 @@ volatile int32_t speed_slow = 0; 	// rev/s/65536
 volatile int32_t loopError = 0;		// rev/65536
 
 // special mode
-static bool base_speed_mode = false;
 
-static void UpdateRuntimeParams(void)
-{
+static void UpdateRuntimeParams(void) {
 	//copy nvm (flash) to ram for fast access
 	pPID.Kp = nvmMirror.pPID.Kp * CTRL_PID_SCALING;
 	pPID.Ki = nvmMirror.pPID.Ki * CTRL_PID_SCALING;
@@ -119,7 +119,7 @@ stepCtrlError_t StepperCtrl_begin(void){
 
 // enables feedback sensor processing StepperCtrl_processMotion()
 void StepperCtrl_enable(bool enable) {
-	if(controlsEnabled == true && enable == false) {
+	if(controlsActive == true && enable == false) {
 		Motion_task_disable();
 		//reset globals:
 		speed_slow = 0;
@@ -128,10 +128,10 @@ void StepperCtrl_enable(bool enable) {
 		control_actual = 0;
 		currentLocation = 0;
 	}
-	if(controlsEnabled == false && enable == true) {
+	if(controlsActive == false && enable == true) {
 		Motion_task_enable();
 	}
-	controlsEnabled = enable;
+	controlsActive = enable;
 }
 
 void StepperCtrl_setMotionMode(uint8_t mode) {
@@ -142,20 +142,23 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
 		UpdateRuntimeParams();
 	}
-	enableSoftOff = false;
+
+	enableSensored = false;
 	enableCloseLoop = false;
-	enableRelative = false;
-	base_speed_mode = false;
+	enableSoftOff = false;
+	base_speed_test_mode = false;
 
 	switch (mode) {
 	case STEPCTRL_OFF:
 		enableSensored = false; //motor control using angle sensor feedback is off
 		A4950_enable(false);
 		break;
-	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
+	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
 		enableSensored = true;
-		enableCloseLoop = true;
-		enableRelative = true;
+		enableSoftOff = true;
+		break;
+	case STEPCTRL_FEEDBACK_TORQUE:
+		enableSensored = true;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE:
@@ -163,25 +166,23 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 		enableCloseLoop = true;
 		A4950_enable(true);
 		break;
-	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
-		enableSensored = true;
-		enableCloseLoop = true;
-		A4950_enable(true);
-		break;
-	case STEPCTRL_FEEDBACK_TORQUE:
-		enableSensored = true;
-		A4950_enable(true);
-		break;
-	case STEPCTRL_FEEDBACK_CURRENT:	//TODO
-		enableSensored = true;
-		A4950_enable(true);
-		break;
-	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
-		enableSensored = true;
-		enableSoftOff = true;
-		break;
+	// case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
+	// 	enableSensored = true;
+	// 	enableCloseLoop = true;
+	// 	enableRelative = true;
+	// 	A4950_enable(true);
+	// 	break;
+	// case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
+	// 	enableSensored = true;
+	// 	enableCloseLoop = true;
+	// 	A4950_enable(true);
+	// 	break;
+	// case STEPCTRL_FEEDBACK_CURRENT:	//TODO
+	// 	enableSensored = true;
+	// 	A4950_enable(true);
+	// 	break;
 	case STEPCTRL_FEEDBACK_KBEMF_ADAPT:
-		base_speed_mode = true;
+		base_speed_test_mode = true;
 		A4950_enable(true);
 		break;
 	default:
@@ -190,7 +191,7 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 	}
 	mode_prev = mode;
 
-	if (controlsEnabled) {
+	if (controlsActive) {
 		Motion_task_enable(); // resume motion task
 	}
 }
@@ -250,7 +251,7 @@ bool StepperCtrl_processMotion(void)
 
 	static int32_t iTerm_accu; //iTerm memory
 
-	if (base_speed_mode){
+	if (base_speed_test_mode){
 		control = feedForward;
 		base_speed_test(control);
 	}else if(enableSensored){ //todo add openloop control

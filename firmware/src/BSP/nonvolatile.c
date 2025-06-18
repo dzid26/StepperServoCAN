@@ -55,7 +55,7 @@ void nonvolatile_begin(void)
 void nvmWriteCalTable(void *ptrData) {
 	Motion_task_disable();
 	Flash_ProgramPage(CALIBRATION_FLASH_ADDR, ptrData, (sizeof(FlashCalData_t)/2U));
-	if (controlsEnabled) {
+	if (controlsActive) {
 		Motion_task_enable();
 	}
 }
@@ -113,7 +113,7 @@ void nvmWriteConfParms(void){
 
 	nvmMirrorInRam();
 	
-	if (controlsEnabled) {
+	if (controlsActive) {
 		Motion_task_enable();
 	}
 	return;

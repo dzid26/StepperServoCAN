@@ -91,9 +91,10 @@ extern volatile PID_t vPID; //velocity PID control parameters
 #define SAMPLING_HZ		(uint32_t)(S_to_uS / SAMPLING_PERIOD_uS) //update rate of control loop
 
 //api - control states
-extern volatile bool controlsEnabled;
+extern volatile bool controlsActive;
 extern volatile stepCtrlError_t stepCtrlError;
 extern volatile bool enableSensored;
+extern volatile bool enableTorque;
 extern volatile bool enableCloseLoop;
 extern volatile bool enableSoftOff;
 
