@@ -185,9 +185,7 @@ void StepperCtrl_setMotionMode(uint8_t mode) {
 		A4950_enable(true);
 		break;
 	default:
-		enableSensored = false;
-		enableCloseLoop = false;
-		A4950_enable(false);
+		enableSoftOff = true;
 		break;
 	}
 	mode_prev = mode;
