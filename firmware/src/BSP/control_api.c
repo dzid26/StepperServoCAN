@@ -105,7 +105,7 @@ void StepperCtrl_setControlMode(uint8_t mode){
 	}
 
 	// block commands if SoftOff was enabled and torque reached 0
-	if (enableSoftOff && control_actual == 0 && mode != MSG_STEERING_COMMAND_STEER_MODE_OFF_CHOICE) {
+	if (enableSoftOff && (control_actual == 0) && (mode != MSG_STEERING_COMMAND_STEER_MODE_OFF_CHOICE)) {
 		safetyLockoutEnabled = true;
 		return;
 	}

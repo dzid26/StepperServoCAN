@@ -128,7 +128,7 @@ void StepperCtrl_enable(bool enable) {
 		control_actual = 0;
 		currentLocation = 0;
 	}
-	if(controlsEnabled == false && enable == true) {
+	if((controlsEnabled == false) && (enable == true)) {
 		Motion_task_enable();
 	}
 	controlsEnabled = enable;
