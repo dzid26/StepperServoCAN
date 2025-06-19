@@ -73,7 +73,7 @@ CAN Command - expect rate is 10ms
     - CHECKSUM
 
 ### SoftOff as a fault mode
-SoftOff mode will be entered automatically in case of communication loss. To prevent accidental actuation when communication is unexpectedly restored later, the steering commands will be blocked until the Off command is received. This mitigation feature is only activated after the torque reached 0.
+SoftOff mode will be entered automatically in case of communication loss. To prevent accidental actuation when communication is unexpectedly restored later, the steering commands will be blocked until the Off command is received. This mitigation feature is only activated *after* the torque is ramped down to 0Nm.
 
 Actuator will report back its status every 10ms:
 - 0x22F (0559) STEERING_STATUS
