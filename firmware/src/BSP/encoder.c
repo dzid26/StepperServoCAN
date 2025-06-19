@@ -22,6 +22,8 @@
 #include "encoder.h"
 #include "calibration.h"
 
+// volatile int32_t zeroAngleOffset = 0;	// rev/65536  - align encoder zero with motor full step
+
 bool Encoder_begin(void){
 	return TLE5012_begin();
 }

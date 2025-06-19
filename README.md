@@ -60,20 +60,28 @@ RED LED (Error):
 ## CAN interface
 Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)
 
-CAN Command - expect rate is 10ms
-- 0x22E (0558) STEERING_COMMAND
+### CAN RX
+Expect rate is 10ms
+- 0x22E (558) STEERING_COMMAND
     - STEER_TORQUE (Nm)
     - STEER_ANGLE (deg)
     - STEER_MODE
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
         - 2 - "AngleControl"- uses STEER_ANGLE signal to control absolute angle using PID close-loop and STEER_TORQUE as feedforward
-        - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for communication error safe mode
+        - 3 - "SoftOff" - ramp torque down at 2Nm/s rate
     - COUNTER
     - CHECKSUM
 
-Actuator will report back its status every 10ms:
-- 0x22F (0559) STEERING_STATUS
+#### SoftOff as a fault mode
+SoftOff mode will be entered automatically in case of communication loss or corruption. 
+
+#### SoftOff lockout
+To prevent accidental actuation when communication is unexpectedly restored **later**, the steering commands will be blocked until the explicit Off command is received first. This mitigation feature is only activated *after* the torque is ramped down to 0Nm.
+
+### CAN TX
+Actuator will report its status every 10ms:
+- 0x22F (559) STEERING_STATUS
     - STEERING_ANGLE (deg)
     - STEERING_SPEED (rev/s)
     - STEERING_TORQUE (Nm)
