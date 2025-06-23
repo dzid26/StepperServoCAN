@@ -94,13 +94,25 @@ void StepperCtrl_setCloseLoopTorque(float actuator_torque_cl_max){ //set error c
 	}
 }
 
+static bool safetyLockoutEnabled = false;
 void StepperCtrl_setControlMode(uint8_t mode){ 
 	if (stepCtrlError != STEPCTRL_NO_ERROR) {
 		return;
 	}
+
 	if (!api_allow_control){
 		return;
 	}
+
+	// block commands if SoftOff was enabled and torque reached 0
+	if (enableSoftOff && control_actual == 0 && mode != MSG_STEERING_COMMAND_STEER_MODE_OFF_CHOICE) {
+		safetyLockoutEnabled = true;
+		return;
+	}
+	if (safetyLockoutEnabled && mode == MSG_STEERING_COMMAND_STEER_MODE_OFF_CHOICE) {
+		safetyLockoutEnabled = false;
+	}
+
 	switch (mode){
 		case MSG_STEERING_COMMAND_STEER_MODE_OFF_CHOICE:
 			StepperCtrl_setMotionMode(STEPCTRL_OFF);
@@ -168,9 +180,9 @@ uint16_t StepperCtrl_getStatuses(void){
 	uint8_t ret2 = 0;
  
 	// control loop status
-	ret1 |= (StepperCtrl_Enabled ? 0x1U : 0x0U) << 0U;
+	ret1 |= (controlsActive ? 0x1U : 0x0U) << 0U;
 	ret1 |= (enableSensored ? 0x1U : 0x0U) << 1U;
-	ret1 |= (enableSoftOff ? 0x1U : 0x0U) << 2U;
+	ret1 |= (safetyLockoutEnabled ? 0x1U : 0x0U) << 2U;
 	ret1 |= (enableCloseLoop ? 0x1U : 0x0U) << 3U;
 
 	//debug - other

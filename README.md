@@ -68,9 +68,12 @@ CAN Command - expect rate is 10ms
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
         - 2 - "AngleControl"- uses STEER_ANGLE signal to control absolute angle using PID close-loop and STEER_TORQUE as feedforward
-        - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for communication error safe mode
+        - 3 - "SoftOff" - ramp torque down at 2Nm/s rate
     - COUNTER
     - CHECKSUM
+
+### SoftOff as a fault mode
+SoftOff mode will be entered automatically in case of communication loss. To prevent accidental actuation when communication is unexpectedly restored later, the steering commands will be blocked until the Off command is received. This mitigation feature is only activated after the torque reached 0.
 
 Actuator will report back its status every 10ms:
 - 0x22F (0559) STEERING_STATUS

@@ -52,14 +52,10 @@ void nonvolatile_begin(void)
 	}
 }
 
-void nvmWriteCalTable(void *ptrData)
-{
-	bool state = motion_task_isr_enabled;
-	Motion_task_disable(); 
-	
+void nvmWriteCalTable(void *ptrData) {
+	Motion_task_disable();
 	Flash_ProgramPage(CALIBRATION_FLASH_ADDR, ptrData, (sizeof(FlashCalData_t)/2U));
-	
-	if (state) {
+	if (controlsActive) {
 		Motion_task_enable();
 	}
 }
@@ -88,7 +84,6 @@ void nvmWriteConfParms(void){
 	nvm_t* ptr_nvmMirror = &nvmMirror;
 	ptr_nvmMirror->parametersValid  = valid;
 	
-	bool state = motion_task_isr_enabled;
 	Motion_task_disable();
 	//wear leveling
 	if(Flash_readHalfWord(NVM_startAddress) != invalid && ((NVM_startAddress + NONVOLATILE_STEPS) < (PARAMETERS_FLASH_ADDR + FLASH_PAGE_SIZE)))
@@ -118,8 +113,8 @@ void nvmWriteConfParms(void){
 
 	nvmMirrorInRam();
 	
-	if (state) {
-		Motion_task_enable();	
+	if (controlsActive) {
+		Motion_task_enable();
 	}
 	return;
 }

@@ -116,7 +116,7 @@ void field_oriented_control(int16_t current_target) {
 		//U_q = I_q*R + U_emf
 		int16_t U_IR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
 		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_q = U_IR + U_emf;
+		// int32_t U_q = U_IR + U_emf;
 		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
 		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
 		int16_t U_IR_sat = (int16_t)clip(U_IR, -U_lim - U_emf_sat, U_lim - U_emf_sat);
