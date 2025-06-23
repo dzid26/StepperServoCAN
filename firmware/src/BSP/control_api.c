@@ -32,6 +32,8 @@
 #include "encoder.h"
 #include "main.h"
 #include "Msg.h"
+#include "can.h"
+
 
 #define DIR_SIGN(x) ((liveSystemParams.dirRotation==CW_ROTATION) ? (x) : -(x))	//shorthand for swapping direction
 
@@ -194,8 +196,8 @@ uint16_t StepperCtrl_getStatuses(void){
 	ret2 |= (liveSystemParams.dirRotation ? 0x1U : 0x0U) << 3U;
 	ret2 |= (liveSystemParams.errorPinMode ? 0x1U : 0x0U) << 4U;
 
-	//CAN checksum 
-	ret2 |= ((can_err_rx_cnt > 0U) ? 0x1U : 0x0U) << 5U;
+	//CAN RX fail
+	ret2 |= ((rx_fail_cnt > CHECK_RX_FAIL_LIM) ? 0x1U : 0x0U) << 5U;
 	
 	//task status
 	ret2 |= ((motion_task_overrun_count > 0U) ? 0x1U : 0x0U) << 6U;
