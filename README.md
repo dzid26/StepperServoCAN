@@ -58,22 +58,30 @@ RED LED (Error):
     ([wiki](https://github.com/dzid26/StepperServoCAN/wiki/Calibration))
 
 ## CAN interface
-Actuator accepts commands via CANbus as defined by `dbc` file in [Retropilot/Opendbc/ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc)
+Actuator accepts commands via CANbus as defined by `ocelot_controls.dbc.
 
-CAN Command - expect rate is 10ms
-- 0x22E (0558) STEERING_COMMAND
+### CAN RX
+Expect rate is 10ms
+- 0x22E (558) STEERING_COMMAND
     - STEER_TORQUE (Nm)
     - STEER_ANGLE (deg)
     - STEER_MODE
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
         - 2 - "AngleControl"- uses STEER_ANGLE signal to control absolute angle using PID close-loop and STEER_TORQUE as feedforward
-        - 3 - "SoftOff" - ramp torque to 0 in 1s - meant to be used for communication error safe mode
+        - 3 - "SoftOff" - ramp torque down at 5Nm/s rate
     - COUNTER
     - CHECKSUM
 
-Actuator will report back its status every 10ms:
-- 0x22F (0559) STEERING_STATUS
+#### SoftOff as a fault mode
+SoftOff mode will be entered automatically in case of communication loss or corruption. 
+
+#### SoftOff lockout
+To prevent accidental actuation when communication is unexpectedly restored **later**, the steering commands will be blocked until the explicit Off command is received first. This mitigation feature is only activated *after* the torque is ramped down to 0Nm.
+
+### CAN TX
+Actuator will report its status every 10ms:
+- 0x22F (559) STEERING_STATUS
     - STEERING_ANGLE (deg)
     - STEERING_SPEED (rev/s)
     - STEERING_TORQUE (Nm)
@@ -91,7 +99,7 @@ Actuator will report back its status every 10ms:
 
 ### Interfacing with Openpilot
 Reference implementation can be found in my bmw openpilot [repo](https://github.com/dzid26/openpilot-for-BMW-E8x-E9x/commit/51c692dd7e5940be8e6e8ddbfb46321120918d4e):
-- `opendbc/` - make sure [ocelot_controls.dbc](https://github.com/RetroPilot/opendbc/blob/Ocelot-steering-dev/ocelot_controls.dbc#L77-L92) is copied here
+- `opendbc/opendbc/dbc` - make sure [ocelot_controls.dbc](https://github.com/dzid26/opendbc-BMW-E8x-E9x/blob/master/opendbc/dbc/ocelot_controls.dbc#L73-L108) is copied
 - `selfdrive/car/xxx/xxxcan.py` - [sending CAN message](https://github.com/dzid26/openpilot-for-BMW-E8x-E9x/blob/0.74_openactuator_testdev/selfdrive/car/bmw/bmwcan.py#L4-L20)
 - `selfdrive/car/xxx/carstate.py` - [parsing CAN message](https://github.com/dzid26/openpilot-for-BMW-E8x-E9x/blob/51c692dd7e5940be8e6e8ddbfb46321120918d4e/selfdrive/car/bmw/carstate.py#L235-L247)
 - `panda/board/safety/safety_xxx.h`- [CAN tx filter `558`](https://github.com/dzid26/panda_bmw/blob/openactuator_dev/board/safety/safety_bmw.h#L7), some [safety](https://github.com/dzid26/panda_bmw/blob/bbdb0ad5ea7c3ce55032f3875b8b2ee431889106/board/safety/safety_bmw.h#L192-L201), and [safety testing](https://github.com/dzid26/panda_bmw/blob/openactuator_dev/tests/safety/test_bmw.py#L75-L91)

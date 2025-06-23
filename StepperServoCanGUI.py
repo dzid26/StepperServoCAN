@@ -307,7 +307,7 @@ angle = 0
 
 # Load the .dbc file and define it's variables
 current_dir = os.path.dirname(os.path.abspath(__file__))
-dbc_file_path = os.path.join(current_dir, 'opendbc/ocelot_controls.dbc')
+dbc_file_path = os.path.join(current_dir, 'opendbc/opendbc/dbc/ocelot_controls.dbc')
 db = cantools.database.load_file(dbc_file_path)
 
 msg = db.get_message_by_name('STEERING_COMMAND')

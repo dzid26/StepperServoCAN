@@ -27,6 +27,7 @@ void CAN_TransmitMotorStatus(uint32_t frame);
 void CAN_Setup(void);
 bool CAN_rx_validate_tick(void);
 
-extern volatile uint32_t can_err_rx_cnt;
+#define CHECK_RX_FAIL_LIM 5U
+extern volatile uint8_t rx_fail_cnt;
 
 #endif // CAN_H
