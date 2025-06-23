@@ -257,7 +257,7 @@ bool StepperCtrl_processMotion(void)
 		if (enableSoftOff){
 			if (control != 0) {
 				// Calculate the number of tick required to ramp down at DESIRED_TORQUE_RATE
-				#define DESIRED_TORQUE_RATE 2U // Nm/s
+				#define DESIRED_TORQUE_RATE 5U // Nm/s
 				const uint16_t tick_max = ((uint16_t)SAMPLING_HZ / DESIRED_TORQUE_RATE / (uint16_t)actuatorTq_to_current);
 				// count tick between reduction
 				static uint16_t tick = 0;

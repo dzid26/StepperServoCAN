@@ -69,7 +69,7 @@ Expect rate is 10ms
         - 0 - "Off" - instant 0 torque
         - 1 - "TorqueControl" - uses STEER_TORQUE signal to control torque
         - 2 - "AngleControl"- uses STEER_ANGLE signal to control absolute angle using PID close-loop and STEER_TORQUE as feedforward
-        - 3 - "SoftOff" - ramp torque down at 2Nm/s rate
+        - 3 - "SoftOff" - ramp torque down at 5Nm/s rate
     - COUNTER
     - CHECKSUM
 
