@@ -75,20 +75,20 @@ inline static void bridgeB(int state){
 	// Make sure the PIN_A4950_INs timer is counting only to 1 to emulate GPIO
 	TIM_SetAutoreload(PWM_TIM, PWM_TIM_MIN); //Count to 1. This is to use timer output as a gpio, because reconfiguring the pins to gpio online with CLR MODE register was annoying.
 	if (state == 1){ //Forward
-		TIM_SetCompare3(PWM_TIM, 0);
-		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare4(PWM_TIM, 0);
 	}
 	if (state == 0){ //Reverse
-		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
-		TIM_SetCompare4(PWM_TIM, 0);
-	}
-	if (state == 3){ //Coast (off)
-		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare3(PWM_TIM, 0);
 		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
-	if (state == 4){ //brake
+	if (state == 3){ //Coast (off)
 		TIM_SetCompare3(PWM_TIM, 0);
 		TIM_SetCompare4(PWM_TIM, 0);
+	}
+	if (state == 4){ //brake
+		TIM_SetCompare3(PWM_TIM, PWM_TIM_MIN+1);
+		TIM_SetCompare4(PWM_TIM, PWM_TIM_MIN+1);
 	}
 }
 
@@ -175,25 +175,25 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4){
 	uint16_t pwm_count = min(duty, PWM_TIM_MAX);
 
 	if (slow_decay){
-		if (quadrant3or4){
-			// "forward slow decay"
-			TIM_SetCompare3(PWM_TIM, 0);
-			TIM_SetCompare4(PWM_TIM, pwm_count);
-		}else{
-			// "reverse slow decay"
-			TIM_SetCompare3(PWM_TIM, pwm_count);
-			TIM_SetCompare4(PWM_TIM, 0);
-		}
-	}else{		
 		//electric field quadrant
 		if (quadrant3or4){
-			// "forward fast decay"
-			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX - pwm_count);
-			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX);
-		}else{
-			// "reverse fast decay"
+			// "forward slow decay"
 			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX);
 			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX - pwm_count);
+		}else{
+			// "reverse slow decay"
+			TIM_SetCompare3(PWM_TIM, PWM_TIM_MAX - pwm_count);
+			TIM_SetCompare4(PWM_TIM, PWM_TIM_MAX);
+		}
+	}else{		
+		if (quadrant3or4){
+			// "forward fast decay"
+			TIM_SetCompare3(PWM_TIM, pwm_count);
+			TIM_SetCompare4(PWM_TIM, 0);
+		}else{
+			// "reverse fast decay"
+			TIM_SetCompare3(PWM_TIM, 0);
+			TIM_SetCompare4(PWM_TIM, pwm_count);
 		}
 	}
 }
