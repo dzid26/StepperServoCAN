@@ -223,13 +223,14 @@ static void A4950_init(void)
 
 	// Configure PWM_TIM break
 	gpio_initStructure.GPIO_Pin = PIN_A4950_ENABLE;
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; // has external pullup network 
     gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(PIN_A4950, &gpio_initStructure);
 
 	TIM_BDTRInitTypeDef tim_BDTRInitStructure = {0};
-	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;  // If enabled, keep EN port low to activate motor
-	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
+	tim_BDTRInitStructure.TIM_Break = TIM_Break_Enable;
+	// for best safety use normally closed eStop button and change this to TIM_BreakPolarity_High:
+	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_Low;
 	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
 	tim_BDTRInitStructure.TIM_DeadTime = 0xFF;
 	// request Full-off or reset to re-enable outputs
@@ -240,8 +241,7 @@ static void A4950_init(void)
 	TIM_Cmd(PWM_TIM, ENABLE);
 }
 
-static void LED_init(void)
-{
+static void LED_init(void){
 	GPIO_InitTypeDef  gpio_initStructure; 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -250,6 +250,7 @@ static void LED_init(void)
     gpio_initStructure.GPIO_Pin = PIN_LED_BLUE;
     GPIO_Init(GPIO_LED_BLUE, &gpio_initStructure);
 }
+
 static void CAN_begin(void){
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);	//CAN
