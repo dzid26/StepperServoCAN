@@ -241,6 +241,11 @@ static void A4950_init(void)
 	TIM_Cmd(PWM_TIM, ENABLE);
 }
 
+// returns state triggerd by break input (inverted enabled pin)
+bool GetBreakIn_state(void){
+	return TIM_GetFlagStatus(PWM_TIM, TIM_FLAG_Break) == SET;
+}
+
 static void LED_init(void){
 	GPIO_InitTypeDef  gpio_initStructure; 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;

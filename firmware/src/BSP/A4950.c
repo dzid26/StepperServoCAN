@@ -200,21 +200,21 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4){
 
 void A4950_enable(bool enable)
 {
-	if (enable == false || TIM_GetFlagStatus(PWM_TIM, TIM_FLAG_Break) == SET)
-	{
+	if ((enable == false) || (GetBreakIn_state() == true)){
 		set_curr(0,0); //turn current off
 
 		bridgeA(3); //tri state bridge outputs
 		bridgeB(3); //tri state bridge outputs
 		TIM_CtrlPWMOutputs(PWM_TIM, DISABLE);
+		driverEnabled = false;
 	}else{
 		TIM_CtrlPWMOutputs(PWM_TIM, ENABLE);
+		driverEnabled = true;
 	}
-	driverEnabled = enable;
 }
 
 bool get_A4950_enabled(void){
-	return driverEnabled && (TIM_GetFlagStatus(PWM_TIM, TIM_FLAG_Break) == RESET);
+	return driverEnabled && GetBreakIn_state() != true;
 }
 
 /**
