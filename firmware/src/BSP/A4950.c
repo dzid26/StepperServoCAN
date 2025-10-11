@@ -200,7 +200,7 @@ static void setPWM_bridgeB(uint16_t duty, bool quadrant3or4){
 
 void A4950_enable(bool enable)
 {
-	if (enable == false)
+	if (enable == false || TIM_GetFlagStatus(PWM_TIM, TIM_FLAG_Break) == SET)
 	{
 		set_curr(0,0); //turn current off
 

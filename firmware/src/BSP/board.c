@@ -236,6 +236,8 @@ static void A4950_init(void)
 	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;  // If enabled, keep EN port low to activate motor
 	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
+	tim_BDTRInitStructure.TIM_DeadTime = 0xFF;
+	tim_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Enable; // if disabled, reset to re-enable outputs
 	TIM_BDTRConfig(PWM_TIM, &tim_BDTRInitStructure);
 	TIM_ITConfig(PWM_TIM, TIM_IT_Break, ENABLE);
 
