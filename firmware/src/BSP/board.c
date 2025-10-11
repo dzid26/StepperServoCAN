@@ -24,6 +24,7 @@
 #include "A4950.h"
 #include "stepper_controller.h"
 #include "utils.h"
+#include "delay.h"
 
 //Init clock
 static void CLOCK_init(void)
@@ -369,7 +370,8 @@ static void Analog_init(void){
 	}
 
 	//Measure VDDA shortly after ADC calibration
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 1, ADC_SampleTime_71Cycles5);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 1, ADC_SampleTime_239Cycles5);
+	delay_ms(1);
 	Vrefint_adc_update();
 	ADC_SoftwareStartConvCmd(ADC1, DISABLE);
 
