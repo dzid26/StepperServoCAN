@@ -244,12 +244,20 @@ static void A4950_init(void)
 	TIM_Cmd(PWM_TIM, ENABLE);
 }
 
-void TIM1_BRK_IRQHandler(void){ //PWM_TIM break-in
-	if(TIM_GetITStatus(PWM_TIM, TIM_IT_Break) != RESET) {
-		TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
-		// Break stop will not be smooth, but request soft off anyway in order not to be able to enable without requesting full off first
-		StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
-	}
+// UNUSED
+void TIM1_BRK_IRQHandler(void){
+	TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
+
+	// synchronize driver state
+	// code here
+
+	// fire BRK IRQ once; re-enabled when requesting off
+	TIM_ITConfig(PWM_TIM, TIM_IT_Break, DISABLE);
+}
+
+// UNUSED
+void Brk_IRQ_enable(void){
+	TIM_ITConfig(PWM_TIM, TIM_IT_Break, ENABLE);
 }
 
 static void LED_init(void)
