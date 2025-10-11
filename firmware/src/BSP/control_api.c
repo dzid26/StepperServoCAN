@@ -30,6 +30,7 @@
 #include "actuator_config.h"
 #include "nonvolatile.h"
 #include "encoder.h"
+#include "motor.h"
 #include "main.h"
 #include "Msg.h"
 
@@ -141,7 +142,7 @@ float StepperCtrl_getCloseLoop(void) {
 //returns current control actuator torque
 float StepperCtrl_getControlOutput(void) {
 	int16_t ret;
-	ret = control_actual;
+	ret = get_torque();
 	return DIR_SIGN(ret) * current_to_actuatorTq; //convert total control (mA) to actuator output torque
 }
 

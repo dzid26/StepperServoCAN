@@ -213,6 +213,9 @@ void A4950_enable(bool enable)
 	driverEnabled = enable;
 }
 
+bool get_A4950_enabled(void){
+	return driverEnabled && (TIM_GetFlagStatus(PWM_TIM, TIM_FLAG_Break) == RESET);
+}
 
 /**
  * @brief Current based phase activation
