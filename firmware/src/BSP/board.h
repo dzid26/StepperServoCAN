@@ -137,6 +137,8 @@ void Set_Error_LED(bool state);
 void Set_Func_LED(bool state);
 uint8_t Get_jumpers_config(void);
 
+bool GetBreakIn_state(void);
+
 void adc_update_all(void);
 
 float GetVDDA(void);

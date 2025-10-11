@@ -12,4 +12,6 @@ void openloop_step(uint16_t elecAngleStep, uint16_t curr_tar);
 void field_oriented_control(int16_t current_target);
 void base_speed_test(int16_t dir);
 
+int16_t get_torque(void);
+
 #endif // MOTOR_H_
