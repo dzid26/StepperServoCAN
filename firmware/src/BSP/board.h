@@ -160,8 +160,6 @@ extern volatile bool motion_task_isr_enabled;
 void Motion_task_enable(void);
 void Motion_task_disable(void);
 
-void Brk_IRQ_enable(void);
-
 extern volatile bool motion_task_overrun;
 extern volatile uint32_t motion_task_overrun_count;
 extern volatile uint16_t motion_task_execution_us;

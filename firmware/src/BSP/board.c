@@ -49,11 +49,6 @@ static void NVIC_init(void)
 	
 	NVIC_InitTypeDef nvic_initStructure;
 	nvic_initStructure.NVIC_IRQChannelCmd = ENABLE;
-	
-	nvic_initStructure.NVIC_IRQChannel = TIM1_BRK_IRQn;//PWM_TIM break-in
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_Init(&nvic_initStructure);
 
 	nvic_initStructure.NVIC_IRQChannel = TIM4_IRQn;//MOTION_TASK_TIM
 	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 1;
@@ -237,27 +232,12 @@ static void A4950_init(void)
 	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
 	tim_BDTRInitStructure.TIM_DeadTime = 0xFF;
-	tim_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Enable; // if disabled, reset to re-enable outputs
+	// request Full-off or reset to re-enable outputs
+	tim_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
 	TIM_BDTRConfig(PWM_TIM, &tim_BDTRInitStructure);
-	TIM_ITConfig(PWM_TIM, TIM_IT_Break, ENABLE);
+	TIM_ITConfig(PWM_TIM, TIM_IT_Break, DISABLE);
 
 	TIM_Cmd(PWM_TIM, ENABLE);
-}
-
-// UNUSED
-void TIM1_BRK_IRQHandler(void){
-	TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
-
-	// synchronize driver state
-	// code here
-
-	// fire BRK IRQ once; re-enabled when requesting off
-	TIM_ITConfig(PWM_TIM, TIM_IT_Break, DISABLE);
-}
-
-// UNUSED
-void Brk_IRQ_enable(void){
-	TIM_ITConfig(PWM_TIM, TIM_IT_Break, ENABLE);
 }
 
 static void LED_init(void)

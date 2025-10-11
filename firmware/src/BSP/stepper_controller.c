@@ -153,7 +153,6 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		A4950_enable(false);
 
 		TIM_ClearFlag(PWM_TIM, TIM_FLAG_Break); // unlatches break if break released
-		Brk_IRQ_enable();
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
 		enableSensored = true;
