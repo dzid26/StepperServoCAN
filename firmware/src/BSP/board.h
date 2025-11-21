@@ -57,7 +57,7 @@
 #define PIN_A4950_VREF12    GPIO_Pin_5	//TIM3_CH2
 #define PIN_A4950_VREF34    GPIO_Pin_4	//TIM3_CH1
 
-#define RS_A4950            100U //mOhm
+#define RS_A4950            100U //mOhm - shunt resistor
 
 #define PIN_A4950     		GPIOA
 #define A4950_A_IN1   	    GPIO_Pin_8
@@ -80,7 +80,23 @@
 #define ADC_CH_LSS_A        ADC_Channel_0
 #define ADC_CH_LSS_B        ADC_Channel_1
 #define ADC_LSS             ADC1
-#define LSS_OP_OFFSET       0.080f //V
+#define LSS_OP_OFFSET       0.0f //V
+
+static volatile uint16_t lss_dma_buf[2];
+
+// ADC trigger sources - STM32F1 specific
+#define ADC_TRIGGER_SOURCE  ADC_ExternalTrigConv_T1_CC1
+// For injected conversions, we'll use TIM1_TRGO as the trigger source
+#define ADC_INJ_TRIGGER     ADC_ExternalTrigInjecConv_T1_TRGO
+
+// Current sensing configuration
+#define VOLT_GAIN            9.2f    // Current sense amplifier gain
+#define LSS_SCALE            (1.0f / (RS_A4950 / 1000.0f * VOLT_GAIN))  // V/A
+
+// ADC configuration
+#define FILTER_SAMPLES          1       // Number of samples for moving average filter
+#define PWM_TRIGGER_POSITION    7       // 70% of PWM period for current sampling
+#define PWM_TRIGGER_DIVISOR     10      // Divisor for PWM trigger position calculation
 
 
 //DClink

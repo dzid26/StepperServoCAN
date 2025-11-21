@@ -24,6 +24,7 @@
 #include "A4950.h"
 #include "stepper_controller.h"
 #include "utils.h"
+#include "delay.h"
 
 //Init clock
 static void CLOCK_init(void)
@@ -59,13 +60,18 @@ static void NVIC_init(void)
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);	
 
-	nvic_initStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn; //CAN bus
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	// nvic_initStructure.NVIC_IRQChannel = ADC1_2_IRQn;
+	// nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	// nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
+	// NVIC_Init(&nvic_initStructure);
+
+	nvic_initStructure.NVIC_IRQChannel = EXTI15_10_IRQn; //F1, F2 keys
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 3;
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&nvic_initStructure);
 
-	nvic_initStructure.NVIC_IRQChannel = EXTI15_10_IRQn; //F1, F2 keys
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	nvic_initStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn; //CAN bus
+	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 3;
 	nvic_initStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_Init(&nvic_initStructure);
 
@@ -169,13 +175,16 @@ static void A4950_init(void)
 
 	//Init VREF_TIM
 	TIM_DeInit(VREF_TIM);
+	TIM_TimeBaseStructInit(&timeBaseStructure);
 	timeBaseStructure.TIM_Period = VREF_TIM_MAX;
 	timeBaseStructure.TIM_Prescaler = 0;						//No prescaling - max speed 72MHz
 	timeBaseStructure.TIM_ClockDivision = 0;
+	timeBaseStructure.TIM_RepetitionCounter = 0;
 	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(VREF_TIM, &timeBaseStructure);
 	
 	
+	TIM_OCStructInit(&tim_OCInitStructure);
 	tim_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
  	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
@@ -199,9 +208,11 @@ static void A4950_init(void)
 	timeBaseStructure.TIM_Period = PWM_TIM_MAX;
 	timeBaseStructure.TIM_Prescaler = 0;	//No prescaling - max cpu speed (MHz)
 	timeBaseStructure.TIM_ClockDivision = 0;
+	timeBaseStructure.TIM_RepetitionCounter = 1; // generate update event only on every other over/underflow event
 	timeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
 	TIM_TimeBaseInit(PWM_TIM, &timeBaseStructure);
 
+	TIM_OCStructInit(&tim_OCInitStructure);
 	tim_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
  	tim_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	tim_OCInitStructure.TIM_OutputNState = TIM_OutputState_Disable;
@@ -229,8 +240,13 @@ static void A4950_init(void)
     gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(PIN_A4950, &gpio_initStructure);
 
+	// Configure Timer1 to trigger ADC at the optimal point in the PWM cycle
+	// We'll use the update event to trigger the ADC at the beginning of each PWM period
+	TIM_SelectOutputTrigger(PWM_TIM, TIM_TRGOSource_OC1);
+
+	// Configure break and dead-time
 	TIM_BDTRInitTypeDef tim_BDTRInitStructure = {0};
-	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;  // If enabled, keep EN port low to activate motor
+	tim_BDTRInitStructure.TIM_Break = TIM_Break_Enable;  // If enabled, keep EN port low to activate motor
 	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
 	TIM_BDTRConfig(PWM_TIM, &tim_BDTRInitStructure);
@@ -239,13 +255,14 @@ static void A4950_init(void)
 	TIM_Cmd(PWM_TIM, ENABLE);
 }
 
-void TIM1_BRK_IRQHandler(void){ //PWM_TIM break-in
-	if(TIM_GetITStatus(PWM_TIM, TIM_IT_Break) != RESET) {
+void TIM1_BRK_IRQHandler(void){
+  if (TIM_GetITStatus(PWM_TIM, TIM_IT_Break) != RESET) {
 		TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
-		// Break stop will not be smooth, but request soft off anyway in order not to be able to enable without requesting full off first
+    TIM_ITConfig(PWM_TIM, TIM_IT_Break, DISABLE);
 		StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
 	}
 }
+
 
 static void LED_init(void)
 {
@@ -320,63 +337,119 @@ static void Vrefint_adc_update(void);
 
 static void Analog_init(void){
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC2, ENABLE);
 	RCC_ADCCLKConfig(RCC_PCLK2_Div6); //div6 default
 
-	
-	GPIO_InitTypeDef  gpio_initStructure;
+	// Configure GPIO for analog inputs
+	GPIO_InitTypeDef gpio_initStructure;
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_AIN;
+
+    // Motor voltage sense
     gpio_initStructure.GPIO_Pin = PIN_VMOT;
 	GPIO_Init(GPIO_VMOT, &gpio_initStructure);
 
+    // Battery voltage sense
 	gpio_initStructure.GPIO_Pin = PIN_VBAT;
 	GPIO_Init(GPIO_VBAT, &gpio_initStructure);
 	
-    gpio_initStructure.GPIO_Pin = PIN_LSS_A|PIN_LSS_B;
+    // Low-side shunt current sense
+    gpio_initStructure.GPIO_Pin = PIN_LSS_A | PIN_LSS_B;
 	GPIO_Init(GPIO_LSS, &gpio_initStructure);
 
-
+    // Configure ADC1
 	ADC_DeInit(ADC1);
+	
 	ADC_InitTypeDef adc_initStructure;
+	ADC_StructInit(&adc_initStructure);
 	/* ADC1 configuration ------------------------------------------------------*/
 	adc_initStructure.ADC_Mode = ADC_Mode_Independent;	 
-	adc_initStructure.ADC_ScanConvMode = DISABLE;			  
-	adc_initStructure.ADC_ContinuousConvMode = DISABLE;	 
-	adc_initStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; 
+    adc_initStructure.ADC_ScanConvMode = DISABLE;  // Regular conversions used only single-shot
+    adc_initStructure.ADC_ContinuousConvMode = DISABLE;  // Disable continuous mode, we'll use SW starts for regular
+    adc_initStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; // No external trigger for regular conversions
 	adc_initStructure.ADC_DataAlign = ADC_DataAlign_Right;		   
-	adc_initStructure.ADC_NbrOfChannel = 5;
+    adc_initStructure.ADC_NbrOfChannel = 3;
+    
 	ADC_Init(ADC1, &adc_initStructure);
 
 	ADC_DiscModeCmd(ADC1, ENABLE);
 	ADC_DiscModeChannelCountConfig(ADC1, 1);
 
-	/* Enable the temperature sensor and vref internal channel */ 
+    // Enable the temperature sensor and vref internal channel 
 	ADC_TempSensorVrefintCmd(ENABLE);
-	/* Enable ADC1 */
+
+	
+    // ADC2 configuration (we only use injected conversions on ADC2)
+    ADC_DeInit(ADC2);
+	ADC_InitTypeDef adc2_init;
+	ADC_StructInit(&adc2_init);
+	adc2_init.ADC_Mode = ADC_Mode_Independent;
+	adc2_init.ADC_ScanConvMode = ENABLE;     // Enable scan mode for multi-channel injected conversions
+	adc2_init.ADC_ContinuousConvMode = DISABLE;
+	adc2_init.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	adc2_init.ADC_DataAlign = ADC_DataAlign_Right;
+	adc2_init.ADC_NbrOfChannel = 1;      // This parameter is for regular channels. Injected channels are configured separately.
+	ADC_Init(ADC2, &adc2_init);
+
+
+
+    // Enable ADC1 and ADC2 before any conversions
 	ADC_Cmd(ADC1, ENABLE);
-	/* Enable ADC1 reset calibaration register */ 
+    ADC_Cmd(ADC2, ENABLE);
+
+    // Calibrate ADCs
 	ADC_ResetCalibration(ADC1);
-	/* Check the end of ADC1 reset calibration register */
-	while(ADC_GetResetCalibrationStatus(ADC1) == SET){
-		//wait for adc calibration reset
+    while(ADC_GetResetCalibrationStatus(ADC1) == SET) {
+        // Wait for calibration reset
 	}
-	/* Start ADC1 calibaration */
 	ADC_StartCalibration(ADC1);
-	/* Check the end of ADC1 calibration */
-	while(ADC_GetCalibrationStatus(ADC1) == SET){
-		//wait for adc calibration finish
+	while(ADC_GetCalibrationStatus(ADC1) == SET) {
+        // Wait for ADC calibration to complete
+    }
+
+	ADC_ResetCalibration(ADC2);
+    while(ADC_GetResetCalibrationStatus(ADC2) == SET) {
+        // Wait for calibration reset
+    }
+	ADC_StartCalibration(ADC2);
+    while(ADC_GetCalibrationStatus(ADC2) == SET) {
+        // Wait for ADC calibration to complete
 	}
 
-	//Measure VDDA shortly after ADC calibration
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 1, ADC_SampleTime_71Cycles5);
+    // Measure VDDA after ADC calibration (real reading after dummy/stabilization)
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 1, ADC_SampleTime_239Cycles5);
+	delay_ms(1);
 	Vrefint_adc_update();
 	ADC_SoftwareStartConvCmd(ADC1, DISABLE);
 
 	/* ADC1 regular configuration */ 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1, ADC_SampleTime_71Cycles5);
-	ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 2, ADC_SampleTime_13Cycles5);
-	ADC_RegularChannelConfig(ADC_VBAT, ADC_CH_VBAT, 3, ADC_SampleTime_13Cycles5);
-	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_A, 4, ADC_SampleTime_239Cycles5);
-	ADC_RegularChannelConfig(ADC_LSS, ADC_CH_LSS_B, 5, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC_VMOT, ADC_CH_VMOT, 2, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC_VBAT, ADC_CH_VBAT, 3, ADC_SampleTime_239Cycles5);
+
+    // Configure injected channels for synchronized current measurement
+    // First, disable any ongoing conversions
+    // ADC_SoftwareStartInjectedConvCmd(ADC1, DISABLE);
+    ADC_SoftwareStartInjectedConvCmd(ADC2, DISABLE);
+    
+    // Injected sequence length = 1 on both ADCs
+    // ADC_InjectedSequencerLengthConfig(ADC1, 1);
+    ADC_InjectedSequencerLengthConfig(ADC2, 2);
+
+    ADC_InjectedChannelConfig(ADC2, ADC_CH_LSS_A, 1, ADC_SampleTime_13Cycles5);
+    ADC_InjectedChannelConfig(ADC2, ADC_CH_LSS_B, 2, ADC_SampleTime_13Cycles5);
+    
+    // External triggers: ADC1 from TIM1_CC1 (phase1), ADC2 from TIM1_CC4 (phase2)
+    // ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_TRGO);
+    ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T1_TRGO); // ADC_ExternalTrigInjecConv_T1_CC4
+    // ADC_ExternalTrigInjectedConvCmd(ADC1, ENABLE);
+    ADC_ExternalTrigInjectedConvCmd(ADC2, ENABLE);
+    
+    // We poll injected results instead of using interrupts to reduce ISR load
+    // ADC_ITConfig(ADC1, ADC_IT_JEOC, DISABLE);
+    ADC_ITConfig(ADC2, ADC_IT_JEOC, DISABLE);
+
+    // ADC_Cmd(ADC1, ENABLE);
+    ADC_Cmd(ADC2, ENABLE);
 }
 
 static uint16_t Get_ADC_raw_nextRank(ADC_TypeDef* adcx){
@@ -395,7 +468,7 @@ static float covnert_ADC_raw_volt(uint16_t adc_raw){
 	return adc_volt;
 }
 
-static uint16_t  vdda_adc_mV;
+static uint16_t vdda_adc_mV;
 //called only once during boot up
 static void Vrefint_adc_update(void){
 	vrefint_adc = Get_ADC_raw_nextRank(ADC1);
@@ -457,31 +530,54 @@ uint16_t GetSupplyVoltage_mV(void){
 
 static float lssA_adc;
 static float lssB_adc;
-static void LSS_adc_update(void){ //todo add filter
-	float adc_volt;
-	adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_LSS));
-	lssA_adc = max(adc_volt-LSS_OP_OFFSET, 0.0f) / 9.2f * 10.0f;
-	adc_volt = covnert_ADC_raw_volt(Get_ADC_raw_nextRank(ADC_LSS));
-	lssB_adc = max(adc_volt-LSS_OP_OFFSET, 0.0f) / 9.2f * 10.0f;
+static // Global variables for synchronized current measurement
+volatile uint16_t lssA_raw = 0;
+volatile uint16_t lssB_raw = 0;
+
+// Read injected results if end-of-conversion flags are set and clear flags.
+static inline void LSS_read_adc_injected(void) {
+    if (ADC_GetFlagStatus(ADC2, ADC_FLAG_JEOC) == SET) {
+        lssA_raw = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+        lssB_raw = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2);
+        ADC_ClearFlag(ADC2, ADC_FLAG_JEOC);
+    }
 }
 
-float Get_PhaseA_Current(void){
+// Interrupt handler for ADC1 and ADC2 (shared IRQ)
+void ADC1_2_IRQHandler(void) {
+    // Reuse the same logic as the polled path
+    LSS_read_adc_injected();
+}
+
+void LSS_adc_update(void) {
+    // Update latest injected results if new conversions completed.
+    LSS_read_adc_injected();
+
+    // Convert to current (A). ADC pin voltage minus op-amp offset, scaled by 1/(R*Gain)
+    float vA = covnert_ADC_raw_volt(lssA_raw);
+    float vB = covnert_ADC_raw_volt(lssB_raw);
+    lssA_adc = (vA - LSS_OP_OFFSET) * LSS_SCALE;
+    lssB_adc = (vB - LSS_OP_OFFSET) * LSS_SCALE;
+}
+
+float Get_PhaseA_Current(void) {
 	return lssA_adc;
 }
-float Get_PhaseB_Current(void){
+
+float Get_PhaseB_Current(void) {
 	return lssB_adc;
 }
 
-void adc_update_all(void){
+void adc_update_all(void) {
+    LSS_adc_update();
+
 	//order matters - see ADC1 regular configuration above
 	ChipTemp_adc_update();
 	Vmot_adc_update();
 	Vbat_adc_update();
-	LSS_adc_update();
 }
 
-void board_init(void)
-{
+void board_init(void) {
 	CLOCK_init();
 	A4950_init();
 	Analog_init();

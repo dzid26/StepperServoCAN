@@ -103,7 +103,7 @@ stepCtrlError_t StepperCtrl_begin(void){
 	CalibrationTable_init();
 
 	//voltage check
-	if ((GetSupplyVoltage() < MIN_SUPPLY_VOLTAGE) || (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE - 0.1f)){
+	if (GetMotorVoltage() < MIN_SUPPLY_VOLTAGE - 0.1f) {
 		return STEPCTRL_NO_POWER;
 	}
 
