@@ -8,7 +8,7 @@
 #include "utils.h"
 
 // ----- should be set by the user --------------------------------------------------------------------------------
-const bool USE_VOLTAGE_CONTROL = false; // voltage or current control - voltage control recommended for hardware v0.3
+const bool USE_VOLTAGE_CONTROL = true; // voltage or current control - voltage control recommended for hardware v0.3
 
 // select simple or advanced parameters
 // simple parameters (rated torque and current) are usually overstated by manufacturers

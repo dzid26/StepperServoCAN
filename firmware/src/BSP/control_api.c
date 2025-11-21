@@ -168,7 +168,7 @@ uint16_t StepperCtrl_getStatuses(void){
 	uint8_t ret2 = 0;
  
 	// control loop status
-	ret1 |= (StepperCtrl_Enabled ? 0x1U : 0x0U) << 0U;
+	ret1 |= (controlsEnabled ? 0x1U : 0x0U) << 0U;
 	ret1 |= (enableSensored ? 0x1U : 0x0U) << 1U;
 	ret1 |= (enableSoftOff ? 0x1U : 0x0U) << 2U;
 	ret1 |= (enableCloseLoop ? 0x1U : 0x0U) << 3U;

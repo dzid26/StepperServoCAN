@@ -109,16 +109,16 @@ void field_oriented_control(int16_t current_target) {
 	uint16_t electricAngle = calc_electric_angle(volt_control);
 
 	int16_t I_q = current_target;
+	int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
+	int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
+	int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
 	if(volt_control == true){
 		//Iq, Id, Uq, Ud per FOC nomencluture
 
 		//Qadrature axis
 		//U_q = I_q*R + U_emf
 		int16_t U_IR = (int16_t)((int32_t)I_q * phase_R / Ohm_to_mOhm);
-		int32_t U_emf = (int32_t)((int64_t)motor_k_bemf * speed_slow / (int32_t)ANGLE_STEPS);
-		int32_t U_q = U_IR + U_emf;
-		int16_t U_lim = (int16_t)min(GetMotorVoltage_mV(), INT16_MAX);
-		int16_t U_emf_sat = (int16_t)clip(U_emf, -U_lim, U_lim);
+		// int32_t U_q = U_IR + U_emf;
 		int16_t U_IR_sat = (int16_t)clip(U_IR, -U_lim - U_emf_sat, U_lim - U_emf_sat);
 		U_IR_sat = (int16_t)clip(U_IR_sat, -U_lim, U_lim);
 		int16_t U_q_sat = U_IR_sat + U_emf_sat;
@@ -136,7 +136,9 @@ void field_oriented_control(int16_t current_target) {
 		voltage_commutation(electricAngle, U_q_sat, U_d_sat, magnitude);
 	}else{
 		current_commutation(electricAngle, I_q, 0);
-		current_actual = current_target; // simplification for higher speeds - //todo estimate or measure actual current
+		// estimated current limit
+		int16_t I_max = (int16_t)((int32_t)(int16_t)(U_lim - U_emf_sat) * Ohm_to_mOhm / phase_R); // todo this could be merged with volt control
+		current_actual = clip(I_q, -I_max, I_max);
 
 	}
 	control_actual = current_actual;
