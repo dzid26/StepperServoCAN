@@ -32,27 +32,26 @@
 volatile PID_t pPID; //positional current based PID control parameters
 volatile PID_t vPID; //velocity PID control parameters
 
-volatile bool StepperCtrl_Enabled = false;
+volatile int32_t angleFullStep = ANGLE_STEPS / FULLSTEPS_1_8;	// rev/65536
+
+volatile bool controlsEnabled = false;
 volatile bool enableSensored = false; //motor control using sensor angle feedback scheme
 volatile bool enableCloseLoop = false; //true if control uses PID
 volatile bool enableSoftOff = false; //true if soft off is enabled
 static volatile bool enableRelative = true;
-volatile int32_t angleFullStep = 327;
-
-volatile int32_t zeroAngleOffset = 0;
 
 //api - commanded
-volatile int32_t desiredLocation;
-volatile int16_t feedForward;
-volatile int16_t closeLoopMaxDes;
+volatile int32_t desiredLocation;	// rev/65536
+volatile int16_t feedForward;		// mA
+volatile int16_t closeLoopMaxDes;	// mA
 
 //api - measured
-volatile int32_t currentLocation = 0;
-volatile int16_t closeLoop;
-volatile int16_t control;
-volatile int16_t control_actual;
-volatile int32_t speed_slow = 0; // rev/s/65536
-volatile int32_t loopError = 0;
+volatile int32_t currentLocation = 0; // rev/65536
+volatile int16_t closeLoop;			// mA
+volatile int16_t control;			// mA
+volatile int16_t control_actual;	// mA
+volatile int32_t speed_slow = 0; 	// rev/s/65536
+volatile int32_t loopError = 0;		// rev/65536
 
 // special mode
 static bool base_speed_mode = false;
@@ -118,10 +117,9 @@ stepCtrlError_t StepperCtrl_begin(void){
 	return STEPCTRL_NO_ERROR;
 }
 
-void StepperCtrl_enable(bool enable) //enables feedback sensor processing StepperCtrl_processMotion()
-{
-	if(StepperCtrl_Enabled == true && enable == false)
-	{
+// enables feedback sensor processing StepperCtrl_processMotion()
+void StepperCtrl_enable(bool enable) {
+	if(controlsEnabled == true && enable == false) {
 		Motion_task_disable();
 		//reset globals:
 		speed_slow = 0;
@@ -130,26 +128,28 @@ void StepperCtrl_enable(bool enable) //enables feedback sensor processing Steppe
 		control_actual = 0;
 		currentLocation = 0;
 	}
-	if(StepperCtrl_Enabled == false && enable == true) //if we are enabling previous disabled motor
-	{
+	if((controlsEnabled == false) && (enable == true)) {
 		Motion_task_enable();
 	}
-	StepperCtrl_Enabled = enable;
+	controlsEnabled = enable;
 }
 
-void StepperCtrl_setMotionMode(uint8_t mode)
-{	
+void StepperCtrl_setMotionMode(uint8_t mode) {
+	Motion_task_disable(); // block motion task
+
 	//refresh parameters when exiting STEPCTRL_OFF state
 	static uint8_t mode_prev = STEPCTRL_OFF;
 	if((mode != STEPCTRL_OFF) && (mode_prev != mode)){
 		UpdateRuntimeParams();
 	}
+	enableSoftOff = false;
+	enableCloseLoop = false;
+	enableRelative = false;
 	base_speed_mode = false;
+
 	switch (mode) {
 	case STEPCTRL_OFF:
 		enableSensored = false; //motor control using angle sensor feedback is off
-		// enableNoFeedback = false; //motor control fallback to open loop
-		enableSoftOff = false;
 		A4950_enable(false);
 		break;
 	case STEPCTRL_FEEDBACK_POSITION_RELATIVE: //TODO
@@ -161,7 +161,6 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 	case STEPCTRL_FEEDBACK_POSITION_ABSOLUTE:
 		enableSensored = true;
 		enableCloseLoop = true;
-		enableRelative = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_VELOCITY:	//TODO
@@ -171,17 +170,14 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		break;
 	case STEPCTRL_FEEDBACK_TORQUE:
 		enableSensored = true;
-		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_CURRENT:	//TODO
 		enableSensored = true;
-		enableCloseLoop = false;
 		A4950_enable(true);
 		break;
 	case STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF:
 		enableSensored = true;
-		enableCloseLoop = false;
 		enableSoftOff = true;
 		break;
 	case STEPCTRL_FEEDBACK_KBEMF_ADAPT:
@@ -189,19 +185,21 @@ void StepperCtrl_setMotionMode(uint8_t mode)
 		A4950_enable(true);
 		break;
 	default:
-		enableSensored = false;
-		enableCloseLoop = false;
-		A4950_enable(false);
+		enableSoftOff = true;
 		break;
 	}
 	mode_prev = mode;
+
+	if (controlsEnabled) {
+		Motion_task_enable(); // resume motion task
+	}
 }
 
-void StepperCtrl_setCurrent(int16_t current){
+void StepperCtrl_setCurrent(int16_t current) {
 	feedForward = current;
 }
 
-void StepperCtrl_setCloseLoopCurrentLim(int16_t current){
+void StepperCtrl_setCloseLoopCurrentLim(int16_t current) {
 	closeLoopMaxDes = current;
 }
 
@@ -259,7 +257,7 @@ bool StepperCtrl_processMotion(void)
 		if (enableSoftOff){
 			if (control != 0) {
 				// Calculate the number of tick required to ramp down at DESIRED_TORQUE_RATE
-				#define DESIRED_TORQUE_RATE 2U // Nm/s
+				#define DESIRED_TORQUE_RATE 5U // Nm/s
 				const uint16_t tick_max = ((uint16_t)SAMPLING_HZ / DESIRED_TORQUE_RATE / (uint16_t)actuatorTq_to_current);
 				// count tick between reduction
 				static uint16_t tick = 0;

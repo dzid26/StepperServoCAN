@@ -31,7 +31,7 @@ static uint16_t can_status_id;
 
 static volatile uint32_t can_rx_cnt = 0U;      // cppcheck-suppress  misra-c2012-8.9
 static volatile uint32_t can_tx_cnt = 0U;      // cppcheck-suppress  misra-c2012-8.9
-volatile uint32_t can_err_rx_cnt = 0U;
+static volatile uint32_t can_err_rx_cnt = 0U;
 static volatile uint32_t can_err_tx_cnt = 0U;  // cppcheck-suppress  misra-c2012-8.9
 static volatile uint32_t can_overflow_cnt = 0U;// cppcheck-suppress  misra-c2012-8.9
 static volatile uint8_t can_err_tx_last = 0U;  // cppcheck-suppress  misra-c2012-8.9
@@ -186,16 +186,14 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 }
 
 #define CHECK_RX_FAIL_LIM 5U
+volatile uint8_t rx_fail_cnt = 0U;
+
 // called from 10ms task
 bool CAN_rx_validate_tick(void) {
 	static uint16_t can_control_cmds_cnt_prev = 0U;
-	static uint8_t rx_fail_cnt = 0U;
-
-
 	if (can_control_cmd_cnt != can_control_cmds_cnt_prev) { //counter has changed - OK
 		can_control_cmds_cnt_prev = can_control_cmd_cnt;
 		rx_fail_cnt = 0U; //reset counter
-		return true;
 	}else{
 		rx_fail_cnt++;
 		if (rx_fail_cnt > CHECK_RX_FAIL_LIM) {
@@ -204,4 +202,5 @@ bool CAN_rx_validate_tick(void) {
 		}
 		return true;
 	}
+	return true;
 }
