@@ -49,11 +49,6 @@ static void NVIC_init(void)
 	
 	NVIC_InitTypeDef nvic_initStructure;
 	nvic_initStructure.NVIC_IRQChannelCmd = ENABLE;
-	
-	nvic_initStructure.NVIC_IRQChannel = TIM1_BRK_IRQn;//PWM_TIM break-in
-	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	nvic_initStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_Init(&nvic_initStructure);
 
 	nvic_initStructure.NVIC_IRQChannel = TIM4_IRQn;//MOTION_TASK_TIM
 	nvic_initStructure.NVIC_IRQChannelPreemptionPriority = 1;
@@ -228,30 +223,30 @@ static void A4950_init(void)
 
 	// Configure PWM_TIM break
 	gpio_initStructure.GPIO_Pin = PIN_A4950_ENABLE;
-	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	gpio_initStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; // has external pullup network 
     gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(PIN_A4950, &gpio_initStructure);
 
 	TIM_BDTRInitTypeDef tim_BDTRInitStructure = {0};
-	tim_BDTRInitStructure.TIM_Break = TIM_Break_Disable;  // If enabled, keep EN port low to activate motor
-	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
+	tim_BDTRInitStructure.TIM_Break = TIM_Break_Enable;
+	// for best safety use normally closed eStop button and change this to TIM_BreakPolarity_High:
+	tim_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_Low;
 	tim_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_3;
+	tim_BDTRInitStructure.TIM_DeadTime = 0xFF;
+	// request Full-off or reset to re-enable outputs
+	tim_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
 	TIM_BDTRConfig(PWM_TIM, &tim_BDTRInitStructure);
-	TIM_ITConfig(PWM_TIM, TIM_IT_Break, ENABLE);
+	TIM_ITConfig(PWM_TIM, TIM_IT_Break, DISABLE);
 
 	TIM_Cmd(PWM_TIM, ENABLE);
 }
 
-void TIM1_BRK_IRQHandler(void){ //PWM_TIM break-in
-	if(TIM_GetITStatus(PWM_TIM, TIM_IT_Break) != RESET) {
-		TIM_ClearITPendingBit(PWM_TIM, TIM_IT_Break);
-		// Break stop will not be smooth, but request soft off anyway in order not to be able to enable without requesting full off first
-		StepperCtrl_setMotionMode(STEPCTRL_FEEDBACK_SOFT_TORQUE_OFF);
-	}
+// returns state triggerd by break input (inverted enabled pin)
+bool GetBreakIn_state(void){
+	return TIM_GetFlagStatus(PWM_TIM, TIM_FLAG_Break) == SET;
 }
 
-static void LED_init(void)
-{
+static void LED_init(void){
 	GPIO_InitTypeDef  gpio_initStructure; 
 	gpio_initStructure.GPIO_Mode = GPIO_Mode_Out_PP;
  	gpio_initStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -260,6 +255,7 @@ static void LED_init(void)
     gpio_initStructure.GPIO_Pin = PIN_LED_BLUE;
     GPIO_Init(GPIO_LED_BLUE, &gpio_initStructure);
 }
+
 static void CAN_begin(void){
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);	//CAN

@@ -142,3 +142,13 @@ void field_oriented_control(int16_t current_target) {
 	control_actual = current_actual;
 }
 
+
+int16_t get_torque() {
+	int16_t torqueAct;
+	if (get_A4950_enabled()) {
+		torqueAct = control_actual;
+	} else {
+		torqueAct = 0;
+	}
+	return torqueAct;
+}

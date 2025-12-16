@@ -42,6 +42,8 @@ void A4950_enable(bool enable);
 void phase_current_command(int16_t I_a, int16_t I_b);
 void phase_voltage_command(int16_t U_a, int16_t U_b, uint16_t curr_lim);
 
+bool get_A4950_enabled(void);
+
 extern volatile bool driverEnabled;
 
 #endif

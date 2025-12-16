@@ -30,6 +30,7 @@
 #include "actuator_config.h"
 #include "nonvolatile.h"
 #include "encoder.h"
+#include "motor.h"
 #include "main.h"
 #include "Msg.h"
 
@@ -141,7 +142,7 @@ float StepperCtrl_getCloseLoop(void) {
 //returns current control actuator torque
 float StepperCtrl_getControlOutput(void) {
 	int16_t ret;
-	ret = control_actual;
+	ret = get_torque();
 	return DIR_SIGN(ret) * current_to_actuatorTq; //convert total control (mA) to actuator output torque
 }
 
@@ -160,7 +161,6 @@ float StepperCtrl_getPositionError(void) {
 }
 
 
-extern volatile bool driverEnabled;
 extern volatile uint32_t can_err_rx_cnt;
 
 uint16_t StepperCtrl_getStatuses(void){
@@ -174,8 +174,8 @@ uint16_t StepperCtrl_getStatuses(void){
 	ret1 |= (enableCloseLoop ? 0x1U : 0x0U) << 3U;
 
 	//debug - other
-	ret2 |= (driverEnabled ? 0x1U : 0x0U) << 0U;
-	ret2 |= (motion_task_isr_enabled ? 0x1U : 0x0U) << 1U; //here should be always 0
+	ret2 |= (get_A4950_enabled() ? 0x1U : 0x0U) << 0U;
+	ret2 |= (GetBreakIn_state() ? 0x1U : 0x0U) << 1U;
 
 	// actuator parameters
 	ret2 |= (liveMotorParams.invertedPhase ? 0x1U : 0x0U) << 2U;
